@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+  "name": "realtime-rendering",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "stb",
+    "glfw3",
+    "glm",
+    "tinyobjloader",
+    "spdlog",
+    {
+      "name": "imgui",
+      "features": [
+        "glfw-binding",
+        "vulkan-binding",
+        "docking-experimental"
+      ]
+    },
+    "imguizmo",
+    "tinygltf",
+    "nativefiledialog"
+  ]
+}
