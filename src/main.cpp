@@ -95,9 +95,9 @@ public:
             scene.objects.push_back(_object);
         }
 
-        camera = rv::OrbitalCamera{this, 1920, 1080};
-        camera.fovY = glm::radians(30.0f);
-        camera.distance = 10.0f;
+        camera = rv::Camera(this, rv::Camera::Type::Orbital, 1920.0f / 1080.0f);
+        camera.setFovY(glm::radians(30.0f));
+        camera.setDistance(10.0f);
 
         iconManager.init(context);
         assetWindow.init(context, scene, iconManager);
@@ -108,6 +108,13 @@ public:
     }
 
     void onUpdate() override {
+        for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
+            if (isKeyDown(key)) {
+                spdlog::info("key down: {}", key);
+                camera.processKey(key);
+            }
+        }
+
         camera.processDragDelta(viewportWindow.dragDelta);
         camera.processMouseScroll(viewportWindow.mouseScroll);
         frame++;
@@ -118,7 +125,7 @@ public:
             context.getDevice().waitIdle();
             viewportWindow.createImages(static_cast<uint32_t>(viewportWindow.width),
                                         static_cast<uint32_t>(viewportWindow.height));
-            camera.aspect = viewportWindow.width / viewportWindow.height;
+            camera.setAspect(viewportWindow.width / viewportWindow.height);
         }
         static bool dockspaceOpen = true;
         commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
@@ -184,7 +191,7 @@ public:
     }
 
     // Scene
-    rv::OrbitalCamera camera;
+    rv::Camera camera;
     Scene scene;
     int frame = 0;
 
