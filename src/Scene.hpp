@@ -205,6 +205,12 @@ public:
                 if (_camera.contains("distance")) {
                     camera.setDistance(_camera["distance"]);
                 }
+                if (_camera.contains("phi")) {
+                    camera.setPhi(_camera["phi"]);
+                }
+                if (_camera.contains("theta")) {
+                    camera.setTheta(_camera["theta"]);
+                }
             } else if (_camera["type"] == "FirstPerson") {
                 camera = rv::Camera(nullptr, rv::Camera::Type::FirstPerson, 1920.0f / 1080.0f);
             }
