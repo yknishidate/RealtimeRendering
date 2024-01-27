@@ -49,7 +49,7 @@ public:
                 const rv::ImageHandle& depthImage,
                 const Scene& scene,
                 int frame) {
-        commandBuffer.clearColorImage(colorImage, {0.05f, 0.05f, 0.05f, 1.0f});
+        commandBuffer.clearColorImage(colorImage, {0.0f, 0.0f, 0.0f, 1.0f});
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
 
         commandBuffer.beginDebugLabel("Renderer::render()");

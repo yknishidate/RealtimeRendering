@@ -49,10 +49,29 @@ struct KeyFrame {
     Transform transform;
 };
 
+class Light {
+public:
+    enum class Type {
+        Directional,
+        Point,
+        Ambient,
+    };
+
+    // Common
+    glm::vec3 color;
+    float intensity;
+
+    // Directional
+    glm::vec3 direction;
+
+    // Point
+    glm::vec3 position;
+    float radius;
+};
+
 class Object {
 public:
     Transform computeTransformAtFrame(int frame) const {
-        // TODO: precompute
         // Handle frame out of range
         if (frame <= keyFrames.front().frame) {
             return keyFrames.front().transform;
@@ -78,7 +97,7 @@ public:
                 return Transform::lerp(prev.transform, next.transform, t);
             }
         }
-        assert(false && "Failed to compte transform at frame.");
+        assert(false && "Failed to compute transform at frame.");
         return {};
     }
 
@@ -98,7 +117,6 @@ public:
 
     enum class Type {
         Mesh,
-        DomeLight,
     };
 
     std::string name;
