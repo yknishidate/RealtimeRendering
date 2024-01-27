@@ -3,13 +3,9 @@
 
 #include "Scene.hpp"
 
-class Renderer {
-    struct PushConstants {
-        glm::mat4 viewProj{};
-        glm::mat4 model{};
-        glm::vec3 color{};
-    };
+#include "../shader/standard.glsl"
 
+class Renderer {
 public:
     void init(const rv::Context& _context) {
         context = &_context;
@@ -27,13 +23,33 @@ public:
             .stage = vk::ShaderStageFlagBits::eFragment,
         });
 
+        sceneUniformBuffer = context->createBuffer({
+            .usage = rv::BufferUsage::Uniform,
+            .memory = rv::MemoryUsage::Device,
+            .size = sizeof(SceneData),
+            .debugName = "Renderer::sceneUniformBuffer",
+        });
+
+        objectStorage.resize(maxObjectCount);
+        objectStorageBuffer = context->createBuffer({
+            .usage = rv::BufferUsage::Storage,
+            .memory = rv::MemoryUsage::Device,
+            .size = sizeof(ObjectData) * objectStorage.size(),
+            .debugName = "Renderer::objectStorageBuffer",
+        });
+
         descSet = context->createDescriptorSet({
             .shaders = shaders,
+            .buffers =
+                {
+                    {"Scene", sceneUniformBuffer},
+                    {"ObjectBuffer", objectStorageBuffer},
+                },
         });
 
         pipeline = context->createGraphicsPipeline({
             .descSetLayout = descSet->getLayout(),
-            .pushSize = sizeof(PushConstants),
+            .pushSize = sizeof(StandardConstants),
             .vertexShader = shaders[0],
             .fragmentShader = shaders[1],
             .vertexStride = sizeof(rv::Vertex),
@@ -52,6 +68,27 @@ public:
         commandBuffer.clearColorImage(colorImage, {0.0f, 0.0f, 0.0f, 1.0f});
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
 
+        // Update buffer
+        glm::mat4 viewProj = scene.camera.getProj() * scene.camera.getView();
+
+        sceneUniform.viewProj = viewProj;
+        sceneUniform.lightDirection.xyz = glm::normalize(glm::vec3{1, 2, -3});
+        sceneUniform.lightColorIntensity.xyz = glm::vec3{1.0f};
+        sceneUniform.ambientColorIntensity.xyz = glm::vec3{0.0f};
+
+        for (int index = 0; index < scene.objects.size(); index++) {
+            auto& object = scene.objects[index];
+            Material* material = object.material;
+
+            objectStorage[index].baseColor = material->baseColor;
+            objectStorage[index].transformMatrix = object.computeTransformMatrix(frame);
+            objectStorage[index].normalMatrix = object.computeNormalMatrix(frame);
+        }
+
+        commandBuffer.copyBuffer(sceneUniformBuffer, &sceneUniform);
+        commandBuffer.copyBuffer(objectStorageBuffer, objectStorage.data());
+
+        // Draw scene
         commandBuffer.beginDebugLabel("Renderer::render()");
         commandBuffer.bindDescriptorSet(descSet, pipeline);
         commandBuffer.bindPipeline(pipeline);
@@ -62,15 +99,12 @@ public:
         commandBuffer.setScissor(extent.width, extent.height);
         commandBuffer.beginTimestamp(timer);
         commandBuffer.beginRendering(colorImage, depthImage, {0, 0}, {extent.width, extent.height});
-        // Draw scene
-        glm::mat4 viewProj = scene.camera.getProj() * scene.camera.getView();
-        pushConstants.viewProj = viewProj;
-        for (auto& object : scene.objects) {
-            pushConstants.model = object.computeTransformMatrix(frame);
-            pushConstants.color = object.material->baseColor.xyz;
-            rv::Mesh* mesh = object.mesh;
-            if (mesh) {
-                commandBuffer.pushConstants(pipeline, &pushConstants);
+
+        for (int index = 0; index < scene.objects.size(); index++) {
+            auto& object = scene.objects[index];
+            if (rv::Mesh* mesh = object.mesh) {
+                standardConstants.objectIndex = index;
+                commandBuffer.pushConstants(pipeline, &standardConstants);
                 commandBuffer.drawIndexed(mesh->vertexBuffer, mesh->indexBuffer,
                                           mesh->getIndicesCount());
             }
@@ -87,8 +121,14 @@ public:
 
 private:
     const rv::Context* context = nullptr;
-    PushConstants pushConstants{};
+    StandardConstants standardConstants{};
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;
     rv::GPUTimerHandle timer;
+
+    int maxObjectCount = 1000;
+    SceneData sceneUniform{};
+    std::vector<ObjectData> objectStorage{};
+    rv::BufferHandle sceneUniformBuffer;
+    rv::BufferHandle objectStorageBuffer;
 };

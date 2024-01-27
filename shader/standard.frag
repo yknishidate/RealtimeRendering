@@ -1,15 +1,14 @@
 #version 460
+#include "standard.glsl"
+
 layout(location = 0) in vec3 inNormal;
 layout(location = 0) out vec4 outColor;
 
-layout(push_constant) uniform PushConstants {
-    mat4 viewProj;
-    mat4 model;
-    vec3 color;
-};
-
 void main() {
-    vec3 lightDir = normalize(vec3(1, 2, -3));
-    vec3 diffuse = color * (dot(lightDir, inNormal) * 0.5 + 0.5);
+    vec3 baseColor = objects[objectIndex].baseColor.rgb;
+    vec3 lightDir = scene.lightDirection.xyz;
+    vec3 directional = max(dot(lightDir, inNormal), 0.0) * scene.lightColorIntensity.rgb;
+    vec3 ambient = scene.ambientColorIntensity.rgb;
+    vec3 diffuse = baseColor * (directional + ambient);
     outColor = vec4(diffuse, 1.0);
 }
