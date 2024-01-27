@@ -56,24 +56,44 @@ public:
             }
         }
 
-        // Add object
-        Object object;
-        object.name = "Cube 0";
-        object.mesh = &scene.meshes[0];
-        object.material = &scene.materials[0];
-        object.transform.translation = glm::vec3{-1.5, 0, 0};
-        scene.objects.push_back(object);
+        for (const auto& object : json["objects"]) {
+            Object _object{};
 
-        object.name = "Cube 1";
-        object.material = &scene.materials[1];
-        object.transform.translation = glm::vec3{1.5, 0, 0};
-        scene.objects.push_back(object);
+            assert(object.contains("name"));
+            _object.name = object["name"];
 
-        object.name = "Plane 0";
-        object.mesh = &scene.meshes[1];
-        object.material = &scene.materials[2];
-        object.transform.translation = glm::vec3{0, -1, 0};
-        scene.objects.push_back(object);
+            if (object["type"] == "Mesh") {
+                assert(object.contains("mesh"));
+                _object.type = Object::Type::Mesh;
+                _object.mesh = &scene.meshes[object["mesh"]];
+            } else {
+                assert(false && "Not implemented");
+            }
+
+            if (object.contains("material")) {
+                _object.material = &scene.materials[object["material"]];
+            }
+
+            if (object.contains("translation")) {
+                _object.transform.translation.x = object["translation"][0];
+                _object.transform.translation.y = object["translation"][1];
+                _object.transform.translation.z = object["translation"][2];
+            }
+
+            if (object.contains("rotation")) {
+                _object.transform.rotation.x = object["rotation"][0];
+                _object.transform.rotation.y = object["rotation"][1];
+                _object.transform.rotation.z = object["rotation"][2];
+                _object.transform.rotation.w = object["rotation"][3];
+            }
+
+            if (object.contains("scale")) {
+                _object.transform.scale.x = object["scale"][0];
+                _object.transform.scale.y = object["scale"][1];
+                _object.transform.scale.z = object["scale"][2];
+            }
+            scene.objects.push_back(_object);
+        }
 
         camera = rv::OrbitalCamera{this, 1920, 1080};
         camera.fovY = glm::radians(30.0f);
