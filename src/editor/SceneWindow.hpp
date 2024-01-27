@@ -5,20 +5,20 @@
 
 class SceneWindow {
 public:
-    void show(Scene& scene, Node** selectedNode) const {
+    void show(Scene& scene, Object** selectedObject) const {
         ImGui::Begin("Scene");
 
-        for (auto& node : scene.nodes) {
+        for (auto& object : scene.objects) {
             // Set flag
             int flag = ImGuiTreeNodeFlags_OpenOnArrow;
-            if (&node == *selectedNode) {
+            if (&object == *selectedObject) {
                 flag = flag | ImGuiTreeNodeFlags_Selected;
             }
 
-            // Show node
-            bool open = ImGui::TreeNodeEx(node.name.c_str(), flag);
+            // Show object
+            bool open = ImGui::TreeNodeEx(object.name.c_str(), flag);
             if (ImGui::IsItemClicked()) {
-                *selectedNode = &node;
+                *selectedObject = &object;
             }
             if (open) {
                 ImGui::TreePop();

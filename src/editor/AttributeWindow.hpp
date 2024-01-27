@@ -24,8 +24,8 @@ public:
                              (DEV_ASSET_DIR / "icons/asset_texture.png"s).string());
     }
 
-    bool showTransform(Node* node) const {
-        Transform& transform = node->transform;
+    bool showTransform(Object* object) const {
+        Transform& transform = object->transform;
         bool changed = false;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNode("Transform")) {
@@ -46,8 +46,8 @@ public:
         return changed;
     }
 
-    bool showMaterial(const Node* node) const {
-        Material* material = node->material;
+    bool showMaterial(const Object* object) const {
+        Material* material = object->material;
         if (!material) {
             return false;
         }
@@ -67,7 +67,7 @@ public:
                     for (int i = 0; i < scene->textures.size(); i++) {
                         Texture& texture = scene->textures[i];
                         if (std::strcmp(texture.name.c_str(), droppedName) == 0) {
-                            node->material->baseColorTextureIndex = i;
+                            object->material->baseColorTextureIndex = i;
                             spdlog::info("[UI] Apply base color texture: {}", droppedName);
                             changed = true;
                         }
@@ -86,16 +86,16 @@ public:
         return changed;
     }
 
-    int show(Node* node) {
+    int show(Object* object) {
         ImGui::Begin("Attribute");
         int message = Message::None;
-        if (node) {
-            if (showTransform(node)) {
+        if (object) {
+            if (showTransform(object)) {
                 spdlog::info("Transform changed");
                 message |= Message::TransformChanged;
             }
 
-            rv::Mesh* mesh = node->mesh;
+            rv::Mesh* mesh = object->mesh;
             if (mesh) {
                 ImGui::SetNextItemOpen(true, ImGuiCond_Once);
                 if (ImGui::TreeNode(("Mesh: " + mesh->name).c_str())) {
@@ -103,7 +103,7 @@ public:
                 }
             }
 
-            if (showMaterial(node)) {
+            if (showMaterial(object)) {
                 message |= Message::MaterialChanged;
             }
         }

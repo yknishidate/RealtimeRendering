@@ -99,10 +99,10 @@ public:
         // Draw scene
         glm::mat4 viewProj = camera.getProj() * camera.getView();
         pushConstants.viewProj = viewProj;
-        for (auto& node : scene.nodes) {
-            pushConstants.model = node.computeTransformMatrix(frame);
-            pushConstants.color = node.material->baseColor.xyz;
-            rv::Mesh* mesh = node.mesh;
+        for (auto& object : scene.objects) {
+            pushConstants.model = object.computeTransformMatrix(frame);
+            pushConstants.color = object.material->baseColor.xyz;
+            rv::Mesh* mesh = object.mesh;
             if (mesh) {
                 commandBuffer.pushConstants(pipeline, &pushConstants);
                 commandBuffer.drawIndexed(mesh->vertexBuffer, mesh->indexBuffer,

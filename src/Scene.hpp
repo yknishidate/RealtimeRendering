@@ -49,7 +49,7 @@ struct KeyFrame {
     Transform transform;
 };
 
-class Node {
+class Object {
 public:
     Transform computeTransformAtFrame(int frame) const {
         // TODO: precompute
@@ -96,13 +96,13 @@ public:
         return computeTransformAtFrame(frame).computeNormalMatrix();
     }
 
-    enum Type {
-        MeshNode,
-        DomeLightNode,
+    enum class Type {
+        Mesh,
+        DomeLight,
     };
 
     std::string name;
-    Type type = MeshNode;
+    Type type = Type::Mesh;
     rv::Mesh* mesh = nullptr;
     Material* material = nullptr;
     Transform transform;
@@ -118,7 +118,7 @@ public:
 
 class Scene {
 public:
-    std::vector<Node> nodes;
+    std::vector<Object> objects;
     std::vector<rv::Mesh> meshes;
     std::vector<Material> materials;
     std::vector<rv::Camera> cameras;

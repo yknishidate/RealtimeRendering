@@ -189,14 +189,17 @@ public:
         return changed;
     }
 
-    bool showGizmo(Scene& scene, Node* selectedNode, const rv::Camera& camera, int frame) const {
+    bool showGizmo(Scene& scene,
+                   Object* selectedObject,
+                   const rv::Camera& camera,
+                   int frame) const {
         bool changed = false;
-        for (auto& node : scene.nodes) {
-            if (&node == selectedNode) {
-                glm::mat4 model = node.computeTransformMatrix(frame);
+        for (auto& object : scene.objects) {
+            if (&object == selectedObject) {
+                glm::mat4 model = object.computeTransformMatrix(frame);
                 changed |= editTransform(camera, model);
 
-                Transform& transform = node.transform;
+                Transform& transform = object.transform;
                 glm::vec3 skew;
                 glm::vec4 perspective;
                 glm::decompose(model, transform.scale, transform.rotation, transform.translation,
@@ -235,7 +238,7 @@ public:
         ImGui::EndChild();
     }
 
-    int show(Scene& scene, Node* selectedNode, const rv::Camera& camera, int frame) {
+    int show(Scene& scene, Object* selectedObject, const rv::Camera& camera, int frame) {
         int message = Message::None;
         if (ImGui::Begin("Viewport")) {
             if (processMouseInput()) {
@@ -249,7 +252,7 @@ public:
             ImGui::Image(imguiDescSet, windowSize, ImVec2(0, 1), ImVec2(1, 0));
 
             showToolBar(windowPos);
-            if (showGizmo(scene, selectedNode, camera, frame)) {
+            if (showGizmo(scene, selectedObject, camera, frame)) {
                 message |= Message::TransformChanged;
             }
 
