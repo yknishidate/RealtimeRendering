@@ -16,41 +16,22 @@ class GridDrawer {
 
 public:
     void createPipeline(const rv::Context& context) {
-        const std::string gridVertCode = R"(
-        #version 450
-        layout(location = 0) in vec3 inPosition;
-        layout(location = 1) in vec3 inNormal;
-        layout(location = 2) in vec2 inTexCoord;
-        layout(push_constant) uniform PushConstants {
-            mat4 viewProj;
-            vec3 color;
-        };
+        std::vector<uint32_t> vertSpvCode = rv::Compiler::compileOrReadShader(  //
+            DEV_SHADER_DIR / "viewport_grid.vert",                              //
+            DEV_SHADER_DIR / "spv" / "viewport_grid.vert.spv");
 
-        void main() {
-            gl_Position = viewProj * vec4(inPosition, 1);
-            gl_PointSize = 5.0;
-        })";
-
-        const std::string gridFragCode = R"(
-        #version 450
-        layout(location = 0) out vec4 outColor;
-        layout(push_constant) uniform PushConstants {
-            mat4 viewProj;
-            vec3 color;
-        };
-
-        void main() {
-            outColor = vec4(color, 1.0);
-        })";
+        std::vector<uint32_t> fragSpvCode = rv::Compiler::compileOrReadShader(  //
+            DEV_SHADER_DIR / "viewport_grid.frag",                              //
+            DEV_SHADER_DIR / "spv" / "viewport_grid.frag.spv");
 
         std::vector<rv::ShaderHandle> shaders(2);
         shaders[0] = context.createShader({
-            .code = rv::Compiler::compileToSPV(gridVertCode, vk::ShaderStageFlagBits::eVertex),
+            .code = vertSpvCode,
             .stage = vk::ShaderStageFlagBits::eVertex,
         });
 
         shaders[1] = context.createShader({
-            .code = rv::Compiler::compileToSPV(gridFragCode, vk::ShaderStageFlagBits::eFragment),
+            .code = fragSpvCode,
             .stage = vk::ShaderStageFlagBits::eFragment,
         });
 

@@ -23,6 +23,7 @@ public:
           }) {}
 
     void onStart() override {
+        rv::CPUTimer timer;
         scene.loadFromJson(context, DEV_ASSET_DIR / "scenes" / "two_boxes.json");
 
         iconManager.init(context);
@@ -31,6 +32,7 @@ public:
         attributeWindow.init(context, scene, iconManager);
 
         renderer.init(context);
+        spdlog::info("Started: {} ms", timer.elapsedInMilli());
     }
 
     void onUpdate() override {
