@@ -73,6 +73,8 @@ public:
             .vertexAttributes = rv::Vertex::getAttributeDescriptions(),
             .colorFormats = vk::Format::eR8G8B8A8Unorm,
         });
+
+        timer = context->createGPUTimer({});
     }
 
     void render(const rv::CommandBuffer& commandBuffer,
@@ -81,17 +83,19 @@ public:
                 const Scene& scene,
                 const rv::Camera& camera,
                 int frame) {
-        commandBuffer.bindDescriptorSet(descSet, pipeline);
-        commandBuffer.bindPipeline(pipeline);
         commandBuffer.clearColorImage(colorImage, {0.05f, 0.05f, 0.05f, 1.0f});
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
+
+        commandBuffer.beginDebugLabel("Renderer::render()");
+        commandBuffer.bindDescriptorSet(descSet, pipeline);
+        commandBuffer.bindPipeline(pipeline);
         commandBuffer.transitionLayout(colorImage, vk::ImageLayout::eGeneral);
 
         vk::Extent3D extent = colorImage->getExtent();
         commandBuffer.setViewport(extent.width, extent.height);
         commandBuffer.setScissor(extent.width, extent.height);
+        commandBuffer.beginTimestamp(timer);
         commandBuffer.beginRendering(colorImage, depthImage, {0, 0}, {extent.width, extent.height});
-
         // Draw scene
         glm::mat4 viewProj = camera.getProj() * camera.getView();
         pushConstants.viewProj = viewProj;
@@ -107,6 +111,12 @@ public:
         }
 
         commandBuffer.endRendering();
+        commandBuffer.endTimestamp(timer);
+        commandBuffer.endDebugLabel();
+    }
+
+    float getRenderingTimeMs() const {
+        return timer->elapsedInMilli();
     }
 
 private:
@@ -114,4 +124,5 @@ private:
     PushConstants pushConstants{};
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;
+    rv::GPUTimerHandle timer;
 };
