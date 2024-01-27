@@ -11,52 +11,19 @@ class Renderer {
     };
 
 public:
-    const std::string vertCode = R"(
-    #version 450
-    layout(location = 0) in vec3 inPosition;
-    layout(location = 1) in vec3 inNormal;
-    layout(location = 2) in vec2 inTexCoord;
-    layout(location = 0) out vec3 outNormal;
-
-    layout(push_constant) uniform PushConstants {
-        mat4 viewProj;
-        mat4 model;
-        vec3 color;
-    };
-
-    void main() {
-        gl_Position = viewProj * model * vec4(inPosition, 1);
-        outNormal = inNormal;
-    })";
-
-    const std::string fragCode = R"(
-    #version 450
-    layout(location = 0) in vec3 inNormal;
-    layout(location = 0) out vec4 outColor;
-
-    layout(push_constant) uniform PushConstants {
-        mat4 viewProj;
-        mat4 model;
-        vec3 color;
-    };
-
-    void main() {
-        vec3 lightDir = normalize(vec3(1, 2, -3));
-        vec3 diffuse = color * (dot(lightDir, inNormal) * 0.5 + 0.5);
-        outColor = vec4(diffuse, 1.0);
-    })";
-
     void init(const rv::Context& _context) {
         context = &_context;
 
         std::vector<rv::ShaderHandle> shaders(2);
         shaders[0] = context->createShader({
-            .code = rv::Compiler::compileToSPV(vertCode, vk::ShaderStageFlagBits::eVertex),
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "standard.vert",
+                                                      DEV_SHADER_DIR / "spv/standard.vert.spv"),
             .stage = vk::ShaderStageFlagBits::eVertex,
         });
 
         shaders[1] = context->createShader({
-            .code = rv::Compiler::compileToSPV(fragCode, vk::ShaderStageFlagBits::eFragment),
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "standard.frag",
+                                                      DEV_SHADER_DIR / "spv/standard.frag.spv"),
             .stage = vk::ShaderStageFlagBits::eFragment,
         });
 
