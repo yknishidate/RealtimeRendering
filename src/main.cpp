@@ -95,9 +95,20 @@ public:
             scene.objects.push_back(_object);
         }
 
-        camera = rv::Camera(this, rv::Camera::Type::Orbital, 1920.0f / 1080.0f);
-        camera.setFovY(glm::radians(30.0f));
-        camera.setDistance(10.0f);
+        if (json.contains("camera")) {
+            const auto& _camera = json["camera"];
+            if (_camera["type"] == "Orbital") {
+                camera = rv::Camera(this, rv::Camera::Type::Orbital, 1920.0f / 1080.0f);
+                if (_camera.contains("distance")) {
+                    camera.setDistance(_camera["distance"]);
+                }
+            } else if (_camera["type"] == "FirstPerson") {
+                camera = rv::Camera(this, rv::Camera::Type::FirstPerson, 1920.0f / 1080.0f);
+            }
+            if (_camera.contains("fovY")) {
+                camera.setFovY(glm::radians(static_cast<float>(_camera["fovY"])));
+            }
+        }
 
         iconManager.init(context);
         assetWindow.init(context, scene, iconManager);
