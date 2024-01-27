@@ -1,134 +1,101 @@
-#include <imgui_impl_vulkan.h>
 
-#include <reactive/reactive.hpp>
+#include <future>
+#include <reactive/App.hpp>
 
-using namespace rv;
+#include "AssetWindow.hpp"
+#include "AttributeWindow.hpp"
+#include "Scene.hpp"
+#include "SceneWindow.hpp"
+#include "ViewportWindow.hpp"
 
-std::string vertCode = R"(
-#version 450
-layout(location = 0) out vec4 outColor;
-vec3 positions[] = vec3[](vec3(0), vec3(1, 0, 0), vec3(0, 1, 0));
-vec3 colors[] = vec3[](vec3(0), vec3(1, 0, 0), vec3(0, 1, 0));
-void main() {
-    gl_Position = vec4(positions[gl_VertexIndex], 1);
-    outColor = vec4(colors[gl_VertexIndex], 1);
-})";
-
-std::string fragCode = R"(
-#version 450
-layout(location = 0) in vec4 inColor;
-layout(location = 0) out vec4 outColor;
-void main() {
-    outColor = inColor;
-})";
-
-class HelloApp : public App {
+class Editor : public rv::App {
 public:
-    HelloApp()
+    Editor()
         : App({
-              .width = 1920,
-              .height = 1080,
-              .title = "HelloGraphics",
-              .vsync = false,
-              .layers = {Layer::Validation, Layer::FPSMonitor},
+              .width = 2560,
+              .height = 1440,
+              .title = "Reactive Editor",
+              .layers = {rv::Layer::Validation},
+              .extensions = {rv::Extension::RayTracing},
           }) {}
 
     void onStart() override {
-        std::vector<ShaderHandle> shaders(2);
-        shaders[0] = context.createShader({
-            .code = Compiler::compileToSPV(vertCode, vk::ShaderStageFlagBits::eVertex),
-            .stage = vk::ShaderStageFlagBits::eVertex,
-        });
+        // Add mesh
+        scene.meshes.push_back(rv::Mesh::createCubeMesh(context, {}));
+        scene.meshes.push_back(
+            rv::Mesh::createPlaneMesh(context, {.width = 10.0f, .height = 10.0f}));
 
-        shaders[1] = context.createShader({
-            .code = Compiler::compileToSPV(fragCode, vk::ShaderStageFlagBits::eFragment),
-            .stage = vk::ShaderStageFlagBits::eFragment,
-        });
+        // Add material
+        Material material;
+        material.baseColor = glm::vec4{0.9, 0.3, 0.2, 1};
+        material.name = "Standard 0";
+        scene.materials.push_back(material);
 
-        descSet = context.createDescriptorSet({
-            .shaders = shaders,
-        });
+        material.baseColor = glm::vec4{0.8, 0.7, 0.1, 1};
+        material.name = "Standard 1";
+        scene.materials.push_back(material);
 
-        pipeline = context.createGraphicsPipeline({
-            .descSetLayout = descSet->getLayout(),
-            .vertexShader = shaders[0],
-            .fragmentShader = shaders[1],
-        });
+        material.baseColor = glm::vec4{0.9, 0.9, 0.9, 1};
+        material.name = "Standard 2";
+        scene.materials.push_back(material);
 
-        colorImage = context.createImage({
-            .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
-                     vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
-                     vk::ImageUsageFlagBits::eColorAttachment,
-            .extent = {1920, 1080, 1},
-            .format = vk::Format::eB8G8R8A8Unorm,
-            .debugName = "ViewportWindow::colorImage",
-        });
+        material.baseColor = glm::vec4{0, 0, 0, 1};
+        material.emissive = glm::vec3{0.95, 0.95, 0.95};
+        material.name = "Dome light 0";
+        scene.materials.push_back(material);
 
-        context.oneTimeSubmit([&](auto commandBuffer) {
-            commandBuffer->transitionLayout(colorImage, vk::ImageLayout::eGeneral);
-        });
+        // Add node
+        Node node;
+        node.name = "Cube 0";
+        node.mesh = &scene.meshes[0];
+        node.material = &scene.materials[0];
+        node.transform.translation = glm::vec3{-1.5, 0, 0};
+        scene.nodes.push_back(node);
 
-        // Create desc set
-        ImGui_ImplVulkan_RemoveTexture(imguiDescSet);
-        imguiDescSet = ImGui_ImplVulkan_AddTexture(colorImage->getSampler(), colorImage->getView(),
-                                                   VK_IMAGE_LAYOUT_GENERAL);
+        node.name = "Cube 1";
+        node.material = &scene.materials[1];
+        node.transform.translation = glm::vec3{1.5, 0, 0};
+        scene.nodes.push_back(node);
 
-        gpuTimer = context.createGPUTimer({});
+        node.name = "Plane 0";
+        node.mesh = &scene.meshes[1];
+        node.material = &scene.materials[2];
+        node.transform.translation = glm::vec3{0, -1, 0};
+        scene.nodes.push_back(node);
+
+        node.name = "Dome light";
+        node.type = Node::DomeLightNode;
+        node.mesh = nullptr;
+        node.material = &scene.materials[3];
+        node.transform.translation = glm::vec3{0, 0, 0};
+        scene.nodes.push_back(node);
+
+        camera = rv::OrbitalCamera{this, 1920, 1080};
+        camera.fovY = glm::radians(30.0f);
+        camera.distance = 10.0f;
+
+        iconManager.init(context);
+        assetWindow.init(context, scene, iconManager);
+        viewportWindow.init(context, iconManager, 1920, 1080);
+        attributeWindow.init(context, scene, iconManager);
     }
 
-    void showMenuBar() const {
-        if (ImGui::BeginMenuBar()) {
-            if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("Open..", "Ctrl+O")) { /* Do stuff */
-                }
-                if (ImGui::MenuItem("Save", "Ctrl+S")) { /* Do stuff */
-                }
-                ImGui::EndMenu();
-            }
-            ImGui::EndMenuBar();
+    void onUpdate() override {
+        camera.processDragDelta(viewportWindow.dragDelta);
+        camera.processMouseScroll(viewportWindow.mouseScroll);
+        frame++;
+    }
+
+    void onRender(const rv::CommandBufferHandle& commandBuffer) override {
+        if (viewportWindow.needsRecreate()) {
+            context.getDevice().waitIdle();
+            viewportWindow.createImages(static_cast<uint32_t>(viewportWindow.width),
+                                        static_cast<uint32_t>(viewportWindow.height));
+            camera.aspect = viewportWindow.width / viewportWindow.height;
         }
-    }
+        static bool dockspaceOpen = true;
+        commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
 
-    void showViewport() const {
-        if (ImGui::Begin("Viewport")) {
-            ImVec2 windowSize = ImGui::GetContentRegionAvail();
-            ImGui::Image(imguiDescSet, windowSize, ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::End();
-        }
-    }
-
-    void showDockspace(ImGuiWindowFlags windowFlags) {
-        if (dockspaceOpen) {
-            ImGui::Begin("DockSpace", &dockspaceOpen, windowFlags);
-            ImGui::PopStyleVar(3);
-
-            ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
-            ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
-
-            showMenuBar();
-
-            showViewport();
-
-            if (ImGui::Begin("Performance")) {
-                if (frame > 0) {
-                    for (int i = 0; i < TIME_BUFFER_SIZE - 1; i++) {
-                        times[i] = times[i + 1];
-                    }
-                    float time = gpuTimer->elapsedInMilli();
-                    times[TIME_BUFFER_SIZE - 1] = time;
-                    ImGui::Text("GPU timer: %.3f ms", time);
-                    ImGui::PlotLines("Times", times, TIME_BUFFER_SIZE, 0, nullptr, FLT_MAX, FLT_MAX,
-                                     {300, 150});
-                }
-
-                ImGui::End();
-            }
-
-            ImGui::End();
-        }
-    }
-
-    void onRender(const CommandBufferHandle& commandBuffer) override {
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->Pos);
@@ -144,38 +111,61 @@ public:
         windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
         windowFlags |= ImGuiWindowFlags_MenuBar;
 
-        showDockspace(windowFlags);
+        if (dockspaceOpen) {
+            ImGui::Begin("DockSpace", &dockspaceOpen, windowFlags);
+            ImGui::PopStyleVar(3);
 
-        commandBuffer->clearColorImage(colorImage, {0.0f, 0.0f, 0.5f, 1.0f});
-        commandBuffer->transitionLayout(colorImage, vk::ImageLayout::eGeneral);
-        commandBuffer->setViewport(width, height);
-        commandBuffer->setScissor(width, height);
-        commandBuffer->bindDescriptorSet(descSet, pipeline);
-        commandBuffer->bindPipeline(pipeline);
-        commandBuffer->beginTimestamp(gpuTimer);
-        commandBuffer->beginRendering(colorImage, nullptr, {0, 0}, {width, height});
-        commandBuffer->draw(3, 1, 0, 0);
-        commandBuffer->endRendering();
-        commandBuffer->endTimestamp(gpuTimer);
-        frame++;
+            if (ImGui::BeginMenuBar()) {
+                if (ImGui::BeginMenu("File")) {
+                    if (ImGui::MenuItem("Open..", "Ctrl+O")) { /* Do stuff */
+                    }
+                    if (ImGui::MenuItem("Save", "Ctrl+S")) { /* Do stuff */
+                    }
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("Edit")) {
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("Create")) {
+                    ImGui::EndMenu();
+                }
+                ImGui::EndMenuBar();
+            }
+
+            ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
+            ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+
+            sceneWindow.show(scene, &selectedNode);
+            int message = Message::None;
+            message |= attributeWindow.show(selectedNode);
+            message |= viewportWindow.show(scene, selectedNode, camera, frame);
+            assetWindow.show();
+
+            viewportWindow.drawContent(*commandBuffer, scene, camera, frame);
+
+            ImGui::End();
+        }
     }
 
-    // TODO: Rendererはimageを外からセットされるように
-    ImageHandle colorImage;
-    vk::DescriptorSet imguiDescSet;
-
-    static constexpr int TIME_BUFFER_SIZE = 300;
-    float times[TIME_BUFFER_SIZE] = {0};
-    DescriptorSetHandle descSet;
-    GraphicsPipelineHandle pipeline;
-    GPUTimerHandle gpuTimer;
+    // Scene
+    rv::OrbitalCamera camera;
+    Scene scene;
     int frame = 0;
-    bool dockspaceOpen = true;
+
+    // ImGui
+    Node* selectedNode = nullptr;
+
+    // Editor
+    SceneWindow sceneWindow;
+    ViewportWindow viewportWindow;
+    AttributeWindow attributeWindow;
+    AssetWindow assetWindow;
+    IconManager iconManager;
 };
 
 int main() {
     try {
-        HelloApp app{};
+        Editor app{};
         app.run();
     } catch (const std::exception& e) {
         spdlog::error(e.what());
