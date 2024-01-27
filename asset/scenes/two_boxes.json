@@ -1,0 +1,87 @@
+{
+    "gltf": "",
+    "meshes": [
+        {
+            "type": "Cube"
+        },
+        {
+            "type": "Plane",
+            "width": 10.0,
+            "height": 10.0,
+            "widthSegments": 1,
+            "heightSegments": 1
+        }
+    ],
+    "materials": [
+        {
+            "type": "Standard",
+            "name": "Standard 0",
+            "baseColor": [
+                0.9,
+                0.3,
+                0.2,
+                1.0
+            ]
+        },
+        {
+            "type": "Standard",
+            "name": "Standard 1",
+            "baseColor": [
+                0.8,
+                0.7,
+                0.1,
+                1.0
+            ]
+        },
+        {
+            "type": "Standard",
+            "name": "Standard 2",
+            "baseColor": [
+                0.9,
+                0.9,
+                0.9,
+                1.0
+            ]
+        }
+    ],
+    "objects": [
+        {
+            "name": "Cube 0",
+            "type": "Mesh",
+            "mesh": 0,
+            "material": 0,
+            "translation": [
+                -1.5,
+                0.0,
+                0.0
+            ]
+        },
+        {
+            "name": "Cube 1",
+            "type": "Mesh",
+            "mesh": 0,
+            "material": 1,
+            "translation": [
+                1.5,
+                0.0,
+                0.0
+            ]
+        },
+        {
+            "name": "Plane 0",
+            "type": "Mesh",
+            "mesh": 1,
+            "material": 2,
+            "translation": [
+                0.0,
+                -1.0,
+                0.0
+            ]
+        }
+    ],
+    "camera": {
+        "type": "Orbital",
+        "fovY": 30.0,
+        "distance": 10.0
+    }
+}

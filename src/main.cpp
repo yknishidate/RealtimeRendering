@@ -2,6 +2,8 @@
 #include <future>
 #include <reactive/App.hpp>
 
+#include <nlohmann/json.hpp>
+
 #include "Renderer.hpp"
 #include "Scene.hpp"
 #include "editor/AssetWindow.hpp"
@@ -21,55 +23,57 @@ public:
           }) {}
 
     void onStart() override {
-        // Add mesh
-        scene.meshes.push_back(rv::Mesh::createCubeMesh(context, {}));
-        scene.meshes.push_back(
-            rv::Mesh::createPlaneMesh(context, {.width = 10.0f, .height = 10.0f}));
+        std::ifstream jsonFile(DEV_ASSET_DIR / "scenes" / "two_boxes.json");
+        if (!jsonFile.is_open()) {
+            throw std::runtime_error("Failed to open scene file.");
+        }
+        nlohmann::json json;
+        jsonFile >> json;
 
-        // Add material
-        Material material;
-        material.baseColor = glm::vec4{0.9, 0.3, 0.2, 1};
-        material.name = "Standard 0";
-        scene.materials.push_back(material);
+        for (const auto& mesh : json["meshes"]) {
+            if (mesh["type"] == "Cube") {
+                scene.meshes.push_back(rv::Mesh::createCubeMesh(context, {}));
+            } else if (mesh["type"] == "Plane") {
+                rv::PlaneMeshCreateInfo createInfo{
+                    .width = mesh["width"],
+                    .height = mesh["height"],
+                    .widthSegments = mesh["widthSegments"],
+                    .heightSegments = mesh["heightSegments"],
+                };
+                scene.meshes.push_back(rv::Mesh::createPlaneMesh(context, createInfo));
+            }
+        }
 
-        material.baseColor = glm::vec4{0.8, 0.7, 0.1, 1};
-        material.name = "Standard 1";
-        scene.materials.push_back(material);
+        for (const auto& material : json["materials"]) {
+            if (material["type"] == "Standard") {
+                const auto& baseColor = material["baseColor"];
+                scene.materials.push_back(Material{
+                    .baseColor = {baseColor[0], baseColor[1], baseColor[2], baseColor[3]},
+                    .name = material["name"],
+                });
+            } else {
+                assert(false && "Not implemented");
+            }
+        }
 
-        material.baseColor = glm::vec4{0.9, 0.9, 0.9, 1};
-        material.name = "Standard 2";
-        scene.materials.push_back(material);
+        // Add object
+        Object object;
+        object.name = "Cube 0";
+        object.mesh = &scene.meshes[0];
+        object.material = &scene.materials[0];
+        object.transform.translation = glm::vec3{-1.5, 0, 0};
+        scene.objects.push_back(object);
 
-        material.baseColor = glm::vec4{0, 0, 0, 1};
-        material.emissive = glm::vec3{0.95, 0.95, 0.95};
-        material.name = "Dome light 0";
-        scene.materials.push_back(material);
+        object.name = "Cube 1";
+        object.material = &scene.materials[1];
+        object.transform.translation = glm::vec3{1.5, 0, 0};
+        scene.objects.push_back(object);
 
-        // Add node
-        Node node;
-        node.name = "Cube 0";
-        node.mesh = &scene.meshes[0];
-        node.material = &scene.materials[0];
-        node.transform.translation = glm::vec3{-1.5, 0, 0};
-        scene.nodes.push_back(node);
-
-        node.name = "Cube 1";
-        node.material = &scene.materials[1];
-        node.transform.translation = glm::vec3{1.5, 0, 0};
-        scene.nodes.push_back(node);
-
-        node.name = "Plane 0";
-        node.mesh = &scene.meshes[1];
-        node.material = &scene.materials[2];
-        node.transform.translation = glm::vec3{0, -1, 0};
-        scene.nodes.push_back(node);
-
-        node.name = "Dome light";
-        node.type = Node::DomeLightNode;
-        node.mesh = nullptr;
-        node.material = &scene.materials[3];
-        node.transform.translation = glm::vec3{0, 0, 0};
-        scene.nodes.push_back(node);
+        object.name = "Plane 0";
+        object.mesh = &scene.meshes[1];
+        object.material = &scene.materials[2];
+        object.transform.translation = glm::vec3{0, -1, 0};
+        scene.objects.push_back(object);
 
         camera = rv::OrbitalCamera{this, 1920, 1080};
         camera.fovY = glm::radians(30.0f);
@@ -145,10 +149,10 @@ public:
                 }
             }
 
-            sceneWindow.show(scene, &selectedNode);
+            sceneWindow.show(scene, &selectedObject);
             int message = Message::None;
-            message |= attributeWindow.show(selectedNode);
-            message |= viewportWindow.show(scene, selectedNode, camera, frame);
+            message |= attributeWindow.show(selectedObject);
+            message |= viewportWindow.show(scene, selectedObject, camera, frame);
             assetWindow.show();
 
             renderer.render(*commandBuffer, viewportWindow.colorImage, viewportWindow.depthImage,
@@ -168,7 +172,7 @@ public:
     Renderer renderer;
 
     // ImGui
-    Node* selectedNode = nullptr;
+    Object* selectedObject = nullptr;
 
     // Editor
     SceneWindow sceneWindow;
