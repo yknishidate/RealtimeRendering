@@ -2,11 +2,12 @@
 #include <future>
 #include <reactive/App.hpp>
 
-#include "AssetWindow.hpp"
-#include "AttributeWindow.hpp"
+#include "Renderer.hpp"
 #include "Scene.hpp"
-#include "SceneWindow.hpp"
-#include "ViewportWindow.hpp"
+#include "editor/AssetWindow.hpp"
+#include "editor/AttributeWindow.hpp"
+#include "editor/SceneWindow.hpp"
+#include "editor/ViewportWindow.hpp"
 
 class Editor : public rv::App {
 public:
@@ -78,6 +79,8 @@ public:
         assetWindow.init(context, scene, iconManager);
         viewportWindow.init(context, iconManager, 1920, 1080);
         attributeWindow.init(context, scene, iconManager);
+
+        renderer.init(context);
     }
 
     void onUpdate() override {
@@ -141,7 +144,9 @@ public:
             message |= viewportWindow.show(scene, selectedNode, camera, frame);
             assetWindow.show();
 
-            viewportWindow.drawContent(*commandBuffer, scene, camera, frame);
+            renderer.render(*commandBuffer, viewportWindow.colorImage, viewportWindow.depthImage,
+                            scene, camera, frame);
+            viewportWindow.drawGrid(*commandBuffer, camera);
 
             ImGui::End();
         }
@@ -151,6 +156,9 @@ public:
     rv::OrbitalCamera camera;
     Scene scene;
     int frame = 0;
+
+    // Renderer
+    Renderer renderer;
 
     // ImGui
     Node* selectedNode = nullptr;
