@@ -81,7 +81,6 @@ public:
                 const rv::ImageHandle& colorImage,
                 const rv::ImageHandle& depthImage,
                 const Scene& scene,
-                const rv::Camera& camera,
                 int frame) {
         commandBuffer.clearColorImage(colorImage, {0.05f, 0.05f, 0.05f, 1.0f});
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
@@ -97,7 +96,7 @@ public:
         commandBuffer.beginTimestamp(timer);
         commandBuffer.beginRendering(colorImage, depthImage, {0, 0}, {extent.width, extent.height});
         // Draw scene
-        glm::mat4 viewProj = camera.getProj() * camera.getView();
+        glm::mat4 viewProj = scene.camera.getProj() * scene.camera.getView();
         pushConstants.viewProj = viewProj;
         for (auto& object : scene.objects) {
             pushConstants.model = object.computeTransformMatrix(frame);

@@ -23,92 +23,7 @@ public:
           }) {}
 
     void onStart() override {
-        std::ifstream jsonFile(DEV_ASSET_DIR / "scenes" / "two_boxes.json");
-        if (!jsonFile.is_open()) {
-            throw std::runtime_error("Failed to open scene file.");
-        }
-        nlohmann::json json;
-        jsonFile >> json;
-
-        for (const auto& mesh : json["meshes"]) {
-            if (mesh["type"] == "Cube") {
-                scene.meshes.push_back(rv::Mesh::createCubeMesh(context, {}));
-            } else if (mesh["type"] == "Plane") {
-                rv::PlaneMeshCreateInfo createInfo{
-                    .width = mesh["width"],
-                    .height = mesh["height"],
-                    .widthSegments = mesh["widthSegments"],
-                    .heightSegments = mesh["heightSegments"],
-                };
-                scene.meshes.push_back(rv::Mesh::createPlaneMesh(context, createInfo));
-            }
-        }
-
-        for (const auto& material : json["materials"]) {
-            if (material["type"] == "Standard") {
-                const auto& baseColor = material["baseColor"];
-                scene.materials.push_back(Material{
-                    .baseColor = {baseColor[0], baseColor[1], baseColor[2], baseColor[3]},
-                    .name = material["name"],
-                });
-            } else {
-                assert(false && "Not implemented");
-            }
-        }
-
-        for (const auto& object : json["objects"]) {
-            Object _object{};
-
-            assert(object.contains("name"));
-            _object.name = object["name"];
-
-            if (object["type"] == "Mesh") {
-                assert(object.contains("mesh"));
-                _object.type = Object::Type::Mesh;
-                _object.mesh = &scene.meshes[object["mesh"]];
-            } else {
-                assert(false && "Not implemented");
-            }
-
-            if (object.contains("material")) {
-                _object.material = &scene.materials[object["material"]];
-            }
-
-            if (object.contains("translation")) {
-                _object.transform.translation.x = object["translation"][0];
-                _object.transform.translation.y = object["translation"][1];
-                _object.transform.translation.z = object["translation"][2];
-            }
-
-            if (object.contains("rotation")) {
-                _object.transform.rotation.x = object["rotation"][0];
-                _object.transform.rotation.y = object["rotation"][1];
-                _object.transform.rotation.z = object["rotation"][2];
-                _object.transform.rotation.w = object["rotation"][3];
-            }
-
-            if (object.contains("scale")) {
-                _object.transform.scale.x = object["scale"][0];
-                _object.transform.scale.y = object["scale"][1];
-                _object.transform.scale.z = object["scale"][2];
-            }
-            scene.objects.push_back(_object);
-        }
-
-        if (json.contains("camera")) {
-            const auto& _camera = json["camera"];
-            if (_camera["type"] == "Orbital") {
-                camera = rv::Camera(this, rv::Camera::Type::Orbital, 1920.0f / 1080.0f);
-                if (_camera.contains("distance")) {
-                    camera.setDistance(_camera["distance"]);
-                }
-            } else if (_camera["type"] == "FirstPerson") {
-                camera = rv::Camera(this, rv::Camera::Type::FirstPerson, 1920.0f / 1080.0f);
-            }
-            if (_camera.contains("fovY")) {
-                camera.setFovY(glm::radians(static_cast<float>(_camera["fovY"])));
-            }
-        }
+        scene.loadFromJson(context, DEV_ASSET_DIR / "scenes" / "two_boxes.json");
 
         iconManager.init(context);
         assetWindow.init(context, scene, iconManager);
@@ -121,13 +36,12 @@ public:
     void onUpdate() override {
         for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
             if (isKeyDown(key)) {
-                spdlog::info("key down: {}", key);
-                camera.processKey(key);
+                scene.camera.processKey(key);
             }
         }
 
-        camera.processDragDelta(viewportWindow.dragDelta);
-        camera.processMouseScroll(viewportWindow.mouseScroll);
+        scene.camera.processDragDelta(viewportWindow.dragDelta);
+        scene.camera.processMouseScroll(viewportWindow.mouseScroll);
         frame++;
     }
 
@@ -136,7 +50,7 @@ public:
             context.getDevice().waitIdle();
             viewportWindow.createImages(static_cast<uint32_t>(viewportWindow.width),
                                         static_cast<uint32_t>(viewportWindow.height));
-            camera.setAspect(viewportWindow.width / viewportWindow.height);
+            scene.camera.setAspect(viewportWindow.width / viewportWindow.height);
         }
         static bool dockspaceOpen = true;
         commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
@@ -190,19 +104,18 @@ public:
             sceneWindow.show(scene, &selectedObject);
             int message = Message::None;
             message |= attributeWindow.show(selectedObject);
-            message |= viewportWindow.show(scene, selectedObject, camera, frame);
+            message |= viewportWindow.show(scene, selectedObject, frame);
             assetWindow.show();
 
             renderer.render(*commandBuffer, viewportWindow.colorImage, viewportWindow.depthImage,
-                            scene, camera, frame);
-            viewportWindow.drawGrid(*commandBuffer, camera);
+                            scene, frame);
+            viewportWindow.drawGrid(*commandBuffer, scene.camera);
 
             ImGui::End();
         }
     }
 
     // Scene
-    rv::Camera camera;
     Scene scene;
     int frame = 0;
 

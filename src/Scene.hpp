@@ -123,4 +123,94 @@ public:
     std::vector<Material> materials;
     std::vector<rv::Camera> cameras;
     std::vector<Texture> textures;
+    rv::Camera camera;
+
+    void loadFromJson(const rv::Context& context, const std::filesystem::path& filepath) {
+        std::ifstream jsonFile(filepath);
+        if (!jsonFile.is_open()) {
+            throw std::runtime_error("Failed to open scene file.");
+        }
+        nlohmann::json json;
+        jsonFile >> json;
+
+        for (const auto& mesh : json["meshes"]) {
+            if (mesh["type"] == "Cube") {
+                meshes.push_back(rv::Mesh::createCubeMesh(context, {}));
+            } else if (mesh["type"] == "Plane") {
+                rv::PlaneMeshCreateInfo createInfo{
+                    .width = mesh["width"],
+                    .height = mesh["height"],
+                    .widthSegments = mesh["widthSegments"],
+                    .heightSegments = mesh["heightSegments"],
+                };
+                meshes.push_back(rv::Mesh::createPlaneMesh(context, createInfo));
+            }
+        }
+
+        for (const auto& material : json["materials"]) {
+            if (material["type"] == "Standard") {
+                const auto& baseColor = material["baseColor"];
+                materials.push_back(Material{
+                    .baseColor = {baseColor[0], baseColor[1], baseColor[2], baseColor[3]},
+                    .name = material["name"],
+                });
+            } else {
+                assert(false && "Not implemented");
+            }
+        }
+
+        for (const auto& object : json["objects"]) {
+            Object _object{};
+
+            assert(object.contains("name"));
+            _object.name = object["name"];
+
+            if (object["type"] == "Mesh") {
+                assert(object.contains("mesh"));
+                _object.type = Object::Type::Mesh;
+                _object.mesh = &meshes[object["mesh"]];
+            } else {
+                assert(false && "Not implemented");
+            }
+
+            if (object.contains("material")) {
+                _object.material = &materials[object["material"]];
+            }
+
+            if (object.contains("translation")) {
+                _object.transform.translation.x = object["translation"][0];
+                _object.transform.translation.y = object["translation"][1];
+                _object.transform.translation.z = object["translation"][2];
+            }
+
+            if (object.contains("rotation")) {
+                _object.transform.rotation.x = object["rotation"][0];
+                _object.transform.rotation.y = object["rotation"][1];
+                _object.transform.rotation.z = object["rotation"][2];
+                _object.transform.rotation.w = object["rotation"][3];
+            }
+
+            if (object.contains("scale")) {
+                _object.transform.scale.x = object["scale"][0];
+                _object.transform.scale.y = object["scale"][1];
+                _object.transform.scale.z = object["scale"][2];
+            }
+            objects.push_back(_object);
+        }
+
+        if (json.contains("camera")) {
+            const auto& _camera = json["camera"];
+            if (_camera["type"] == "Orbital") {
+                camera = rv::Camera(nullptr, rv::Camera::Type::Orbital, 1920.0f / 1080.0f);
+                if (_camera.contains("distance")) {
+                    camera.setDistance(_camera["distance"]);
+                }
+            } else if (_camera["type"] == "FirstPerson") {
+                camera = rv::Camera(nullptr, rv::Camera::Type::FirstPerson, 1920.0f / 1080.0f);
+            }
+            if (_camera.contains("fovY")) {
+                camera.setFovY(glm::radians(static_cast<float>(_camera["fovY"])));
+            }
+        }
+    }
 };

@@ -189,15 +189,12 @@ public:
         return changed;
     }
 
-    bool showGizmo(Scene& scene,
-                   Object* selectedObject,
-                   const rv::Camera& camera,
-                   int frame) const {
+    bool showGizmo(Scene& scene, Object* selectedObject, int frame) const {
         bool changed = false;
         for (auto& object : scene.objects) {
             if (&object == selectedObject) {
                 glm::mat4 model = object.computeTransformMatrix(frame);
-                changed |= editTransform(camera, model);
+                changed |= editTransform(scene.camera, model);
 
                 Transform& transform = object.transform;
                 glm::vec3 skew;
@@ -238,7 +235,7 @@ public:
         ImGui::EndChild();
     }
 
-    int show(Scene& scene, Object* selectedObject, const rv::Camera& camera, int frame) {
+    int show(Scene& scene, Object* selectedObject, int frame) {
         int message = Message::None;
         if (ImGui::Begin("Viewport")) {
             if (processMouseInput()) {
@@ -252,7 +249,7 @@ public:
             ImGui::Image(imguiDescSet, windowSize, ImVec2(0, 1), ImVec2(1, 0));
 
             showToolBar(windowPos);
-            if (showGizmo(scene, selectedObject, camera, frame)) {
+            if (showGizmo(scene, selectedObject, frame)) {
                 message |= Message::TransformChanged;
             }
 
