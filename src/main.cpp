@@ -85,9 +85,6 @@ public:
                     }
                     ImGui::EndMenu();
                 }
-                if (ImGui::BeginMenu("Edit")) {
-                    ImGui::EndMenu();
-                }
                 if (ImGui::BeginMenu("Create")) {
                     if (ImGui::MenuItem("Directional light")) {
                         if (!scene.findObject<DirectionalLight>()) {
@@ -97,6 +94,10 @@ public:
                     if (ImGui::MenuItem("Point light")) {
                         scene.addObject("Point light").add<PointLight>();
                     }
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("Option")) {
+                    ImGui::Checkbox("Viewport widgets", &viewportWindow.isWidgetsVisible);
                     ImGui::EndMenu();
                 }
                 ImGui::EndMenuBar();

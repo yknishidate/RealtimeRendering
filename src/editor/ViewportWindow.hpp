@@ -224,9 +224,11 @@ public:
             height = windowSize.y;
             ImGui::Image(imguiDescSet, windowSize, ImVec2(0, 1), ImVec2(1, 0));
 
-            showToolBar(windowPos);
-            if (showGizmo(scene, selectedObject, frame)) {
-                message |= Message::TransformChanged;
+            if (isWidgetsVisible) {
+                showToolBar(windowPos);
+                if (showGizmo(scene, selectedObject, frame)) {
+                    message |= Message::TransformChanged;
+                }
             }
 
             ImGui::End();
@@ -235,6 +237,10 @@ public:
     }
 
     void drawContents(const rv::CommandBuffer& commandBuffer, Scene& scene) {
+        if (!isWidgetsVisible) {
+            return;
+        }
+
         vk::Extent3D extent = colorImage->getExtent();
         commandBuffer.beginRendering(colorImage, depthImage, {0, 0}, {extent.width, extent.height});
 
@@ -256,7 +262,7 @@ public:
                 vertices[1].pos = light->getDirection() * 5.0f;
                 singleLineMesh.vertexBuffer->copy(vertices.data());
                 lineDrawer.draw(commandBuffer, singleLineMesh, viewProj,
-                                glm::vec3{0.7f, 0.7f, 0.7f}, 3.0f);
+                                glm::vec3{0.7f, 0.7f, 0.7f}, 2.0f);
             }
         }
 
@@ -271,6 +277,9 @@ public:
 
     const rv::Context* context = nullptr;
     IconManager* iconManager = nullptr;
+
+    // Option
+    bool isWidgetsVisible = true;
 
     // Input
     glm::vec2 dragDelta = {0.0f, 0.0f};
