@@ -228,7 +228,7 @@ public:
             ImVec2 windowSize = ImGui::GetContentRegionAvail();
             width = windowSize.x;
             height = windowSize.y;
-            ImGui::Image(imguiDescSets[currentImageIndex], windowSize, ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image(imguiDescSets[currentImageIndex], windowSize);
 
             if (isWidgetsVisible) {
                 showToolBar(windowPos);

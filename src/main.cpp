@@ -24,6 +24,8 @@ public:
           }) {}
 
     void onStart() override {
+        std::filesystem::create_directories(DEV_SHADER_DIR / "spv");
+
         rv::CPUTimer timer;
 
         scene.setContext(context);
