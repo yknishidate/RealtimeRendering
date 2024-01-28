@@ -76,7 +76,7 @@ public:
         if (const Object* obj = scene.findObject<DirectionalLight>()) {
             const DirectionalLight* light = obj->get<DirectionalLight>();
             sceneUniform.lightDirection.xyz = light->getDirection();
-            sceneUniform.lightColorIntensity.xyz = light->color;
+            sceneUniform.lightColorIntensity.xyz = light->color * light->intensity;
         }
         sceneUniform.ambientColorIntensity.xyz = glm::vec3{0.0f};
 
