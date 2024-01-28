@@ -16,11 +16,11 @@ struct SceneData{
 
 struct ObjectData{
     // Transform
-    glm::mat4 transformMatrix; // 64 bytes
-    glm::mat4 normalMatrix;    // 64 bytes
+    glm::mat4 transformMatrix{1.0f}; // 64 bytes
+    glm::mat4 normalMatrix{1.0f};    // 64 bytes
 
     // Material
-    glm::vec4 baseColor;       // 16 bytes
+    glm::vec4 baseColor{1.0f};       // 16 bytes
 };
 
 #else

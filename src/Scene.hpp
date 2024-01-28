@@ -24,7 +24,6 @@ struct Transform {
 
     struct KeyFrame {
         int frame;
-        // Transform transform;
         glm::vec3 translation = {0.0f, 0.0f, 0.0f};
         glm::quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
         glm::vec3 scale = {1.0f, 1.0f, 1.0f};
@@ -59,6 +58,7 @@ struct Transform {
         return computeTransform(frame).computeNormalMatrix();
     }
 
+private:
     static Transform lerp(const Transform& a, const Transform& b, float t) {
         Transform transform;
         transform.translation = glm::mix(a.translation, b.translation, t);
@@ -112,18 +112,27 @@ struct PointLight {
     float radius = 1.0f;
 };
 
+struct Mesh {
+    rv::Mesh* mesh = nullptr;
+    Material* material = nullptr;
+};
+
 class Object {
 public:
     enum class Type {
+        Empty,
         Mesh,
+        DirectionalLight,
+        PointLight,
     };
 
     std::string name;
-    Type type = Type::Mesh;
+    Type type = Type::Empty;
 
     std::optional<Transform> transform;
-    rv::Mesh* mesh = nullptr;
-    Material* material = nullptr;
+    std::optional<Mesh> mesh;  // TODO: 空で構築出来ないようにコンストラクタを導入
+    std::optional<DirectionalLight> directionalLight;
+    std::optional<PointLight> pointLight;
 };
 
 class Texture {
@@ -135,15 +144,48 @@ public:
 
 class Scene {
 public:
+    // TODO: privateにする
     std::vector<Object> objects;
+    rv::Camera camera;
+
     std::vector<rv::Mesh> meshes;
     std::vector<Material> materials;
     std::vector<Texture> textures;
 
-    std::optional<DirectionalLight> directionalLight;
-    std::vector<PointLight> pointLights;
+    Object& addDirectionalLight() {
+        Object object;
+        object.type = Object::Type::DirectionalLight;
+        object.directionalLight = DirectionalLight{};
+        objects.push_back(object);
+        return objects.back();
+    }
 
-    rv::Camera camera;
+    Object& addPointLight() {
+        Object object;
+        object.type = Object::Type::PointLight;
+        object.pointLight = PointLight{};
+        objects.push_back(object);
+        return objects.back();
+    }
+
+    std::optional<Object> findObject(Object::Type type) const {
+        for (auto& object : objects) {
+            if (object.type == type) {
+                return object;
+            }
+        }
+        return std::nullopt;
+    }
+
+    uint32_t countObjects(Object::Type type) const {
+        uint32_t count = 0;
+        for (auto& object : objects) {
+            if (object.type == type) {
+                count++;
+            }
+        }
+        return count;
+    }
 
     void loadFromJson(const rv::Context& context, const std::filesystem::path& filepath) {
         std::ifstream jsonFile(filepath);
@@ -188,23 +230,32 @@ public:
             if (object["type"] == "Mesh") {
                 assert(object.contains("mesh"));
                 _object.type = Object::Type::Mesh;
-                _object.mesh = &meshes[object["mesh"]];
+
+                _object.mesh = Mesh{};
+                _object.mesh.value().mesh = &meshes[object["mesh"]];
             } else {
                 assert(false && "Not implemented");
             }
 
             if (object.contains("material")) {
-                _object.material = &materials[object["material"]];
+                if (_object.mesh.has_value()) {
+                    _object.mesh.value().material = &materials[object["material"]];
+                }
             }
 
-            _object.transform = Transform{};
             if (object.contains("translation")) {
+                if (!_object.transform.has_value()) {
+                    _object.transform = Transform{};
+                }
                 _object.transform->translation.x = object["translation"][0];
                 _object.transform->translation.y = object["translation"][1];
                 _object.transform->translation.z = object["translation"][2];
             }
 
             if (object.contains("rotation")) {
+                if (!_object.transform.has_value()) {
+                    _object.transform = Transform{};
+                }
                 _object.transform->rotation.x = object["rotation"][0];
                 _object.transform->rotation.y = object["rotation"][1];
                 _object.transform->rotation.z = object["rotation"][2];
@@ -212,6 +263,9 @@ public:
             }
 
             if (object.contains("scale")) {
+                if (!_object.transform.has_value()) {
+                    _object.transform = Transform{};
+                }
                 _object.transform->scale.x = object["scale"][0];
                 _object.transform->scale.y = object["scale"][1];
                 _object.transform->scale.z = object["scale"][2];

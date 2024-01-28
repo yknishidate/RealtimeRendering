@@ -25,6 +25,10 @@ public:
     }
 
     bool showTransform(Object* object) const {
+        if (!object->transform) {
+            return false;
+        }
+
         Transform& transform = object->transform.value();
         bool changed = false;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
@@ -47,10 +51,11 @@ public:
     }
 
     bool showMaterial(const Object* object) const {
-        Material* material = object->material;
-        if (!material) {
+        if (!object->mesh || !object->mesh->material) {
             return false;
         }
+
+        Material* material = object->mesh->material;
         bool changed = false;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNode(("Material: " + material->name).c_str())) {
@@ -67,7 +72,7 @@ public:
                     for (int i = 0; i < scene->textures.size(); i++) {
                         Texture& texture = scene->textures[i];
                         if (std::strcmp(texture.name.c_str(), droppedName) == 0) {
-                            object->material->baseColorTextureIndex = i;
+                            material->baseColorTextureIndex = i;
                             spdlog::info("[UI] Apply base color texture: {}", droppedName);
                             changed = true;
                         }
@@ -95,8 +100,8 @@ public:
                 message |= Message::TransformChanged;
             }
 
-            rv::Mesh* mesh = object->mesh;
-            if (mesh) {
+            if (object->mesh) {
+                auto& mesh = object->mesh.value().mesh;
                 ImGui::SetNextItemOpen(true, ImGuiCond_Once);
                 if (ImGui::TreeNode(("Mesh: " + mesh->name).c_str())) {
                     ImGui::TreePop();

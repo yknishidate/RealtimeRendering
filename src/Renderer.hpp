@@ -76,13 +76,17 @@ public:
         sceneUniform.lightColorIntensity.xyz = glm::vec3{1.0f};
         sceneUniform.ambientColorIntensity.xyz = glm::vec3{0.0f};
 
-        for (int index = 0; index < scene.objects.size(); index++) {
+        for (size_t index = 0; index < scene.objects.size(); index++) {
             auto& object = scene.objects[index];
-            Material* material = object.material;
-
-            objectStorage[index].baseColor = material->baseColor;
-            objectStorage[index].transformMatrix = object.transform->computeTransformMatrix(frame);
-            objectStorage[index].normalMatrix = object.transform->computeNormalMatrix(frame);
+            if (!object.mesh) {
+                continue;
+            }
+            if (Material* material = object.mesh.value().material) {
+                objectStorage[index].baseColor = material->baseColor;
+                objectStorage[index].transformMatrix =
+                    object.transform->computeTransformMatrix(frame);
+                objectStorage[index].normalMatrix = object.transform->computeNormalMatrix(frame);
+            }
         }
 
         commandBuffer.copyBuffer(sceneUniformBuffer, &sceneUniform);
@@ -102,7 +106,10 @@ public:
 
         for (int index = 0; index < scene.objects.size(); index++) {
             auto& object = scene.objects[index];
-            if (rv::Mesh* mesh = object.mesh) {
+            if (!object.mesh) {
+                continue;
+            }
+            if (rv::Mesh* mesh = object.mesh.value().mesh) {
                 standardConstants.objectIndex = index;
                 commandBuffer.pushConstants(pipeline, &standardConstants);
                 commandBuffer.drawIndexed(mesh->vertexBuffer, mesh->indexBuffer,
