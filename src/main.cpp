@@ -25,8 +25,8 @@ public:
 
     void onStart() override {
         rv::CPUTimer timer;
-        scene.loadFromJson(context, DEV_ASSET_DIR / "scenes" / "two_boxes.json");
 
+        scene.setContext(context);
         iconManager.init(context);
         assetWindow.init(context, scene, iconManager);
         viewportWindow.init(context, iconManager, 1920, 1080);
@@ -56,7 +56,6 @@ public:
                                         static_cast<uint32_t>(viewportWindow.height));
             scene.getCamera().setAspect(viewportWindow.width / viewportWindow.height);
         }
-        static bool dockspaceOpen = true;
         commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
 
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
@@ -74,47 +73,43 @@ public:
         windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
         windowFlags |= ImGuiWindowFlags_MenuBar;
 
-        if (dockspaceOpen) {
-            ImGui::Begin("DockSpace", &dockspaceOpen, windowFlags);
-            ImGui::PopStyleVar(3);
+        ImGui::Begin("DockSpace", nullptr, windowFlags);
+        ImGui::PopStyleVar(3);
 
-            menuBar.show(scene, &viewportWindow.isWidgetsVisible);
+        menuBar.show(scene, &viewportWindow.isWidgetsVisible);
 
-            ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
-            ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+        ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
-            if (frame > 1) {
-                if (ImGui::Begin("Performance")) {
-                    ImGui::Text("Rendering: %f ms", renderer.getRenderingTimeMs());
-                    ImGui::End();
-                }
+        if (frame > 1) {
+            if (ImGui::Begin("Performance")) {
+                ImGui::Text("Rendering: %f ms", renderer.getRenderingTimeMs());
+                ImGui::End();
             }
-
-            sceneWindow.show(scene, &selectedObject);
-            int message = Message::None;
-            message |= attributeWindow.show(selectedObject);
-            message |= viewportWindow.show(scene, selectedObject, frame);
-            assetWindow.show();
-
-            renderer.render(*commandBuffer, viewportWindow.colorImage, viewportWindow.depthImage,
-                            scene, frame);
-            viewportWindow.drawContents(*commandBuffer, scene);
-
-            ImGui::End();
         }
+
+        sceneWindow.show(scene, &selectedObject);
+        int message = Message::None;
+        message |= attributeWindow.show(selectedObject);
+        message |= viewportWindow.show(scene, selectedObject, frame);
+        assetWindow.show();
+
+        renderer.render(*commandBuffer, viewportWindow.colorImage, viewportWindow.depthImage, scene,
+                        frame);
+        viewportWindow.drawContents(*commandBuffer, scene);
+
+        ImGui::End();
     }
 
     // Scene
-    Scene scene;
     int frame = 0;
+    Scene scene;
 
     // Renderer
     Renderer renderer;
 
-    // ImGui
-    Object* selectedObject = nullptr;
-
     // Editor
+    Object* selectedObject = nullptr;
     SceneWindow sceneWindow;
     ViewportWindow viewportWindow;
     AttributeWindow attributeWindow;

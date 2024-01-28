@@ -229,6 +229,10 @@ public:
         objects.reserve(maxObjectCount);
     }
 
+    void setContext(const rv::Context& _context) {
+        context = &_context;
+    }
+
     Object& addObject(std::string name) {
         assert(objects.size() < maxObjectCount);
 
@@ -267,7 +271,9 @@ public:
         return count;
     }
 
-    void loadFromJson(const rv::Context& context, const std::filesystem::path& filepath) {
+    void loadFromJson(const std::filesystem::path& filepath) {
+        assert(context && "Set context before load scene.");
+
         std::ifstream jsonFile(filepath);
         if (!jsonFile.is_open()) {
             throw std::runtime_error("Failed to open scene file.");
@@ -277,7 +283,7 @@ public:
 
         for (const auto& mesh : json["meshes"]) {
             if (mesh["type"] == "Cube") {
-                meshes.push_back(rv::Mesh::createCubeMesh(context, {}));
+                meshes.push_back(rv::Mesh::createCubeMesh(*context, {}));
             } else if (mesh["type"] == "Plane") {
                 rv::PlaneMeshCreateInfo createInfo{
                     .width = mesh["width"],
@@ -285,7 +291,7 @@ public:
                     .widthSegments = mesh["widthSegments"],
                     .heightSegments = mesh["heightSegments"],
                 };
-                meshes.push_back(rv::Mesh::createPlaneMesh(context, createInfo));
+                meshes.push_back(rv::Mesh::createPlaneMesh(*context, createInfo));
             }
         }
 
@@ -409,6 +415,8 @@ public:
     }
 
 private:
+    const rv::Context* context = nullptr;
+
     // vectorの再アロケートが起きると外部で持っている要素へのポインタが壊れるため
     // 事前に大きなサイズでメモリ確保しておく。
     // ポインタではなく別のハンドルやIDで参照させれば再アロケートも可能
