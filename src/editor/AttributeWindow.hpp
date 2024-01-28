@@ -50,19 +50,26 @@ public:
         return changed;
     }
 
-    bool showMaterial(const Object* object) const {
+    bool showMesh(const Object* object) const {
         const Mesh* mesh = object->get<Mesh>();
         if (!mesh) {
-            return false;
-        }
-        Material* material = mesh->material;
-        if (!material) {
             return false;
         }
 
         bool changed = false;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        if (ImGui::TreeNode(("Material: " + material->name).c_str())) {
+        if (ImGui::TreeNode("Mesh")) {
+            // Mesh
+            ImGui::Text(("Mesh: " + mesh->mesh->name).c_str());
+
+            // Material
+            Material* material = mesh->material;
+            if (!material) {
+                ImGui::Text("Material: Empty");
+                return false;
+            }
+
+            ImGui::Text(("Material: " + material->name).c_str());
             changed |= ImGui::ColorEdit4("Base color", &material->baseColor[0]);
 
             // Base color texture
@@ -99,20 +106,14 @@ public:
         ImGui::Begin("Attribute");
         int message = Message::None;
         if (object) {
-            spdlog::info("AttributeWindow::show() : {}", object->getName());
+            // Transform
             if (showTransform(object)) {
                 spdlog::info("Transform changed");
                 message |= Message::TransformChanged;
             }
-            Mesh* mesh = object->get<Mesh>();
-            if (mesh && mesh->mesh) {
-                ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-                if (ImGui::TreeNode(("Mesh: " + mesh->mesh->name).c_str())) {
-                    ImGui::TreePop();
-                }
-            }
 
-            if (showMaterial(object)) {
+            // Mesh
+            if (showMesh(object)) {
                 message |= Message::MaterialChanged;
             }
         }
