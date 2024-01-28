@@ -81,8 +81,8 @@ public:
             Material* material = object.material;
 
             objectStorage[index].baseColor = material->baseColor;
-            objectStorage[index].transformMatrix = object.computeTransformMatrix(frame);
-            objectStorage[index].normalMatrix = object.computeNormalMatrix(frame);
+            objectStorage[index].transformMatrix = object.transform->computeTransformMatrix(frame);
+            objectStorage[index].normalMatrix = object.transform->computeNormalMatrix(frame);
         }
 
         commandBuffer.copyBuffer(sceneUniformBuffer, &sceneUniform);

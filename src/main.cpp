@@ -88,6 +88,14 @@ public:
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu("Create")) {
+                    if (ImGui::MenuItem("Directional light")) { /* Do stuff */
+                        if (!scene.directionalLight) {
+                            scene.directionalLight = DirectionalLight{};
+                        }
+                    }
+                    if (ImGui::MenuItem("Point light")) { /* Do stuff */
+                        scene.pointLights.push_back(PointLight{});
+                    }
                     ImGui::EndMenu();
                 }
                 ImGui::EndMenuBar();

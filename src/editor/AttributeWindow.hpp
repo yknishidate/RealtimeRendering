@@ -25,7 +25,7 @@ public:
     }
 
     bool showTransform(Object* object) const {
-        Transform& transform = object->transform;
+        Transform& transform = object->transform.value();
         bool changed = false;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNode("Transform")) {

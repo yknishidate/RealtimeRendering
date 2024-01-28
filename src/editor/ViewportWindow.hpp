@@ -171,19 +171,19 @@ public:
     }
 
     bool showGizmo(Scene& scene, Object* selectedObject, int frame) const {
-        bool changed = false;
-        for (auto& object : scene.objects) {
-            if (&object == selectedObject) {
-                glm::mat4 model = object.computeTransformMatrix(frame);
-                changed |= editTransform(scene.camera, model);
-
-                Transform& transform = object.transform;
-                glm::vec3 skew;
-                glm::vec4 perspective;
-                glm::decompose(model, transform.scale, transform.rotation, transform.translation,
-                               skew, perspective);
-            }
+        if (!selectedObject || !selectedObject->transform.has_value()) {
+            return false;
         }
+
+        bool changed = false;
+        Transform& transform = selectedObject->transform.value();
+        glm::mat4 model = transform.computeTransformMatrix(frame);
+        changed |= editTransform(scene.camera, model);
+
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(model, transform.scale, transform.rotation, transform.translation, skew,
+                       perspective);
         return changed;
     }
 

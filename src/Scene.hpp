@@ -22,6 +22,16 @@ struct Transform {
     glm::quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     glm::vec3 scale = {1.0f, 1.0f, 1.0f};
 
+    struct KeyFrame {
+        int frame;
+        // Transform transform;
+        glm::vec3 translation = {0.0f, 0.0f, 0.0f};
+        glm::quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
+        glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+    };
+
+    std::vector<KeyFrame> keyFrames;
+
     glm::mat4 computeTransformMatrix() const {
         glm::mat4 T = glm::translate(glm::mat4{1.0}, translation);
         glm::mat4 R = glm::mat4_cast(rotation);
@@ -35,6 +45,20 @@ struct Transform {
         return R * S;
     }
 
+    glm::mat4 computeTransformMatrix(int frame) const {
+        if (keyFrames.empty()) {
+            return computeTransformMatrix();
+        }
+        return computeTransform(frame).computeTransformMatrix();
+    }
+
+    glm::mat4 computeNormalMatrix(int frame) const {
+        if (keyFrames.empty()) {
+            return computeNormalMatrix();
+        }
+        return computeTransform(frame).computeNormalMatrix();
+    }
+
     static Transform lerp(const Transform& a, const Transform& b, float t) {
         Transform transform;
         transform.translation = glm::mix(a.translation, b.translation, t);
@@ -42,89 +66,64 @@ struct Transform {
         transform.scale = glm::mix(a.scale, b.scale, t);
         return transform;
     }
-};
 
-struct KeyFrame {
-    int frame;
-    Transform transform;
-};
-
-class Light {
-public:
-    enum class Type {
-        Directional,
-        Point,
-        Ambient,
-    };
-
-    // Common
-    glm::vec3 color;
-    float intensity;
-
-    // Directional
-    glm::vec3 direction;
-
-    // Point
-    glm::vec3 position;
-    float radius;
-};
-
-class Object {
-public:
-    Transform computeTransformAtFrame(int frame) const {
+    Transform computeTransform(int frame) const {
         // Handle frame out of range
         if (frame <= keyFrames.front().frame) {
-            return keyFrames.front().transform;
+            auto& keyFrame = keyFrames.front();
+            return {keyFrame.translation, keyFrame.rotation, keyFrame.scale};
         }
         if (frame >= keyFrames.back().frame) {
-            return keyFrames.back().transform;
+            auto& keyFrame = keyFrames.back();
+            return {keyFrame.translation, keyFrame.rotation, keyFrame.scale};
         }
-
         // Search frame
         for (int i = 0; i < keyFrames.size(); i++) {
             const auto& keyFrame = keyFrames[i];
             if (keyFrame.frame == frame) {
-                return keyFrame.transform;
+                return {keyFrame.translation, keyFrame.rotation, keyFrame.scale};
             }
-
             if (keyFrame.frame > frame) {
                 assert(i >= 1);
                 const KeyFrame& prev = keyFrames[i - 1];
                 const KeyFrame& next = keyFrames[i];
                 frame = prev.frame;
                 float t = static_cast<float>(frame) / (next.frame - prev.frame);
-
-                return Transform::lerp(prev.transform, next.transform, t);
+                return lerp({prev.translation, prev.rotation, prev.scale},
+                            {next.translation, next.rotation, next.scale}, t);
             }
         }
         assert(false && "Failed to compute transform at frame.");
         return {};
     }
+};
 
-    glm::mat4 computeTransformMatrix(int frame) const {
-        if (keyFrames.empty()) {
-            return transform.computeTransformMatrix();
-        }
-        return computeTransformAtFrame(frame).computeTransformMatrix();
-    }
+struct DirectionalLight {
+    glm::vec3 color = {1.0f, 1.0f, 1.0f};
+    float intensity = 1.0f;
+    float phi = 0.0f;
+    float theta = 0.0f;
+};
 
-    glm::mat4 computeNormalMatrix(int frame) const {
-        if (keyFrames.empty()) {
-            return transform.computeNormalMatrix();
-        }
-        return computeTransformAtFrame(frame).computeNormalMatrix();
-    }
+struct PointLight {
+    glm::vec3 color = {1.0f, 1.0f, 1.0f};
+    float intensity = 1.0f;
+    glm::vec3 position = {0.0f, 0.0f, 0.0f};
+    float radius = 1.0f;
+};
 
+class Object {
+public:
     enum class Type {
         Mesh,
     };
 
     std::string name;
     Type type = Type::Mesh;
+
+    std::optional<Transform> transform;
     rv::Mesh* mesh = nullptr;
     Material* material = nullptr;
-    Transform transform;
-    std::vector<KeyFrame> keyFrames;
 };
 
 class Texture {
@@ -139,8 +138,11 @@ public:
     std::vector<Object> objects;
     std::vector<rv::Mesh> meshes;
     std::vector<Material> materials;
-    std::vector<rv::Camera> cameras;
     std::vector<Texture> textures;
+
+    std::optional<DirectionalLight> directionalLight;
+    std::vector<PointLight> pointLights;
+
     rv::Camera camera;
 
     void loadFromJson(const rv::Context& context, const std::filesystem::path& filepath) {
@@ -195,23 +197,24 @@ public:
                 _object.material = &materials[object["material"]];
             }
 
+            _object.transform = Transform{};
             if (object.contains("translation")) {
-                _object.transform.translation.x = object["translation"][0];
-                _object.transform.translation.y = object["translation"][1];
-                _object.transform.translation.z = object["translation"][2];
+                _object.transform->translation.x = object["translation"][0];
+                _object.transform->translation.y = object["translation"][1];
+                _object.transform->translation.z = object["translation"][2];
             }
 
             if (object.contains("rotation")) {
-                _object.transform.rotation.x = object["rotation"][0];
-                _object.transform.rotation.y = object["rotation"][1];
-                _object.transform.rotation.z = object["rotation"][2];
-                _object.transform.rotation.w = object["rotation"][3];
+                _object.transform->rotation.x = object["rotation"][0];
+                _object.transform->rotation.y = object["rotation"][1];
+                _object.transform->rotation.z = object["rotation"][2];
+                _object.transform->rotation.w = object["rotation"][3];
             }
 
             if (object.contains("scale")) {
-                _object.transform.scale.x = object["scale"][0];
-                _object.transform.scale.y = object["scale"][1];
-                _object.transform.scale.z = object["scale"][2];
+                _object.transform->scale.x = object["scale"][0];
+                _object.transform->scale.y = object["scale"][1];
+                _object.transform->scale.z = object["scale"][2];
             }
             objects.push_back(_object);
         }
