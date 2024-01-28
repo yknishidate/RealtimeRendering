@@ -77,6 +77,18 @@
                 -1.0,
                 0.0
             ]
+        },
+        {
+            "name": "Directional light 0",
+            "type": "DirectionalLight",
+            "color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "intensity": 1.0,
+            "phi": 20.0,
+            "theta": 35.0
         }
     ],
     "camera": {

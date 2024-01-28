@@ -306,14 +306,30 @@ public:
                 assert(object.contains("mesh"));
                 auto& mesh = _object.add<Mesh>();
                 mesh.mesh = &meshes[object["mesh"]];
+
+                if (object.contains("material")) {
+                    mesh.material = &materials[object["material"]];
+                }
+            } else if (object["type"] == "DirectionalLight") {
+                if (findObject<DirectionalLight>()) {
+                    spdlog::warn("Only one directional light can exist in a scene");
+                    continue;
+                }
+
+                auto& light = _object.add<DirectionalLight>();
+                if (object.contains("color")) {
+                    light.color.x = object["color"][0];
+                    light.color.y = object["color"][1];
+                    light.color.z = object["color"][2];
+                }
+                if (object.contains("phi")) {
+                    light.phi = object["phi"];
+                }
+                if (object.contains("theta")) {
+                    light.theta = object["theta"];
+                }
             } else {
                 assert(false && "Not implemented");
-            }
-
-            if (object.contains("material")) {
-                if (Mesh* mesh = _object.get<Mesh>()) {
-                    mesh->material = &materials[object["material"]];
-                }
             }
 
             if (object.contains("translation")) {
@@ -343,6 +359,7 @@ public:
                 transform->scale.y = object["scale"][1];
                 transform->scale.z = object["scale"][2];
             }
+
             objects.push_back(_object);
         }
 
