@@ -8,6 +8,7 @@
 #include "Scene.hpp"
 #include "editor/AssetWindow.hpp"
 #include "editor/AttributeWindow.hpp"
+#include "editor/MenuBar.hpp"
 #include "editor/SceneWindow.hpp"
 #include "editor/ViewportWindow.hpp"
 
@@ -77,31 +78,7 @@ public:
             ImGui::Begin("DockSpace", &dockspaceOpen, windowFlags);
             ImGui::PopStyleVar(3);
 
-            if (ImGui::BeginMenuBar()) {
-                if (ImGui::BeginMenu("File")) {
-                    if (ImGui::MenuItem("Open..", "Ctrl+O")) { /* Do stuff */
-                    }
-                    if (ImGui::MenuItem("Save", "Ctrl+S")) { /* Do stuff */
-                    }
-                    ImGui::EndMenu();
-                }
-                if (ImGui::BeginMenu("Create")) {
-                    if (ImGui::MenuItem("Directional light")) {
-                        if (!scene.findObject<DirectionalLight>()) {
-                            scene.addObject("Directional light").add<DirectionalLight>();
-                        }
-                    }
-                    if (ImGui::MenuItem("Point light")) {
-                        scene.addObject("Point light").add<PointLight>();
-                    }
-                    ImGui::EndMenu();
-                }
-                if (ImGui::BeginMenu("Option")) {
-                    ImGui::Checkbox("Viewport widgets", &viewportWindow.isWidgetsVisible);
-                    ImGui::EndMenu();
-                }
-                ImGui::EndMenuBar();
-            }
+            menuBar.show(scene, &viewportWindow.isWidgetsVisible);
 
             ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
             ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
@@ -143,6 +120,7 @@ public:
     AttributeWindow attributeWindow;
     AssetWindow assetWindow;
     IconManager iconManager;
+    MenuBar menuBar;
 };
 
 int main() {
