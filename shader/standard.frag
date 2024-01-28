@@ -2,6 +2,7 @@
 #include "standard.glsl"
 
 layout(location = 0) in vec3 inNormal;
+layout(location = 1) in vec3 inPos;
 layout(location = 0) out vec4 outColor;
 
 void main() {
@@ -11,4 +12,6 @@ void main() {
     vec3 ambient = scene.ambientColorIntensity.rgb;
     vec3 diffuse = baseColor * (directional + ambient);
     outColor = vec4(diffuse, 1.0);
+    //outColor = vec4(inNormal * 0.5 + 0.5, 1.0);
+    //outColor = vec4(inPos * 0.5 + 0.5, 1.0);
 }

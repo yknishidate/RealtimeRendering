@@ -72,7 +72,7 @@ public:
         glm::mat4 viewProj = scene.camera.getProj() * scene.camera.getView();
 
         sceneUniform.viewProj = viewProj;
-        sceneUniform.lightDirection.xyz = glm::normalize(glm::vec3{1, 2, -3});
+        sceneUniform.lightDirection.xyz = glm::normalize(glm::vec3{1, 2, 3});
         sceneUniform.lightColorIntensity.xyz = glm::vec3{1.0f};
         sceneUniform.ambientColorIntensity.xyz = glm::vec3{0.0f};
 
