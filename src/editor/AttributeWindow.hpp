@@ -25,25 +25,25 @@ public:
     }
 
     bool showTransform(Object* object) const {
-        if (!object->transform) {
+        Transform* transform = object->get<Transform>();
+        if (!transform) {
             return false;
         }
 
-        Transform& transform = object->transform.value();
         bool changed = false;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNode("Transform")) {
             // Translation
             changed |=
-                ImGui::DragFloat3("Translation", glm::value_ptr(transform.translation), 0.01f);
+                ImGui::DragFloat3("Translation", glm::value_ptr(transform->translation), 0.01f);
 
             // Rotation
-            glm::vec3 eulerAngles = glm::degrees(glm::eulerAngles(transform.rotation));
+            glm::vec3 eulerAngles = glm::degrees(glm::eulerAngles(transform->rotation));
             changed |= ImGui::DragFloat3("Rotation", glm::value_ptr(eulerAngles), 1.0f);
-            transform.rotation = glm::quat(glm::radians(eulerAngles));
+            transform->rotation = glm::quat(glm::radians(eulerAngles));
 
             // Scale
-            changed |= ImGui::DragFloat3("Scale", glm::value_ptr(transform.scale), 0.01f);
+            changed |= ImGui::DragFloat3("Scale", glm::value_ptr(transform->scale), 0.01f);
 
             ImGui::TreePop();
         }
@@ -51,11 +51,15 @@ public:
     }
 
     bool showMaterial(const Object* object) const {
-        if (!object->mesh || !object->mesh->material) {
+        const Mesh* mesh = object->get<Mesh>();
+        if (!mesh) {
+            return false;
+        }
+        Material* material = mesh->material;
+        if (!material) {
             return false;
         }
 
-        Material* material = object->mesh->material;
         bool changed = false;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNode(("Material: " + material->name).c_str())) {
@@ -64,13 +68,13 @@ public:
             // Base color texture
             std::string name = "asset_texture";
             if (material->baseColorTextureIndex != -1) {
-                name = scene->textures[material->baseColorTextureIndex].name;
+                name = scene->getTextures()[material->baseColorTextureIndex].name;
             }
             iconManager->showDroppableIcon(
                 name, "", 100.0f, ImVec4(0, 0, 0, 1), [] {},
                 [&](const char* droppedName) {
-                    for (int i = 0; i < scene->textures.size(); i++) {
-                        Texture& texture = scene->textures[i];
+                    for (int i = 0; i < scene->getTextures().size(); i++) {
+                        Texture& texture = scene->getTextures()[i];
                         if (std::strcmp(texture.name.c_str(), droppedName) == 0) {
                             material->baseColorTextureIndex = i;
                             spdlog::info("[UI] Apply base color texture: {}", droppedName);
@@ -95,15 +99,15 @@ public:
         ImGui::Begin("Attribute");
         int message = Message::None;
         if (object) {
+            spdlog::info("AttributeWindow::show() : {}", object->getName());
             if (showTransform(object)) {
                 spdlog::info("Transform changed");
                 message |= Message::TransformChanged;
             }
-
-            if (object->mesh) {
-                auto& mesh = object->mesh.value().mesh;
+            Mesh* mesh = object->get<Mesh>();
+            if (mesh && mesh->mesh) {
                 ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-                if (ImGui::TreeNode(("Mesh: " + mesh->name).c_str())) {
+                if (ImGui::TreeNode(("Mesh: " + mesh->mesh->name).c_str())) {
                     ImGui::TreePop();
                 }
             }

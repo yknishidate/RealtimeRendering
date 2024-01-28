@@ -119,16 +119,84 @@ struct Mesh {
 
 class Object {
 public:
-    enum class Type {
-        Empty,
-        Mesh,
-        DirectionalLight,
-        PointLight,
-    };
+    Object(std::string _name) : name{std::move(_name)} {}
 
+    template <typename T>
+    T& add() {
+        if constexpr (std::is_same<T, Transform>()) {
+            transform = Transform{};
+            return transform.value();
+        }
+        if constexpr (std::is_same<T, Mesh>()) {
+            mesh = Mesh{};
+            return mesh.value();
+        }
+        if constexpr (std::is_same<T, DirectionalLight>()) {
+            directionalLight = DirectionalLight{};
+            return directionalLight.value();
+        }
+        if constexpr (std::is_same<T, PointLight>()) {
+            pointLight = PointLight{};
+            return pointLight.value();
+        }
+    }
+
+    template <typename T>
+    const T* get() const {
+        if constexpr (std::is_same<T, Transform>()) {
+            if (transform) {
+                return &transform.value();
+            }
+        }
+        if constexpr (std::is_same<T, Mesh>()) {
+            if (mesh) {
+                return &mesh.value();
+            }
+        }
+        if constexpr (std::is_same<T, DirectionalLight>()) {
+            if (directionalLight) {
+                return &directionalLight.value();
+            }
+        }
+        if constexpr (std::is_same<T, PointLight>()) {
+            if (pointLight) {
+                return &pointLight.value();
+            }
+        }
+        return nullptr;
+    }
+
+    template <typename T>
+    T* get() {
+        if constexpr (std::is_same<T, Transform>()) {
+            if (transform) {
+                return &transform.value();
+            }
+        }
+        if constexpr (std::is_same<T, Mesh>()) {
+            if (mesh) {
+                return &mesh.value();
+            }
+        }
+        if constexpr (std::is_same<T, DirectionalLight>()) {
+            if (directionalLight) {
+                return &directionalLight.value();
+            }
+        }
+        if constexpr (std::is_same<T, PointLight>()) {
+            if (pointLight) {
+                return &pointLight.value();
+            }
+        }
+        return nullptr;
+    }
+
+    std::string getName() const {
+        return name;
+    }
+
+private:
     std::string name;
-    Type type = Type::Empty;
-
     std::optional<Transform> transform;
     std::optional<Mesh> mesh;  // TODO: 空で構築出来ないようにコンストラクタを導入
     std::optional<DirectionalLight> directionalLight;
@@ -144,43 +212,32 @@ public:
 
 class Scene {
 public:
-    // TODO: privateにする
-    std::vector<Object> objects;
-    rv::Camera camera;
+    Scene() {
+        objects.reserve(maxObjectCount);
+    }
 
-    std::vector<rv::Mesh> meshes;
-    std::vector<Material> materials;
-    std::vector<Texture> textures;
+    Object& addObject(std::string name) {
+        assert(objects.size() < maxObjectCount);
 
-    Object& addDirectionalLight() {
-        Object object;
-        object.type = Object::Type::DirectionalLight;
-        object.directionalLight = DirectionalLight{};
-        objects.push_back(object);
+        objects.emplace_back(std::move(name));
         return objects.back();
     }
 
-    Object& addPointLight() {
-        Object object;
-        object.type = Object::Type::PointLight;
-        object.pointLight = PointLight{};
-        objects.push_back(object);
-        return objects.back();
-    }
-
-    std::optional<Object> findObject(Object::Type type) const {
+    template <typename T>
+    Object* findObject() {
         for (auto& object : objects) {
-            if (object.type == type) {
-                return object;
+            if (object.get<T>()) {
+                return &object;
             }
         }
-        return std::nullopt;
+        return nullptr;
     }
 
-    uint32_t countObjects(Object::Type type) const {
+    template <typename T>
+    uint32_t countObjects() const {
         uint32_t count = 0;
         for (auto& object : objects) {
-            if (object.type == type) {
+            if (object.get<T>()) {
                 count++;
             }
         }
@@ -222,53 +279,50 @@ public:
         }
 
         for (const auto& object : json["objects"]) {
-            Object _object{};
-
             assert(object.contains("name"));
-            _object.name = object["name"];
+
+            Object _object{object["name"]};
 
             if (object["type"] == "Mesh") {
                 assert(object.contains("mesh"));
-                _object.type = Object::Type::Mesh;
-
-                _object.mesh = Mesh{};
-                _object.mesh.value().mesh = &meshes[object["mesh"]];
+                auto& mesh = _object.add<Mesh>();
+                mesh.mesh = &meshes[object["mesh"]];
             } else {
                 assert(false && "Not implemented");
             }
 
             if (object.contains("material")) {
-                if (_object.mesh.has_value()) {
-                    _object.mesh.value().material = &materials[object["material"]];
+                if (Mesh* mesh = _object.get<Mesh>()) {
+                    mesh->material = &materials[object["material"]];
                 }
             }
 
             if (object.contains("translation")) {
-                if (!_object.transform.has_value()) {
-                    _object.transform = Transform{};
-                }
-                _object.transform->translation.x = object["translation"][0];
-                _object.transform->translation.y = object["translation"][1];
-                _object.transform->translation.z = object["translation"][2];
+                auto& transform = _object.add<Transform>();
+                transform.translation.x = object["translation"][0];
+                transform.translation.y = object["translation"][1];
+                transform.translation.z = object["translation"][2];
             }
 
             if (object.contains("rotation")) {
-                if (!_object.transform.has_value()) {
-                    _object.transform = Transform{};
+                auto* transform = _object.get<Transform>();
+                if (!transform) {
+                    transform = &_object.add<Transform>();
                 }
-                _object.transform->rotation.x = object["rotation"][0];
-                _object.transform->rotation.y = object["rotation"][1];
-                _object.transform->rotation.z = object["rotation"][2];
-                _object.transform->rotation.w = object["rotation"][3];
+                transform->rotation.x = object["rotation"][0];
+                transform->rotation.y = object["rotation"][1];
+                transform->rotation.z = object["rotation"][2];
+                transform->rotation.w = object["rotation"][3];
             }
 
             if (object.contains("scale")) {
-                if (!_object.transform.has_value()) {
-                    _object.transform = Transform{};
+                auto* transform = _object.get<Transform>();
+                if (!transform) {
+                    transform = &_object.add<Transform>();
                 }
-                _object.transform->scale.x = object["scale"][0];
-                _object.transform->scale.y = object["scale"][1];
-                _object.transform->scale.z = object["scale"][2];
+                transform->scale.x = object["scale"][0];
+                transform->scale.y = object["scale"][1];
+                transform->scale.z = object["scale"][2];
             }
             objects.push_back(_object);
         }
@@ -294,4 +348,36 @@ public:
             }
         }
     }
+
+    std::vector<Object>& getObjects() {
+        return objects;
+    }
+
+    rv::Camera& getCamera() {
+        return camera;
+    }
+
+    std::vector<rv::Mesh>& getMeshes() {
+        return meshes;
+    }
+
+    std::vector<Material>& getMaterials() {
+        return materials;
+    }
+
+    std::vector<Texture>& getTextures() {
+        return textures;
+    }
+
+private:
+    // vectorの再アロケートが起きると外部で持っている要素へのポインタが壊れるため
+    // 事前に大きなサイズでメモリ確保しておく。
+    // ポインタではなく別のハンドルやIDで参照させれば再アロケートも可能
+    int maxObjectCount = 10000;
+    std::vector<Object> objects;
+    rv::Camera camera{};
+
+    std::vector<rv::Mesh> meshes;
+    std::vector<Material> materials;
+    std::vector<Texture> textures;
 };

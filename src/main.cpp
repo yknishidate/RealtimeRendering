@@ -36,14 +36,15 @@ public:
     }
 
     void onUpdate() override {
+        auto& camera = scene.getCamera();
         for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
             if (isKeyDown(key)) {
-                scene.camera.processKey(key);
+                camera.processKey(key);
             }
         }
 
-        scene.camera.processDragDelta(viewportWindow.dragDelta);
-        scene.camera.processMouseScroll(viewportWindow.mouseScroll);
+        camera.processDragDelta(viewportWindow.dragDelta);
+        camera.processMouseScroll(viewportWindow.mouseScroll);
         frame++;
     }
 
@@ -52,7 +53,7 @@ public:
             context.getDevice().waitIdle();
             viewportWindow.createImages(static_cast<uint32_t>(viewportWindow.width),
                                         static_cast<uint32_t>(viewportWindow.height));
-            scene.camera.setAspect(viewportWindow.width / viewportWindow.height);
+            scene.getCamera().setAspect(viewportWindow.width / viewportWindow.height);
         }
         static bool dockspaceOpen = true;
         commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
@@ -89,12 +90,12 @@ public:
                 }
                 if (ImGui::BeginMenu("Create")) {
                     if (ImGui::MenuItem("Directional light")) {
-                        if (!scene.findObject(Object::Type::DirectionalLight)) {
-                            scene.addDirectionalLight();
+                        if (!scene.findObject<DirectionalLight>()) {
+                            scene.addObject("Directional light").add<DirectionalLight>();
                         }
                     }
                     if (ImGui::MenuItem("Point light")) {
-                        scene.addPointLight();
+                        scene.addObject("Point light").add<PointLight>();
                     }
                     ImGui::EndMenu();
                 }
@@ -119,7 +120,7 @@ public:
 
             renderer.render(*commandBuffer, viewportWindow.colorImage, viewportWindow.depthImage,
                             scene, frame);
-            viewportWindow.drawGrid(*commandBuffer, scene.camera);
+            viewportWindow.drawGrid(*commandBuffer, scene.getCamera());
 
             ImGui::End();
         }

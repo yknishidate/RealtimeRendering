@@ -15,7 +15,7 @@ public:
 
     void importTexture(const char* filepath) const {
         Texture texture;
-        texture.name = "Texture " + std::to_string(scene->textures.size());
+        texture.name = "Texture " + std::to_string(scene->getTextures().size());
         texture.filepath = filepath;
         std::filesystem::path extension = std::filesystem::path{filepath}.extension();
         if (extension == ".jpg" || extension == ".png") {
@@ -25,7 +25,7 @@ public:
             spdlog::info("Load HDR image");
             texture.image = rv::Image::loadFromFileHDR(*context, texture.filepath);
         }
-        scene->textures.push_back(texture);
+        scene->getTextures().push_back(texture);
         iconManager->addIcon(texture.name, texture.image);
     }
 
@@ -48,16 +48,16 @@ public:
             int columnCount = std::max(static_cast<int>(panelWidth / cellSize), 1);
             ImGui::Columns(columnCount, 0, false);
 
-            for (auto& mesh : scene->meshes) {
+            for (auto& mesh : scene->getMeshes()) {
                 iconManager->showDraggableIcon("asset_mesh", mesh.name, thumbnailSize,
                                                ImVec4(0, 0, 0, 1));
             }
 
-            for (auto& material : scene->materials) {
+            for (auto& material : scene->getMaterials()) {
                 iconManager->showDraggableIcon("asset_material", material.name, thumbnailSize,
                                                ImVec4(0, 0, 0, 1));
             }
-            for (auto& texture : scene->textures) {
+            for (auto& texture : scene->getTextures()) {
                 iconManager->showDraggableIcon(texture.name, texture.name, thumbnailSize,
                                                ImVec4(0, 0, 0, 1));
             }

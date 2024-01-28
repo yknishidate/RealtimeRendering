@@ -63,29 +63,34 @@ public:
     void render(const rv::CommandBuffer& commandBuffer,
                 const rv::ImageHandle& colorImage,
                 const rv::ImageHandle& depthImage,
-                const Scene& scene,
+                Scene& scene,
                 int frame) {
         commandBuffer.clearColorImage(colorImage, {0.0f, 0.0f, 0.0f, 1.0f});
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
 
         // Update buffer
-        glm::mat4 viewProj = scene.camera.getProj() * scene.camera.getView();
+        rv::Camera& camera = scene.getCamera();
+        glm::mat4 viewProj = camera.getProj() * camera.getView();
 
         sceneUniform.viewProj = viewProj;
         sceneUniform.lightDirection.xyz = glm::normalize(glm::vec3{1, 2, 3});
         sceneUniform.lightColorIntensity.xyz = glm::vec3{1.0f};
         sceneUniform.ambientColorIntensity.xyz = glm::vec3{0.0f};
 
-        for (size_t index = 0; index < scene.objects.size(); index++) {
-            auto& object = scene.objects[index];
-            if (!object.mesh) {
+        auto& objects = scene.getObjects();
+        for (size_t index = 0; index < objects.size(); index++) {
+            auto& object = objects[index];
+            auto* mesh = object.get<Mesh>();
+            auto* transform = object.get<Transform>();
+            if (!mesh) {
                 continue;
             }
-            if (Material* material = object.mesh.value().material) {
+            if (Material* material = mesh->material) {
                 objectStorage[index].baseColor = material->baseColor;
-                objectStorage[index].transformMatrix =
-                    object.transform->computeTransformMatrix(frame);
-                objectStorage[index].normalMatrix = object.transform->computeNormalMatrix(frame);
+            }
+            if (transform) {
+                objectStorage[index].transformMatrix = transform->computeTransformMatrix(frame);
+                objectStorage[index].normalMatrix = transform->computeNormalMatrix(frame);
             }
         }
 
@@ -104,16 +109,17 @@ public:
         commandBuffer.beginTimestamp(timer);
         commandBuffer.beginRendering(colorImage, depthImage, {0, 0}, {extent.width, extent.height});
 
-        for (int index = 0; index < scene.objects.size(); index++) {
-            auto& object = scene.objects[index];
-            if (!object.mesh) {
+        for (int index = 0; index < objects.size(); index++) {
+            auto& object = objects[index];
+            Mesh* mesh = object.get<Mesh>();
+            if (!mesh) {
                 continue;
             }
-            if (rv::Mesh* mesh = object.mesh.value().mesh) {
+            if (mesh->mesh) {
                 standardConstants.objectIndex = index;
                 commandBuffer.pushConstants(pipeline, &standardConstants);
-                commandBuffer.drawIndexed(mesh->vertexBuffer, mesh->indexBuffer,
-                                          mesh->getIndicesCount());
+                commandBuffer.drawIndexed(mesh->mesh->vertexBuffer, mesh->mesh->indexBuffer,
+                                          mesh->mesh->getIndicesCount());
             }
         }
 
