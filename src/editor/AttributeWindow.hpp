@@ -102,7 +102,23 @@ public:
         return changed;
     }
 
-    int show(Object* object) {
+    void showDirectionalLight(Object* object) const {
+        DirectionalLight* light = object->get<DirectionalLight>();
+        if (!light) {
+            return;
+        }
+
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNode("Directional light")) {
+            ImGui::ColorEdit3("Color", glm::value_ptr(light->color));
+            ImGui::DragFloat("Intensity", &light->intensity, 0.001f, 0.0f, 100.0f);
+            ImGui::SliderFloat("Phi", &light->phi, 0.0f, 360.0f);
+            ImGui::SliderFloat("Theta", &light->theta, -90.0f, 90.0f);
+            ImGui::TreePop();
+        }
+    }
+
+    int show(Object* object) const {
         ImGui::Begin("Attribute");
         int message = Message::None;
         if (object) {
@@ -116,6 +132,8 @@ public:
             if (showMesh(object)) {
                 message |= Message::MaterialChanged;
             }
+
+            showDirectionalLight(object);
         }
         ImGui::End();
         return message;
