@@ -67,6 +67,10 @@ public:
                 int frame) {
         commandBuffer.clearColorImage(colorImage, {0.0f, 0.0f, 0.0f, 1.0f});
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
+        commandBuffer.imageBarrier(
+            {colorImage, depthImage},  //
+            vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllGraphics,
+            vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eColorAttachmentWrite);
 
         // Update buffer
         rv::Camera& camera = scene.getCamera();
@@ -128,6 +132,12 @@ public:
 
         commandBuffer.endRendering();
         commandBuffer.endTimestamp(timer);
+
+        commandBuffer.imageBarrier(
+            {colorImage, depthImage},  //
+            vk::PipelineStageFlagBits::eAllGraphics, vk::PipelineStageFlagBits::eAllGraphics,
+            vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
+
         commandBuffer.endDebugLabel();
     }
 

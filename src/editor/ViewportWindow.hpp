@@ -120,31 +120,37 @@ public:
         width = static_cast<float>(_width);
         height = static_cast<float>(_height);
 
-        colorImage = context->createImage({
-            .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
-                     vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
-                     vk::ImageUsageFlagBits::eColorAttachment,
-            .extent = {_width, _height, 1},
-            .format = vk::Format::eR8G8B8A8Unorm,
-            .debugName = "ViewportWindow::colorImage",
-        });
+        for (int i = 0; i < imageCount; i++) {
+            colorImages[i] = context->createImage({
+                .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
+                         vk::ImageUsageFlagBits::eTransferDst |
+                         vk::ImageUsageFlagBits::eTransferSrc |
+                         vk::ImageUsageFlagBits::eColorAttachment,
+                .extent = {_width, _height, 1},
+                .format = vk::Format::eR8G8B8A8Unorm,
+                .debugName = "ViewportWindow::colorImage",
+            });
 
-        // Create desc set
-        ImGui_ImplVulkan_RemoveTexture(imguiDescSet);
-        imguiDescSet = ImGui_ImplVulkan_AddTexture(colorImage->getSampler(), colorImage->getView(),
-                                                   VK_IMAGE_LAYOUT_GENERAL);
+            // Create desc set
+            ImGui_ImplVulkan_RemoveTexture(imguiDescSets[i]);
+            imguiDescSets[i] = ImGui_ImplVulkan_AddTexture(
+                colorImages[i]->getSampler(), colorImages[i]->getView(), VK_IMAGE_LAYOUT_GENERAL);
 
-        depthImage = context->createImage({
-            .usage = rv::ImageUsage::DepthAttachment,
-            .extent = {_width, _height, 1},
-            .format = vk::Format::eD32Sfloat,
-            .aspect = vk::ImageAspectFlagBits::eDepth,
-            .debugName = "ViewportWindow::depthImage",
-        });
+            depthImages[i] = context->createImage({
+                .usage = rv::ImageUsage::DepthAttachment,
+                .extent = {_width, _height, 1},
+                .format = vk::Format::eD32Sfloat,
+                .aspect = vk::ImageAspectFlagBits::eDepth,
+                .debugName = "ViewportWindow::depthImage",
+            });
+        }
 
         context->oneTimeSubmit([&](auto commandBuffer) {
-            commandBuffer->transitionLayout(colorImage, vk::ImageLayout::eGeneral);
-            commandBuffer->transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
+            for (int i = 0; i < imageCount; i++) {
+                commandBuffer->transitionLayout(colorImages[i], vk::ImageLayout::eGeneral);
+                commandBuffer->transitionLayout(depthImages[i],
+                                                vk::ImageLayout::eDepthAttachmentOptimal);
+            }
         });
     }
 
@@ -222,7 +228,7 @@ public:
             ImVec2 windowSize = ImGui::GetContentRegionAvail();
             width = windowSize.x;
             height = windowSize.y;
-            ImGui::Image(imguiDescSet, windowSize, ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image(imguiDescSets[currentImageIndex], windowSize, ImVec2(0, 1), ImVec2(1, 0));
 
             if (isWidgetsVisible) {
                 showToolBar(windowPos);
@@ -241,8 +247,9 @@ public:
             return;
         }
 
-        vk::Extent3D extent = colorImage->getExtent();
-        commandBuffer.beginRendering(colorImage, depthImage, {0, 0}, {extent.width, extent.height});
+        vk::Extent3D extent = colorImages[currentImageIndex]->getExtent();
+        commandBuffer.beginRendering(colorImages[currentImageIndex], depthImages[currentImageIndex],
+                                     {0, 0}, {extent.width, extent.height});
 
         const rv::Camera& camera = scene.getCamera();
         glm::mat4 viewProj = camera.getProj() * camera.getView();
@@ -270,9 +277,21 @@ public:
     }
 
     bool needsRecreate() const {
-        vk::Extent3D extent = colorImage->getExtent();
+        vk::Extent3D extent = colorImages[currentImageIndex]->getExtent();
         return static_cast<uint32_t>(width) != extent.width ||
                static_cast<uint32_t>(height) != extent.height;
+    }
+
+    rv::ImageHandle getCurrentColorImage() const {
+        return colorImages[currentImageIndex];
+    }
+
+    rv::ImageHandle getCurrentDepthImage() const {
+        return depthImages[currentImageIndex];
+    }
+
+    void advanceImageIndex() {
+        currentImageIndex = (currentImageIndex + 1) % imageCount;
     }
 
     const rv::Context* context = nullptr;
@@ -286,11 +305,13 @@ public:
     float mouseScroll = 0.0f;
 
     // Image
+    static constexpr int imageCount = 3;
+    int currentImageIndex = 0;
     float width = 0.0f;
     float height = 0.0f;
-    rv::ImageHandle colorImage;
-    rv::ImageHandle depthImage;
-    vk::DescriptorSet imguiDescSet;
+    std::array<rv::ImageHandle, imageCount> colorImages;
+    std::array<rv::ImageHandle, imageCount> depthImages;
+    std::array<vk::DescriptorSet, imageCount> imguiDescSets;
 
     // Line drawer
     LineDrawer lineDrawer;

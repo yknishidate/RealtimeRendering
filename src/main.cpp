@@ -94,9 +94,11 @@ public:
         message |= viewportWindow.show(scene, selectedObject, frame);
         assetWindow.show();
 
-        renderer.render(*commandBuffer, viewportWindow.colorImage, viewportWindow.depthImage, scene,
-                        frame);
+        renderer.render(*commandBuffer,  //
+                        viewportWindow.getCurrentColorImage(),
+                        viewportWindow.getCurrentDepthImage(), scene, frame);
         viewportWindow.drawContents(*commandBuffer, scene);
+        viewportWindow.advanceImageIndex();
 
         ImGui::End();
     }
