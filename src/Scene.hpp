@@ -124,28 +124,32 @@ struct PointLight {
 struct Mesh {
     rv::Mesh* mesh = nullptr;
     Material* material = nullptr;
+
+    Mesh(rv::Mesh* mesh, Material* material) : mesh{mesh}, material{material} {
+        assert(mesh && "Mesh cannot be created empty");
+    }
 };
 
 class Object {
 public:
     Object(std::string _name) : name{std::move(_name)} {}
 
-    template <typename T>
-    T& add() {
-        if constexpr (std::is_same<T, Transform>()) {
-            transform = Transform{};
+    template <typename T, typename... Args>
+    T& add(Args&&... args) {
+        if constexpr (std::is_same_v<T, Transform>) {
+            transform = Transform(std::forward<Args>(args)...);
             return transform.value();
         }
-        if constexpr (std::is_same<T, Mesh>()) {
-            mesh = Mesh{};
+        if constexpr (std::is_same_v<T, Mesh>) {
+            mesh = Mesh(std::forward<Args>(args)...);
             return mesh.value();
         }
-        if constexpr (std::is_same<T, DirectionalLight>()) {
-            directionalLight = DirectionalLight{};
+        if constexpr (std::is_same_v<T, DirectionalLight>) {
+            directionalLight = DirectionalLight(std::forward<Args>(args)...);
             return directionalLight.value();
         }
-        if constexpr (std::is_same<T, PointLight>()) {
-            pointLight = PointLight{};
+        if constexpr (std::is_same_v<T, PointLight>) {
+            pointLight = PointLight(std::forward<Args>(args)...);
             return pointLight.value();
         }
     }
@@ -304,8 +308,7 @@ public:
 
             if (object["type"] == "Mesh") {
                 assert(object.contains("mesh"));
-                auto& mesh = _object.add<Mesh>();
-                mesh.mesh = &meshes[object["mesh"]];
+                auto& mesh = _object.add<Mesh>(&meshes[object["mesh"]], nullptr);
 
                 if (object.contains("material")) {
                     mesh.material = &materials[object["material"]];
