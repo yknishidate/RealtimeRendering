@@ -96,6 +96,11 @@ public:
         gridInfo.widthSegments = 100;
         gridInfo.heightSegments = 100;
         subGridMesh = rv::Mesh::createPlaneLineMesh(*context, gridInfo);
+
+        std::vector<rv::Vertex> vertices(2);
+        std::vector<uint32_t> indices = {0, 1};
+        singleLineMesh = rv::Mesh{*context, rv::MemoryUsage::DeviceHost, vertices, indices,
+                                  "ViewportWindow::singleLineMesh"};
     }
 
     bool editTransform(const rv::Camera& camera, glm::mat4& matrix) const {
@@ -246,6 +251,12 @@ public:
         // Draw scene objects
         for (auto& object : scene.getObjects()) {
             if (const DirectionalLight* light = object.get<DirectionalLight>()) {
+                std::vector<rv::Vertex> vertices(2);
+                vertices[0].pos = glm::vec3{0.0f};
+                vertices[1].pos = light->getDirection() * 5.0f;
+                singleLineMesh.vertexBuffer->copy(vertices.data());
+                lineDrawer.draw(commandBuffer, singleLineMesh, viewProj,
+                                glm::vec3{0.7f, 0.7f, 0.7f}, 3.0f);
             }
         }
 
@@ -276,6 +287,7 @@ public:
     LineDrawer lineDrawer;
     rv::Mesh mainGridMesh;
     rv::Mesh subGridMesh;
+    rv::Mesh singleLineMesh;
 
     // Gizmo
     ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
