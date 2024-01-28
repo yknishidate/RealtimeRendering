@@ -120,7 +120,7 @@ public:
 
             renderer.render(*commandBuffer, viewportWindow.colorImage, viewportWindow.depthImage,
                             scene, frame);
-            viewportWindow.drawGrid(*commandBuffer, scene.getCamera());
+            viewportWindow.drawContents(*commandBuffer, scene);
 
             ImGui::End();
         }
