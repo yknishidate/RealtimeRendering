@@ -103,6 +103,15 @@ struct DirectionalLight {
     float intensity = 1.0f;
     float phi = 0.0f;
     float theta = 0.0f;
+
+    glm::vec3 getDirection() const {
+        float _phi = glm::radians(phi);
+        float _theta = glm::radians(theta);
+        float x = sin(_theta) * sin(_phi);
+        float y = cos(_theta);
+        float z = sin(_theta) * cos(_phi);
+        return {x, y, z};
+    }
 };
 
 struct PointLight {
@@ -225,6 +234,16 @@ public:
 
     template <typename T>
     Object* findObject() {
+        for (auto& object : objects) {
+            if (object.get<T>()) {
+                return &object;
+            }
+        }
+        return nullptr;
+    }
+
+    template <typename T>
+    const Object* findObject() const {
         for (auto& object : objects) {
             if (object.get<T>()) {
                 return &object;

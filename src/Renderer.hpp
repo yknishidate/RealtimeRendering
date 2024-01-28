@@ -73,8 +73,11 @@ public:
         glm::mat4 viewProj = camera.getProj() * camera.getView();
 
         sceneUniform.viewProj = viewProj;
-        sceneUniform.lightDirection.xyz = glm::normalize(glm::vec3{1, 2, 3});
-        sceneUniform.lightColorIntensity.xyz = glm::vec3{1.0f};
+        if (const Object* obj = scene.findObject<DirectionalLight>()) {
+            const DirectionalLight* light = obj->get<DirectionalLight>();
+            sceneUniform.lightDirection.xyz = light->getDirection();
+            sceneUniform.lightColorIntensity.xyz = light->color;
+        }
         sceneUniform.ambientColorIntensity.xyz = glm::vec3{0.0f};
 
         auto& objects = scene.getObjects();

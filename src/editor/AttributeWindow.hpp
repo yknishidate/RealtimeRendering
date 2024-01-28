@@ -112,7 +112,7 @@ public:
         if (ImGui::TreeNode("Directional light")) {
             ImGui::ColorEdit3("Color", glm::value_ptr(light->color));
             ImGui::DragFloat("Intensity", &light->intensity, 0.001f, 0.0f, 100.0f);
-            ImGui::SliderFloat("Phi", &light->phi, 0.0f, 360.0f);
+            ImGui::SliderFloat("Phi", &light->phi, -180.0f, 180.0f);
             ImGui::SliderFloat("Theta", &light->theta, -90.0f, 90.0f);
             ImGui::TreePop();
         }

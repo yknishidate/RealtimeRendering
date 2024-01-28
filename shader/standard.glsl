@@ -4,14 +4,14 @@ struct StandardConstants{
 };
 
 struct SceneData{
-    glm::mat4 viewProj; // 64 bytes
+    glm::mat4 viewProj{1.0f}; // 64 bytes
 
     // Directional light
-    glm::vec4 lightDirection; // 16 bytes
-    glm::vec4 lightColorIntensity; // 16 bytes
+    glm::vec4 lightDirection{0.0f}; // 16 bytes
+    glm::vec4 lightColorIntensity{0.0f}; // 16 bytes
 
     // Ambient light
-    glm::vec4 ambientColorIntensity; // 16 bytes
+    glm::vec4 ambientColorIntensity{0.0f}; // 16 bytes
 };
 
 struct ObjectData{
