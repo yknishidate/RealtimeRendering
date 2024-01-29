@@ -26,7 +26,7 @@ public:
 
         vk::Format depthFormat = vk::Format::eD32Sfloat;
         depthImage = context->createImage({
-            .usage = rv::ImageUsage::DepthAttachment,
+            .usage = rv::ImageUsage::DepthAttachment | vk::ImageUsageFlagBits::eSampled,
             .extent = extent,
             .format = depthFormat,
             .aspect = vk::ImageAspectFlagBits::eDepth,
@@ -34,7 +34,7 @@ public:
         });
 
         context->oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
-            commandBuffer->transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
+            commandBuffer->transitionLayout(depthImage, vk::ImageLayout::eReadOnlyOptimal);
         });
 
         descSet = context->createDescriptorSet({
@@ -55,22 +55,13 @@ public:
         timer = context->createGPUTimer({});
     }
 
-    void render(const rv::CommandBuffer& commandBuffer, Scene& scene, int frame) {
-        Object* obj = scene.findObject<DirectionalLight>();
-        if (!obj) {
-            return;
-        }
-
+    void render(const rv::CommandBuffer& commandBuffer, Scene& scene, Object& lightObj, int frame) {
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
-        commandBuffer.imageBarrier(
-            {depthImage},  //
-            vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllGraphics,
-            vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+        commandBuffer.transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
 
         commandBuffer.beginDebugLabel("ShadowMapPass::render()");
         commandBuffer.bindDescriptorSet(descSet, pipeline);
         commandBuffer.bindPipeline(pipeline);
-        commandBuffer.transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
 
         commandBuffer.setViewport(extent.width, extent.height);
         commandBuffer.setScissor(extent.width, extent.height);
@@ -78,7 +69,7 @@ public:
         commandBuffer.beginRendering(rv::ImageHandle{}, depthImage, {0, 0},
                                      {extent.width, extent.height});
 
-        DirectionalLight* light = obj->get<DirectionalLight>();
+        DirectionalLight* light = lightObj.get<DirectionalLight>();
         glm::mat4 proj = glm::ortho<float>(-10, 10, -10, 10, -10, 20);
         glm::mat4 view = glm::lookAt(light->getDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
         shadowViewProj = proj * view;
@@ -96,12 +87,7 @@ public:
 
         commandBuffer.endRendering();
         commandBuffer.endTimestamp(timer);
-
-        commandBuffer.imageBarrier(
-            {depthImage},  //
-            vk::PipelineStageFlagBits::eAllGraphics, vk::PipelineStageFlagBits::eAllGraphics,
-            vk::AccessFlagBits::eDepthStencilAttachmentWrite, vk::AccessFlagBits::eShaderRead);
-
+        commandBuffer.transitionLayout(depthImage, vk::ImageLayout::eReadOnlyOptimal);
         commandBuffer.endDebugLabel();
     }
 
@@ -111,6 +97,10 @@ public:
 
     glm::mat4 getBiasedViewProj() const {
         return biasMatrix * shadowViewProj;
+    }
+
+    rv::ImageHandle getDepthImage() const {
+        return depthImage;
     }
 
 private:
@@ -133,6 +123,8 @@ class Renderer {
 public:
     void init(const rv::Context& _context) {
         context = &_context;
+
+        shadowMapPass.init(*context);
 
         std::vector<rv::ShaderHandle> shaders(2);
         shaders[0] = context->createShader({
@@ -169,6 +161,7 @@ public:
                     {"SceneBuffer", sceneUniformBuffer},
                     {"ObjectBuffer", objectStorageBuffer},
                 },
+            .images = {{"shadowMap", shadowMapPass.getDepthImage()}},
         });
 
         pipeline = context->createGraphicsPipeline({
@@ -182,8 +175,6 @@ public:
         });
 
         timer = context->createGPUTimer({});
-
-        shadowMapPass.init(*context);
     }
 
     void render(const rv::CommandBuffer& commandBuffer,
@@ -191,7 +182,11 @@ public:
                 const rv::ImageHandle& depthImage,
                 Scene& scene,
                 int frame) {
-        shadowMapPass.render(commandBuffer, scene, frame);
+        if (Object* lightObj = scene.findObject<DirectionalLight>()) {
+            sceneUniform.existDirectionalLight = 1;
+            sceneUniform.enableShadowMapping = 1;
+            shadowMapPass.render(commandBuffer, scene, *lightObj, frame);
+        }
 
         commandBuffer.clearColorImage(colorImage, {0.0f, 0.0f, 0.0f, 1.0f});
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
@@ -228,6 +223,10 @@ public:
                 const auto& model = transform->computeTransformMatrix(frame);
                 objectStorage[index].mvpMatrix = viewProj * model;
                 objectStorage[index].normalMatrix = transform->computeNormalMatrix(frame);
+                if (sceneUniform.enableShadowMapping) {
+                    objectStorage[index].biasedShadowMatrix =
+                        shadowMapPass.getBiasedViewProj() * model;
+                }
             }
         }
 
