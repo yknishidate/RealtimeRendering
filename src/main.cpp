@@ -21,6 +21,7 @@ public:
               .title = "Reactive Editor",
               .layers = {rv::Layer::Validation},
               .extensions = {rv::Extension::RayTracing},
+              .style = rv::UIStyle::Gray,
           }) {}
 
     void onStart() override {
