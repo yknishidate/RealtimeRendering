@@ -6,26 +6,28 @@ struct StandardConstants{
 
 struct ObjectData{
 #ifdef __cplusplus
-    glm::mat4 mvpMatrix{1.0f};
+    glm::mat4 modelMatrix{1.0f};
     glm::mat4 normalMatrix{1.0f};
-    glm::mat4 biasedShadowMatrix{1.0f};
     glm::vec4 baseColor{1.0f};
 #else
-    mat4 mvpMatrix;
+    mat4 modelMatrix;
     mat4 normalMatrix;
-    mat4 biasedShadowMatrix;
     vec4 baseColor;
 #endif
 };
 
 struct SceneData{
 #ifdef __cplusplus
+    glm::mat4 cameraViewProj{1.0f};
+    glm::mat4 shadowViewProj{1.0f};
     glm::vec4 lightDirection{0.0f};
     glm::vec4 lightColorIntensity{0.0f};
     glm::vec4 ambientColorIntensity{0.0f};
     int existDirectionalLight;
     int enableShadowMapping;
 #else
+    mat4 cameraViewProj;
+    mat4 shadowViewProj;
     vec4 lightDirection;
     vec4 lightColorIntensity;
     vec4 ambientColorIntensity;

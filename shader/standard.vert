@@ -9,11 +9,21 @@ layout(location = 1) out vec3 outPos;
 layout(location = 2) out vec3 outShadowCoord;
 
 void main() {
-    mat4 mvpMatrix = objects[pc.objectIndex].mvpMatrix;
+    mat4 modelMatrix = objects[pc.objectIndex].modelMatrix;
     mat3 normalMatrix = mat3(objects[pc.objectIndex].normalMatrix);
-    mat4 shadowMatrix = objects[pc.objectIndex].biasedShadowMatrix;
-    gl_Position = mvpMatrix * vec4(inPosition, 1);
+
+    mat4 cameraViewProj = scene.cameraViewProj;
+    mat4 shadowViewProj = scene.shadowViewProj;
+
+    vec4 worldPos = modelMatrix * vec4(inPosition, 1);
+    gl_Position = cameraViewProj * worldPos;
+    
     outNormal = normalize(normalMatrix * inNormal);
+    
     outPos = inPosition;
-    outShadowCoord = vec3(shadowMatrix * vec4(inPosition, 1));
+
+    vec3 shadowCoord = vec3(shadowViewProj * worldPos);
+    shadowCoord.x = shadowCoord.x * +0.5 + 0.5;
+    shadowCoord.y = shadowCoord.y * -0.5 + 0.5;
+    outShadowCoord = shadowCoord;
 }

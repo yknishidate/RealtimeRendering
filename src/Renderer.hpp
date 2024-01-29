@@ -3,7 +3,6 @@
 
 #include "Scene.hpp"
 
-#include "../shader/shadow_map.glsl"
 #include "../shader/standard.glsl"
 
 class ShadowMapPass {
@@ -29,7 +28,7 @@ public:
 
         pipeline = context->createGraphicsPipeline({
             .descSetLayout = descSet->getLayout(),
-            .pushSize = sizeof(ShadowMapConstants),
+            .pushSize = sizeof(StandardConstants),
             .vertexShader = shaders[0],
             .fragmentShader = shaders[1],
             .vertexStride = sizeof(rv::Vertex),
@@ -44,9 +43,7 @@ public:
 
     void render(const rv::CommandBuffer& commandBuffer,
                 rv::ImageHandle shadowMapImage,
-                Scene& scene,
-                Object& lightObj,
-                int frame) {
+                Scene& scene) const {
         assert(initialized);
         vk::Extent3D extent = shadowMapImage->getExtent();
         commandBuffer.clearDepthStencilImage(shadowMapImage, 1.0f, 0);
@@ -62,14 +59,11 @@ public:
         commandBuffer.beginRendering(rv::ImageHandle{}, shadowMapImage, {0, 0},
                                      {extent.width, extent.height});
 
-        DirectionalLight* light = lightObj.get<DirectionalLight>();
-        glm::mat4 shadowViewProj = getViewProj(*light);
+        StandardConstants constants;
         auto& objects = scene.getObjects();
-        for (auto& object : objects) {
-            if (Mesh* mesh = object.get<Mesh>()) {
-                Transform* transform = object.get<Transform>();
-                const auto& model = transform->computeTransformMatrix(frame);
-                constants.mvp = shadowViewProj * model;
+        for (size_t i = 0; i < objects.size(); i++) {
+            if (Mesh* mesh = objects[i].get<Mesh>()) {
+                constants.objectIndex = static_cast<int>(i);
                 commandBuffer.pushConstants(pipeline, &constants);
                 commandBuffer.drawIndexed(mesh->mesh->vertexBuffer, mesh->mesh->indexBuffer,
                                           mesh->mesh->getIndicesCount());
@@ -93,24 +87,9 @@ public:
         return proj * view;
     }
 
-    glm::mat4 getBiasedViewProj(const DirectionalLight& light) const {
-        // NOTE:
-        // x = remap(x, (-1, +1), (0, 1))
-        // y = invert(remap(y, (-1, +1), (0, 1)))
-        // z = z
-        static constexpr glm::mat4 biasMatrix{
-            0.5f, 0.0f,  0.0f, 0.0f,  //
-            0.0f, -0.5f, 0.0f, 0.0f,  //
-            0.0f, 0.0f,  1.0f, 0.0f,  //
-            0.5f, 0.5f,  0.0f, 1.0f,  //
-        };
-        return biasMatrix * getViewProj(light);
-    }
-
 private:
     bool initialized = false;
     const rv::Context* context = nullptr;
-    ShadowMapConstants constants{};
 
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;
@@ -207,8 +186,7 @@ public:
         // Update buffer
         // NOTE: Shadow map用の行列も更新するのでShadow map passより先に計算
         rv::Camera& camera = scene.getCamera();
-        glm::mat4 viewProj = camera.getProj() * camera.getView();
-        glm::mat4 shadowViewProj;
+        sceneUniform.cameraViewProj = camera.getProj() * camera.getView();
 
         Object* lightObj = scene.findObject<DirectionalLight>();
         if (lightObj) {
@@ -216,7 +194,7 @@ public:
             sceneUniform.existDirectionalLight = 1;
             sceneUniform.lightDirection.xyz = light->getDirection();
             sceneUniform.lightColorIntensity.xyz = light->color * light->intensity;
-            shadowViewProj = shadowMapPass.getBiasedViewProj(*light);
+            sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*light);
         }
         sceneUniform.ambientColorIntensity.xyz = glm::vec3{0.0f};
 
@@ -233,11 +211,8 @@ public:
             }
             if (transform) {
                 const auto& model = transform->computeTransformMatrix(frame);
-                objectStorage[index].mvpMatrix = viewProj * model;
+                objectStorage[index].modelMatrix = model;
                 objectStorage[index].normalMatrix = transform->computeNormalMatrix(frame);
-                if (lightObj) {
-                    objectStorage[index].biasedShadowMatrix = shadowViewProj * model;
-                }
             }
         }
 
@@ -252,7 +227,7 @@ public:
         // Shadow pass
         if (lightObj) {
             sceneUniform.enableShadowMapping = 1;
-            shadowMapPass.render(commandBuffer, shadowMapImage, scene, *lightObj, frame);
+            shadowMapPass.render(commandBuffer, shadowMapImage, scene);
         }
 
         // Draw scene
