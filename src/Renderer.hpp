@@ -206,7 +206,6 @@ public:
         rv::Camera& camera = scene.getCamera();
         glm::mat4 viewProj = camera.getProj() * camera.getView();
 
-        sceneUniform.viewProj = viewProj;
         if (const Object* obj = scene.findObject<DirectionalLight>()) {
             const DirectionalLight* light = obj->get<DirectionalLight>();
             sceneUniform.lightDirection.xyz = light->getDirection();

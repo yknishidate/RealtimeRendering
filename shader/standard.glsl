@@ -18,12 +18,10 @@ struct ObjectData{
 
 struct SceneData{
 #ifdef __cplusplus
-    glm::mat4 viewProj{1.0f};
     glm::vec4 lightDirection{0.0f};
     glm::vec4 lightColorIntensity{0.0f};
     glm::vec4 ambientColorIntensity{0.0f};
 #else
-    mat4 viewProj;
     vec4 lightDirection;
     vec4 lightColorIntensity;
     vec4 ambientColorIntensity;
