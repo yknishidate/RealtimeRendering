@@ -12,14 +12,12 @@ void main() {
         vec3 lightDir = scene.lightDirection.xyz;
         directionalTerm = max(dot(lightDir, inNormal), 0.0) * scene.lightColorIntensity.rgb;
 
-        vec2 uv = inShadowCoord.xy;
-        //uv.y = 1.0 - uv.y;
-        //uv = uv * 0.9 + 0.05;
-        if(texture(shadowMap, uv).r <= inShadowCoord.z / 2.0){
+        vec2 uv = inShadowCoord.xy * 0.5 + 0.5;
+        uv.y = 1.0 - uv.y;
+
+        if(texture(shadowMap, uv).r < inShadowCoord.z - 0.0001){
             directionalTerm *= 0.5;
         }
-        //outColor = vec4(vec3(inShadowCoord.z), 1.0);
-        //return;
     }
     
     vec3 ambientTerm = scene.ambientColorIntensity.rgb;

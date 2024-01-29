@@ -119,10 +119,11 @@ private:
     rv::GPUTimerHandle timer;
 
     glm::mat4 shadowViewProj{};
-    static constexpr glm::mat4 biasMatrix{0.5f, 0.0f, 0.0f, 0.0f,  //
-                                          0.0f, 0.5f, 0.0f, 0.0f,  //
-                                          0.0f, 0.0f, 0.5f, 0.0f,  //
-                                          0.5f, 0.5f, 0.5f, 1.0f};
+    static constexpr glm::mat4 biasMatrix{1.0f};
+    // static constexpr glm::mat4 biasMatrix{0.5f, 0.0f, 0.0f, 0.0f,  //
+    //                                       0.0f, 0.5f, 0.0f, 0.0f,  //
+    //                                       0.0f, 0.0f, 0.5f, 0.0f,  //
+    //                                       0.5f, 0.5f, 0.5f, 1.0f};
 };
 
 class Renderer {

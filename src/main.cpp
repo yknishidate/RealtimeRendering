@@ -37,8 +37,8 @@ public:
         attributeWindow.init(context, scene, iconManager);
 
         renderer.init(context);
-
         viewportWindow.setAuxiliaryImage(renderer.getShadowMap());
+
         spdlog::info("Started: {} ms", timer.elapsedInMilli());
     }
 
@@ -93,6 +93,7 @@ public:
                 if (ImGui::Button("Recompile")) {
                     context.getDevice().waitIdle();
                     renderer.init(context);
+                    viewportWindow.setAuxiliaryImage(renderer.getShadowMap());
                 }
                 ImGui::End();
             }

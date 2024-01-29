@@ -15,6 +15,5 @@ void main() {
     gl_Position = mvpMatrix * vec4(inPosition, 1);
     outNormal = normalize(normalMatrix * inNormal);
     outPos = inPosition;
-    vec4 shadowCoord = shadowMatrix * vec4(inPosition, 1);
-    outShadowCoord = shadowCoord.xyz / shadowCoord.w;
+    outShadowCoord = vec3(shadowMatrix * vec4(inPosition, 1));
 }

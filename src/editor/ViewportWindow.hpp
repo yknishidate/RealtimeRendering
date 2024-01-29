@@ -246,12 +246,14 @@ public:
             height = windowSize.y;
             ImGui::Image(imguiDescSets[currentImageIndex], windowSize);
 
-            // Auxiliary image
-            showAuxiliaryImage(windowPos);
-
-            // Toolbar
             if (isWidgetsVisible) {
+                // Auxiliary image
+                showAuxiliaryImage(windowPos);
+
+                // Toolbar
                 showToolBar(windowPos);
+
+                // Gizmo
                 if (showGizmo(scene, selectedObject, frame)) {
                     message |= Message::TransformChanged;
                 }
