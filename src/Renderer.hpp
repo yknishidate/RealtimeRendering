@@ -8,7 +8,7 @@
 
 class ShadowMapPass {
 public:
-    void init(const rv::Context& _context) {
+    void init(const rv::Context& _context, vk::Format shadowMapFormat) {
         context = &_context;
 
         std::vector<rv::ShaderHandle> shaders(2);
@@ -24,19 +24,6 @@ public:
             .stage = vk::ShaderStageFlagBits::eFragment,
         });
 
-        vk::Format depthFormat = vk::Format::eD32Sfloat;
-        depthImage = context->createImage({
-            .usage = rv::ImageUsage::DepthAttachment | vk::ImageUsageFlagBits::eSampled,
-            .extent = extent,
-            .format = depthFormat,
-            .aspect = vk::ImageAspectFlagBits::eDepth,
-            .debugName = "ShadowMapPass::depthImage",
-        });
-
-        context->oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
-            commandBuffer->transitionLayout(depthImage, vk::ImageLayout::eReadOnlyOptimal);
-        });
-
         descSet = context->createDescriptorSet({
             .shaders = shaders,
         });
@@ -49,17 +36,22 @@ public:
             .vertexStride = sizeof(rv::Vertex),
             .vertexAttributes = rv::Vertex::getAttributeDescriptions(),
             .colorFormats = {},
-            .depthFormat = depthFormat,
+            .depthFormat = shadowMapFormat,
         });
 
         timer = context->createGPUTimer({});
         initialized = true;
     }
 
-    void render(const rv::CommandBuffer& commandBuffer, Scene& scene, Object& lightObj, int frame) {
+    void render(const rv::CommandBuffer& commandBuffer,
+                rv::ImageHandle shadowMapImage,
+                Scene& scene,
+                Object& lightObj,
+                int frame) {
         assert(initialized);
-        commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
-        commandBuffer.transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
+        vk::Extent3D extent = shadowMapImage->getExtent();
+        commandBuffer.clearDepthStencilImage(shadowMapImage, 1.0f, 0);
+        commandBuffer.transitionLayout(shadowMapImage, vk::ImageLayout::eDepthAttachmentOptimal);
 
         commandBuffer.beginDebugLabel("ShadowMapPass::render()");
         commandBuffer.bindDescriptorSet(descSet, pipeline);
@@ -68,7 +60,7 @@ public:
         commandBuffer.setViewport(extent.width, extent.height);
         commandBuffer.setScissor(extent.width, extent.height);
         commandBuffer.beginTimestamp(timer);
-        commandBuffer.beginRendering(rv::ImageHandle{}, depthImage, {0, 0},
+        commandBuffer.beginRendering(rv::ImageHandle{}, shadowMapImage, {0, 0},
                                      {extent.width, extent.height});
 
         DirectionalLight* light = lightObj.get<DirectionalLight>();
@@ -89,7 +81,7 @@ public:
 
         commandBuffer.endRendering();
         commandBuffer.endTimestamp(timer);
-        commandBuffer.transitionLayout(depthImage, vk::ImageLayout::eReadOnlyOptimal);
+        commandBuffer.transitionLayout(shadowMapImage, vk::ImageLayout::eReadOnlyOptimal);
         commandBuffer.endDebugLabel();
     }
 
@@ -103,17 +95,11 @@ public:
         return biasMatrix * shadowViewProj;
     }
 
-    rv::ImageHandle getDepthImage() const {
-        assert(initialized);
-        return depthImage;
-    }
-
 private:
     bool initialized = false;
     const rv::Context* context = nullptr;
     ShadowMapConstants constants{};
-    vk::Extent3D extent{1024, 1024, 1};
-    rv::ImageHandle depthImage;
+
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;
     rv::GPUTimerHandle timer;
@@ -135,7 +121,19 @@ public:
     void init(const rv::Context& _context) {
         context = &_context;
 
-        shadowMapPass.init(*context);
+        shadowMapPass.init(*context, shadowMapFormat);
+
+        shadowMapImage = context->createImage({
+            .usage = rv::ImageUsage::DepthAttachment | vk::ImageUsageFlagBits::eSampled,
+            .extent = shadowMapExtent,
+            .format = shadowMapFormat,
+            .aspect = vk::ImageAspectFlagBits::eDepth,
+            .debugName = "ShadowMapPass::depthImage",
+        });
+
+        context->oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
+            commandBuffer->transitionLayout(shadowMapImage, vk::ImageLayout::eReadOnlyOptimal);
+        });
 
         std::vector<rv::ShaderHandle> shaders(2);
         shaders[0] = context->createShader({
@@ -172,7 +170,7 @@ public:
                     {"SceneBuffer", sceneUniformBuffer},
                     {"ObjectBuffer", objectStorageBuffer},
                 },
-            .images = {{"shadowMap", shadowMapPass.getDepthImage()}},
+            .images = {{"shadowMap", shadowMapImage}},
         });
 
         pipeline = context->createGraphicsPipeline({
@@ -198,7 +196,7 @@ public:
         if (Object* lightObj = scene.findObject<DirectionalLight>()) {
             sceneUniform.existDirectionalLight = 1;
             sceneUniform.enableShadowMapping = 1;
-            shadowMapPass.render(commandBuffer, scene, *lightObj, frame);
+            shadowMapPass.render(commandBuffer, shadowMapImage, scene, *lightObj, frame);
         }
 
         commandBuffer.clearColorImage(colorImage, {0.0f, 0.0f, 0.0f, 1.0f});
@@ -291,10 +289,18 @@ public:
     }
 
     rv::ImageHandle getShadowMap() const {
-        return shadowMapPass.getDepthImage();
+        return shadowMapImage;
     }
 
 private:
+    // NOTE:
+    // RendererはSwapchainに直接書きこむか
+    // Viewport用の画像に書きこむか分からなくてもいいように
+    // 外部からアタッチメントを受け取る
+
+    // NOTE:
+    // 内部で利用するバッファやイメージはRendererが一元管理する
+
     bool initialized = false;
     const rv::Context* context = nullptr;
     StandardConstants standardConstants{};
@@ -302,11 +308,16 @@ private:
     rv::GraphicsPipelineHandle pipeline;
     rv::GPUTimerHandle timer;
 
+    // Standard pass
     int maxObjectCount = 1000;
     SceneData sceneUniform{};
     std::vector<ObjectData> objectStorage{};
     rv::BufferHandle sceneUniformBuffer;
     rv::BufferHandle objectStorageBuffer;
 
+    // Shadow map pass
     ShadowMapPass shadowMapPass;
+    vk::Format shadowMapFormat = vk::Format::eD32Sfloat;
+    vk::Extent3D shadowMapExtent{1024, 1024, 1};
+    rv::ImageHandle shadowMapImage;
 };
