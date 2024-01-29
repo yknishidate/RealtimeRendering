@@ -1,27 +1,38 @@
-#ifdef __cplusplus
+// --------------------------
+// ---------- Share ---------
 struct StandardConstants{
     int objectIndex;
 };
 
-struct SceneData{
-    glm::mat4 viewProj{1.0f}; // 64 bytes
-
-    // Directional light
-    glm::vec4 lightDirection{0.0f}; // 16 bytes
-    glm::vec4 lightColorIntensity{0.0f}; // 16 bytes
-
-    // Ambient light
-    glm::vec4 ambientColorIntensity{0.0f}; // 16 bytes
-};
-
 struct ObjectData{
-    // Transform
-    glm::mat4 transformMatrix{1.0f}; // 64 bytes
-    glm::mat4 normalMatrix{1.0f};    // 64 bytes
-
-    // Material
-    glm::vec4 baseColor{1.0f};       // 16 bytes
+#ifdef __cplusplus
+    glm::mat4 transformMatrix{1.0f};
+    glm::mat4 normalMatrix{1.0f};
+    glm::vec4 baseColor{1.0f};
+#else
+    mat4 transformMatrix;
+    mat4 normalMatrix;
+    vec4 baseColor;
+#endif
 };
+
+struct SceneData{
+#ifdef __cplusplus
+    glm::mat4 viewProj{1.0f};
+    glm::vec4 lightDirection{0.0f};
+    glm::vec4 lightColorIntensity{0.0f};
+    glm::vec4 ambientColorIntensity{0.0f};
+#else
+    mat4 viewProj;
+    vec4 lightDirection;
+    vec4 lightColorIntensity;
+    vec4 ambientColorIntensity;
+#endif
+};
+
+// --------------------------
+// ---------- C++ -----------
+#ifdef __cplusplus
 
 #else
 
@@ -31,33 +42,16 @@ struct ObjectData{
 #extension  GL_EXT_nonuniform_qualifier : enable
 //#extension GL_EXT_debug_printf : enable
 
-struct ObjectData{
-    // Transform
-    mat4 transformMatrix;
-    mat4 normalMatrix;
-
-    // Material
-    vec4 baseColor;
-};
-
 layout(push_constant) uniform PushConstants {
-    int objectIndex;
+    StandardConstants pc;
 };
 
 layout(binding = 1) buffer ObjectBuffer {
     ObjectData objects[];
 };
 
-layout(binding = 0) uniform Scene {
-    // Camera
-    mat4 viewProj;
-
-    // Directional light
-    vec4 lightDirection;
-    vec4 lightColorIntensity; // intensity * color
-
-    // Ambient light
-    vec4 ambientColorIntensity;
-} scene;
+layout(binding = 0) uniform SceneBuffer {
+    SceneData scene;
+};
 
 #endif

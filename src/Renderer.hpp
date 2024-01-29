@@ -42,7 +42,7 @@ public:
             .shaders = shaders,
             .buffers =
                 {
-                    {"Scene", sceneUniformBuffer},
+                    {"SceneBuffer", sceneUniformBuffer},
                     {"ObjectBuffer", objectStorageBuffer},
                 },
         });
