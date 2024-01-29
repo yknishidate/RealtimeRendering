@@ -174,7 +174,7 @@ public:
                 int frame) {
         assert(initialized);
 
-        commandBuffer.clearColorImage(colorImage, {0.0f, 0.0f, 0.0f, 1.0f});
+        commandBuffer.clearColorImage(colorImage, {0.1f, 0.1f, 0.1f, 1.0f});
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
         commandBuffer.imageBarrier({colorImage, depthImage},  //
                                    vk::PipelineStageFlagBits::eTransfer,

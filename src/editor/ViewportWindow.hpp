@@ -87,8 +87,8 @@ public:
         lineDrawer.createPipeline(*context);
 
         rv::PlaneLineMeshCreateInfo gridInfo;
-        gridInfo.width = 20.0f;
-        gridInfo.height = 20.0f;
+        gridInfo.width = 100.0f;
+        gridInfo.height = 100.0f;
         gridInfo.widthSegments = 20;
         gridInfo.heightSegments = 20;
         mainGridMesh = rv::Mesh::createPlaneLineMesh(*context, gridInfo);
