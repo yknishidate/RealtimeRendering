@@ -12,11 +12,10 @@ void main() {
         vec3 lightDir = scene.lightDirection.xyz;
         directionalTerm = max(dot(lightDir, inNormal), 0.0) * scene.lightColorIntensity.rgb;
 
-        vec2 uv = inShadowCoord.xy * 0.5 + 0.5;
-        uv.y = 1.0 - uv.y;
-
-        if(texture(shadowMap, uv).r < inShadowCoord.z - 0.0001){
-            directionalTerm *= 0.5;
+        if(scene.enableShadowMapping == 1){
+            if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - 0.0001){
+                directionalTerm *= 0.5;
+            }
         }
     }
     
