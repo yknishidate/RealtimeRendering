@@ -3,7 +3,7 @@
 
 layout(location = 0) in vec3 inNormal;
 layout(location = 1) in vec3 inPos;
-layout(location = 2) in vec3 inShadowCoord;
+layout(location = 2) in vec4 inShadowCoord;
 layout(location = 0) out vec4 outColor;
 
 void main() {
@@ -16,9 +16,16 @@ void main() {
         if(scene.enableShadowMapping == 1){
             float bias = 0.001 * tan(acos(clampedCosTheta));
             bias = clamp(clampedCosTheta, 0.0, 0.005);
-            if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - bias){
-                directionalTerm = vec3(0.0);
-            }
+            
+            #ifdef USE_PCF
+                vec3 coord = inShadowCoord.xyz / inShadowCoord.w;
+                coord.z -= bias;
+                directionalTerm *= texture(shadowMap, coord).r;
+            #else
+                if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - bias){
+                    directionalTerm = vec3(0.0);
+                }
+            #endif // USE_PCF
         }
     }
     

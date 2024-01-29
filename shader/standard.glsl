@@ -60,5 +60,11 @@ layout(binding = 0) uniform SceneBuffer {
     SceneData scene;
 };
 
+#define USE_PCF
+#ifdef USE_PCF
+layout(binding = 2) uniform sampler2DShadow shadowMap;
+#else
 layout(binding = 2) uniform sampler2D shadowMap;
+#endif // USE_PCF
+
 #endif
