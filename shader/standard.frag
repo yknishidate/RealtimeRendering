@@ -10,10 +10,13 @@ void main() {
     vec3 directionalTerm = vec3(0.0);
     if(scene.existDirectionalLight == 1){
         vec3 lightDir = scene.lightDirection.xyz;
-        directionalTerm = max(dot(lightDir, inNormal), 0.0) * scene.lightColorIntensity.rgb;
+        float clampedCosTheta = max(dot(lightDir, inNormal), 0.0);
+        directionalTerm = clampedCosTheta * scene.lightColorIntensity.rgb;
 
         if(scene.enableShadowMapping == 1){
-            if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - 0.001){
+            float bias = 0.001 * tan(acos(clampedCosTheta));
+            bias = clamp(clampedCosTheta, 0.0, 0.01);
+            if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - bias){
                 directionalTerm *= 0.5;
             }
         }
