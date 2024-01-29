@@ -6,11 +6,11 @@ struct StandardConstants{
 
 struct ObjectData{
 #ifdef __cplusplus
-    glm::mat4 transformMatrix{1.0f};
+    glm::mat4 mvpMatrix{1.0f};
     glm::mat4 normalMatrix{1.0f};
     glm::vec4 baseColor{1.0f};
 #else
-    mat4 transformMatrix;
+    mat4 mvpMatrix;
     mat4 normalMatrix;
     vec4 baseColor;
 #endif

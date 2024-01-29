@@ -8,9 +8,9 @@ layout(location = 0) out vec3 outNormal;
 layout(location = 1) out vec3 outPos;
 
 void main() {
-    mat4 transformMatrix = objects[pc.objectIndex].transformMatrix;
+    mat4 mvpMatrix = objects[pc.objectIndex].mvpMatrix;
     mat3 normalMatrix = mat3(objects[pc.objectIndex].normalMatrix);
-    gl_Position = scene.viewProj * transformMatrix * vec4(inPosition, 1);
+    gl_Position = mvpMatrix * vec4(inPosition, 1);
     outNormal = normalize(normalMatrix * inNormal);
     outPos = inPosition;
 }

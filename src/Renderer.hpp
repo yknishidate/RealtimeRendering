@@ -81,13 +81,13 @@ public:
         DirectionalLight* light = obj->get<DirectionalLight>();
         glm::mat4 proj = glm::ortho<float>(-10, 10, -10, 10, -10, 20);
         glm::mat4 view = glm::lookAt(light->getDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-
+        shadowViewProj = proj * view;
         auto& objects = scene.getObjects();
         for (auto& object : objects) {
             if (Mesh* mesh = object.get<Mesh>()) {
                 Transform* transform = object.get<Transform>();
                 const auto& model = transform->computeTransformMatrix(frame);
-                constants.mvp = proj * view * model;
+                constants.mvp = shadowViewProj * model;
                 commandBuffer.pushConstants(pipeline, &constants);
                 commandBuffer.drawIndexed(mesh->mesh->vertexBuffer, mesh->mesh->indexBuffer,
                                           mesh->mesh->getIndicesCount());
@@ -109,6 +109,10 @@ public:
         return timer->elapsedInMilli();
     }
 
+    glm::mat4 getBiasedViewProj() const {
+        return biasMatrix * shadowViewProj;
+    }
+
 private:
     const rv::Context* context = nullptr;
     ShadowMapConstants constants{};
@@ -117,6 +121,12 @@ private:
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;
     rv::GPUTimerHandle timer;
+
+    glm::mat4 shadowViewProj{};
+    static constexpr glm::mat4 biasMatrix{0.5f, 0.0f, 0.0f, 0.0f,  //
+                                          0.0f, 0.5f, 0.0f, 0.0f,  //
+                                          0.0f, 0.0f, 0.5f, 0.0f,  //
+                                          0.5f, 0.5f, 0.5f, 1.0f};
 };
 
 class Renderer {
@@ -216,7 +226,8 @@ public:
                 objectStorage[index].baseColor = material->baseColor;
             }
             if (transform) {
-                objectStorage[index].transformMatrix = transform->computeTransformMatrix(frame);
+                const auto& model = transform->computeTransformMatrix(frame);
+                objectStorage[index].mvpMatrix = viewProj * model;
                 objectStorage[index].normalMatrix = transform->computeNormalMatrix(frame);
             }
         }
