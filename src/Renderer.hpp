@@ -3,7 +3,114 @@
 
 #include "Scene.hpp"
 
+#include "../shader/shadow_map.glsl"
 #include "../shader/standard.glsl"
+
+class ShadowMapPass {
+public:
+    void init(const rv::Context& _context) {
+        context = &_context;
+
+        std::vector<rv::ShaderHandle> shaders(2);
+        shaders[0] = context->createShader({
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "shadow_map.vert",
+                                                      DEV_SHADER_DIR / "spv/shadow_map.vert.spv"),
+            .stage = vk::ShaderStageFlagBits::eVertex,
+        });
+
+        shaders[1] = context->createShader({
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "shadow_map.frag",
+                                                      DEV_SHADER_DIR / "spv/shadow_map.frag.spv"),
+            .stage = vk::ShaderStageFlagBits::eFragment,
+        });
+
+        vk::Format depthFormat = vk::Format::eD32Sfloat;
+        depthImage = context->createImage({
+            .usage = rv::ImageUsage::DepthAttachment,
+            .extent = extent,
+            .format = depthFormat,
+            .aspect = vk::ImageAspectFlagBits::eDepth,
+            .debugName = "ShadowMapPass::depthImage",
+        });
+
+        context->oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
+            commandBuffer->transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
+        });
+
+        descSet = context->createDescriptorSet({
+            .shaders = shaders,
+        });
+
+        pipeline = context->createGraphicsPipeline({
+            .descSetLayout = descSet->getLayout(),
+            .pushSize = sizeof(ShadowMapConstants),
+            .vertexShader = shaders[0],
+            .fragmentShader = shaders[1],
+            .vertexStride = sizeof(rv::Vertex),
+            .vertexAttributes = rv::Vertex::getAttributeDescriptions(),
+            .colorFormats = {},
+            .depthFormat = depthFormat,
+        });
+
+        timer = context->createGPUTimer({});
+    }
+
+    void render(const rv::CommandBuffer& commandBuffer, Scene& scene, int frame) {
+        commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
+        commandBuffer.imageBarrier(
+            {depthImage},  //
+            vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllGraphics,
+            vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+
+        commandBuffer.beginDebugLabel("ShadowMapPass::render()");
+        commandBuffer.bindDescriptorSet(descSet, pipeline);
+        commandBuffer.bindPipeline(pipeline);
+        commandBuffer.transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
+
+        commandBuffer.setViewport(extent.width, extent.height);
+        commandBuffer.setScissor(extent.width, extent.height);
+        commandBuffer.beginTimestamp(timer);
+        commandBuffer.beginRendering(rv::ImageHandle{}, depthImage, {0, 0},
+                                     {extent.width, extent.height});
+
+        rv::Camera& camera = scene.getCamera();
+        glm::mat4 viewProj = camera.getProj() * camera.getView();
+        auto& objects = scene.getObjects();
+        for (auto& object : objects) {
+            if (Mesh* mesh = object.get<Mesh>()) {
+                Transform* transform = object.get<Transform>();
+                const auto& model = transform->computeTransformMatrix(frame);
+                constants.mvp = viewProj * model;
+                commandBuffer.pushConstants(pipeline, &constants);
+                commandBuffer.drawIndexed(mesh->mesh->vertexBuffer, mesh->mesh->indexBuffer,
+                                          mesh->mesh->getIndicesCount());
+            }
+        }
+
+        commandBuffer.endRendering();
+        commandBuffer.endTimestamp(timer);
+
+        commandBuffer.imageBarrier(
+            {depthImage},  //
+            vk::PipelineStageFlagBits::eAllGraphics, vk::PipelineStageFlagBits::eAllGraphics,
+            vk::AccessFlagBits::eDepthStencilAttachmentWrite, vk::AccessFlagBits::eShaderRead);
+
+        commandBuffer.endDebugLabel();
+    }
+
+    float getRenderingTimeMs() const {
+        return timer->elapsedInMilli();
+    }
+
+private:
+    const rv::Context* context = nullptr;
+    ShadowMapConstants constants{};
+    vk::Extent3D extent{1024, 1024, 1};
+    rv::ImageHandle depthImage;
+    rv::DescriptorSetHandle descSet;
+    rv::GraphicsPipelineHandle pipeline;
+    rv::GPUTimerHandle timer;
+};
 
 class Renderer {
 public:
@@ -58,6 +165,8 @@ public:
         });
 
         timer = context->createGPUTimer({});
+
+        shadowMapPass.init(*context);
     }
 
     void render(const rv::CommandBuffer& commandBuffer,
@@ -65,12 +174,16 @@ public:
                 const rv::ImageHandle& depthImage,
                 Scene& scene,
                 int frame) {
+        // shadowMapPass.render(commandBuffer, scene, frame);
+
         commandBuffer.clearColorImage(colorImage, {0.0f, 0.0f, 0.0f, 1.0f});
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
-        commandBuffer.imageBarrier(
-            {colorImage, depthImage},  //
-            vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllGraphics,
-            vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eColorAttachmentWrite);
+        commandBuffer.imageBarrier({colorImage, depthImage},  //
+                                   vk::PipelineStageFlagBits::eTransfer,
+                                   vk::PipelineStageFlagBits::eAllGraphics,
+                                   vk::AccessFlagBits::eTransferWrite,
+                                   vk::AccessFlagBits::eColorAttachmentWrite |
+                                       vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
         // Update buffer
         rv::Camera& camera = scene.getCamera();
@@ -133,10 +246,12 @@ public:
         commandBuffer.endRendering();
         commandBuffer.endTimestamp(timer);
 
-        commandBuffer.imageBarrier(
-            {colorImage, depthImage},  //
-            vk::PipelineStageFlagBits::eAllGraphics, vk::PipelineStageFlagBits::eAllGraphics,
-            vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
+        commandBuffer.imageBarrier({colorImage, depthImage},  //
+                                   vk::PipelineStageFlagBits::eAllGraphics,
+                                   vk::PipelineStageFlagBits::eAllGraphics,
+                                   vk::AccessFlagBits::eColorAttachmentWrite |
+                                       vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+                                   vk::AccessFlagBits::eShaderRead);
 
         commandBuffer.endDebugLabel();
     }
@@ -157,4 +272,6 @@ private:
     std::vector<ObjectData> objectStorage{};
     rv::BufferHandle sceneUniformBuffer;
     rv::BufferHandle objectStorageBuffer;
+
+    ShadowMapPass shadowMapPass;
 };
