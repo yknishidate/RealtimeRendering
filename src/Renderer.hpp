@@ -56,6 +56,11 @@ public:
     }
 
     void render(const rv::CommandBuffer& commandBuffer, Scene& scene, int frame) {
+        Object* obj = scene.findObject<DirectionalLight>();
+        if (!obj) {
+            return;
+        }
+
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
         commandBuffer.imageBarrier(
             {depthImage},  //
@@ -73,14 +78,16 @@ public:
         commandBuffer.beginRendering(rv::ImageHandle{}, depthImage, {0, 0},
                                      {extent.width, extent.height});
 
-        rv::Camera& camera = scene.getCamera();
-        glm::mat4 viewProj = camera.getProj() * camera.getView();
+        DirectionalLight* light = obj->get<DirectionalLight>();
+        glm::mat4 proj = glm::ortho<float>(-10, 10, -10, 10, -10, 20);
+        glm::mat4 view = glm::lookAt(light->getDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+
         auto& objects = scene.getObjects();
         for (auto& object : objects) {
             if (Mesh* mesh = object.get<Mesh>()) {
                 Transform* transform = object.get<Transform>();
                 const auto& model = transform->computeTransformMatrix(frame);
-                constants.mvp = viewProj * model;
+                constants.mvp = proj * view * model;
                 commandBuffer.pushConstants(pipeline, &constants);
                 commandBuffer.drawIndexed(mesh->mesh->vertexBuffer, mesh->mesh->indexBuffer,
                                           mesh->mesh->getIndicesCount());
@@ -174,7 +181,7 @@ public:
                 const rv::ImageHandle& depthImage,
                 Scene& scene,
                 int frame) {
-        // shadowMapPass.render(commandBuffer, scene, frame);
+        shadowMapPass.render(commandBuffer, scene, frame);
 
         commandBuffer.clearColorImage(colorImage, {0.0f, 0.0f, 0.0f, 1.0f});
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
