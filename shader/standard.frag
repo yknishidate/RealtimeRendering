@@ -17,7 +17,7 @@ void main() {
             float bias = 0.001 * tan(acos(clampedCosTheta));
             bias = clamp(clampedCosTheta, 0.0, 0.005);
             if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - bias){
-                directionalTerm *= 0.5;
+                directionalTerm = vec3(0.0);
             }
         }
     }

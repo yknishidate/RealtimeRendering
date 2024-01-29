@@ -103,7 +103,7 @@ public:
     }
 
     void showDirectionalLight(Object* object) const {
-        DirectionalLight* light = object->get<DirectionalLight>();
+        auto* light = object->get<DirectionalLight>();
         if (!light) {
             return;
         }
@@ -114,6 +114,20 @@ public:
             ImGui::DragFloat("Intensity", &light->intensity, 0.001f, 0.0f, 100.0f);
             ImGui::SliderFloat("Phi", &light->phi, -180.0f, 180.0f);
             ImGui::SliderFloat("Theta", &light->theta, -90.0f, 90.0f);
+            ImGui::TreePop();
+        }
+    }
+
+    void showAmbientLight(Object* object) const {
+        auto* light = object->get<AmbientLight>();
+        if (!light) {
+            return;
+        }
+
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNode("Ambient light")) {
+            ImGui::ColorEdit3("Color", glm::value_ptr(light->color));
+            ImGui::DragFloat("Intensity", &light->intensity, 0.001f, 0.0f, 100.0f);
             ImGui::TreePop();
         }
     }
@@ -134,6 +148,7 @@ public:
             }
 
             showDirectionalLight(object);
+            showAmbientLight(object);
         }
         ImGui::End();
         return message;

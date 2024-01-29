@@ -121,6 +121,11 @@ struct PointLight {
     float radius = 1.0f;
 };
 
+struct AmbientLight {
+    glm::vec3 color = {1.0f, 1.0f, 1.0f};
+    float intensity = 1.0f;
+};
+
 struct Mesh {
     rv::Mesh* mesh = nullptr;
     Material* material = nullptr;
@@ -152,6 +157,10 @@ public:
             pointLight = PointLight(std::forward<Args>(args)...);
             return pointLight.value();
         }
+        if constexpr (std::is_same_v<T, AmbientLight>) {
+            ambientLight = AmbientLight(std::forward<Args>(args)...);
+            return ambientLight.value();
+        }
     }
 
     template <typename T>
@@ -176,11 +185,17 @@ public:
                 return &pointLight.value();
             }
         }
+        if constexpr (std::is_same<T, AmbientLight>()) {
+            if (ambientLight) {
+                return &ambientLight.value();
+            }
+        }
         return nullptr;
     }
 
     template <typename T>
     T* get() {
+        // TODO: 流石に種類追加したときのメンテコストが高すぎる
         if constexpr (std::is_same<T, Transform>()) {
             if (transform) {
                 return &transform.value();
@@ -201,6 +216,11 @@ public:
                 return &pointLight.value();
             }
         }
+        if constexpr (std::is_same<T, AmbientLight>()) {
+            if (ambientLight) {
+                return &ambientLight.value();
+            }
+        }
         return nullptr;
     }
 
@@ -211,9 +231,10 @@ public:
 private:
     std::string name;
     std::optional<Transform> transform;
-    std::optional<Mesh> mesh;  // TODO: 空で構築出来ないようにコンストラクタを導入
+    std::optional<Mesh> mesh;
     std::optional<DirectionalLight> directionalLight;
     std::optional<PointLight> pointLight;
+    std::optional<AmbientLight> ambientLight;
 };
 
 class Texture {
@@ -331,11 +352,29 @@ public:
                     light.color.y = object["color"][1];
                     light.color.z = object["color"][2];
                 }
+                if (object.contains("intensity")) {
+                    light.intensity = object["intensity"];
+                }
                 if (object.contains("phi")) {
                     light.phi = object["phi"];
                 }
                 if (object.contains("theta")) {
                     light.theta = object["theta"];
+                }
+            } else if (object["type"] == "AmbientLight") {
+                if (findObject<AmbientLight>()) {
+                    spdlog::warn("Only one ambient light can exist in a scene");
+                    continue;
+                }
+
+                auto& light = _object.add<AmbientLight>();
+                if (object.contains("color")) {
+                    light.color.x = object["color"][0];
+                    light.color.y = object["color"][1];
+                    light.color.z = object["color"][2];
+                }
+                if (object.contains("intensity")) {
+                    light.intensity = object["intensity"];
                 }
             } else {
                 assert(false && "Not implemented");

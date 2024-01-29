@@ -188,15 +188,18 @@ public:
         rv::Camera& camera = scene.getCamera();
         sceneUniform.cameraViewProj = camera.getProj() * camera.getView();
 
-        Object* lightObj = scene.findObject<DirectionalLight>();
-        if (lightObj) {
-            const DirectionalLight* light = lightObj->get<DirectionalLight>();
+        Object* dirLightObj = scene.findObject<DirectionalLight>();
+        if (dirLightObj) {
+            const DirectionalLight* light = dirLightObj->get<DirectionalLight>();
             sceneUniform.existDirectionalLight = 1;
             sceneUniform.lightDirection.xyz = light->getDirection();
             sceneUniform.lightColorIntensity.xyz = light->color * light->intensity;
             sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*light);
         }
-        sceneUniform.ambientColorIntensity.xyz = glm::vec3{0.0f};
+        if (Object* ambLightObj = scene.findObject<AmbientLight>()) {
+            auto* light = ambLightObj->get<AmbientLight>();
+            sceneUniform.ambientColorIntensity.xyz = light->color * light->intensity;
+        }
 
         auto& objects = scene.getObjects();
         for (size_t index = 0; index < objects.size(); index++) {
@@ -225,7 +228,7 @@ public:
             vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead);
 
         // Shadow pass
-        if (lightObj) {
+        if (dirLightObj) {
             sceneUniform.enableShadowMapping = 1;
             shadowMapPass.render(commandBuffer, shadowMapImage, scene);
         }

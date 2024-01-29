@@ -87,16 +87,16 @@ public:
         ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
-        if (frame > 1) {
-            if (ImGui::Begin("Misc")) {
+        if (ImGui::Begin("Misc")) {
+            if (frame > 1) {
                 ImGui::Text("Rendering: %f ms", renderer.getRenderingTimeMs());
-                if (ImGui::Button("Recompile")) {
-                    context.getDevice().waitIdle();
-                    renderer.init(context);
-                    viewportWindow.setAuxiliaryImage(renderer.getShadowMap());
-                }
-                ImGui::End();
             }
+            if (ImGui::Button("Recompile")) {
+                context.getDevice().waitIdle();
+                renderer.init(context);
+                viewportWindow.setAuxiliaryImage(renderer.getShadowMap());
+            }
+            ImGui::End();
         }
 
         sceneWindow.show(scene, &selectedObject);
