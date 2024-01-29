@@ -8,8 +8,11 @@
 
 class ShadowMapPass {
 public:
-    void init(const rv::Context& _context, vk::Format shadowMapFormat) {
+    void init(const rv::Context& _context,
+              rv::DescriptorSetHandle _descSet,
+              vk::Format shadowMapFormat) {
         context = &_context;
+        descSet = _descSet;
 
         std::vector<rv::ShaderHandle> shaders(2);
         shaders[0] = context->createShader({
@@ -22,10 +25,6 @@ public:
             .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "shadow_map.frag",
                                                       DEV_SHADER_DIR / "spv/shadow_map.frag.spv"),
             .stage = vk::ShaderStageFlagBits::eFragment,
-        });
-
-        descSet = context->createDescriptorSet({
-            .shaders = shaders,
         });
 
         pipeline = context->createGraphicsPipeline({
@@ -123,8 +122,6 @@ public:
     void init(const rv::Context& _context) {
         context = &_context;
 
-        shadowMapPass.init(*context, shadowMapFormat);
-
         shadowMapImage = context->createImage({
             .usage = rv::ImageUsage::DepthAttachment | vk::ImageUsageFlagBits::eSampled,
             .extent = shadowMapExtent,
@@ -184,6 +181,8 @@ public:
             .vertexAttributes = rv::Vertex::getAttributeDescriptions(),
             .colorFormats = vk::Format::eR8G8B8A8Unorm,
         });
+
+        shadowMapPass.init(*context, descSet, shadowMapFormat);
 
         timer = context->createGPUTimer({});
         initialized = true;
