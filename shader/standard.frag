@@ -13,7 +13,7 @@ void main() {
         directionalTerm = max(dot(lightDir, inNormal), 0.0) * scene.lightColorIntensity.rgb;
 
         if(scene.enableShadowMapping == 1){
-            if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - 0.0001){
+            if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - 0.001){
                 directionalTerm *= 0.5;
             }
         }

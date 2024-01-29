@@ -193,11 +193,6 @@ public:
                 Scene& scene,
                 int frame) {
         assert(initialized);
-        if (Object* lightObj = scene.findObject<DirectionalLight>()) {
-            sceneUniform.existDirectionalLight = 1;
-            sceneUniform.enableShadowMapping = 1;
-            shadowMapPass.render(commandBuffer, shadowMapImage, scene, *lightObj, frame);
-        }
 
         commandBuffer.clearColorImage(colorImage, {0.0f, 0.0f, 0.0f, 1.0f});
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
@@ -209,11 +204,15 @@ public:
                                        vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
         // Update buffer
+        // NOTE: Shadow map用の行列も更新するのでShadow map passより先に計算
         rv::Camera& camera = scene.getCamera();
         glm::mat4 viewProj = camera.getProj() * camera.getView();
+        const auto& shadowViewProj = shadowMapPass.getBiasedViewProj();
 
-        if (const Object* obj = scene.findObject<DirectionalLight>()) {
-            const DirectionalLight* light = obj->get<DirectionalLight>();
+        Object* lightObj = scene.findObject<DirectionalLight>();
+        if (lightObj) {
+            const DirectionalLight* light = lightObj->get<DirectionalLight>();
+            sceneUniform.existDirectionalLight = 1;
             sceneUniform.lightDirection.xyz = light->getDirection();
             sceneUniform.lightColorIntensity.xyz = light->color * light->intensity;
         }
@@ -234,15 +233,25 @@ public:
                 const auto& model = transform->computeTransformMatrix(frame);
                 objectStorage[index].mvpMatrix = viewProj * model;
                 objectStorage[index].normalMatrix = transform->computeNormalMatrix(frame);
-                if (sceneUniform.enableShadowMapping) {
-                    objectStorage[index].biasedShadowMatrix =
-                        shadowMapPass.getBiasedViewProj() * model;
+                if (lightObj) {
+                    objectStorage[index].biasedShadowMatrix = shadowViewProj * model;
                 }
             }
         }
 
+        // TODO: DeviceHostに変更
         commandBuffer.copyBuffer(sceneUniformBuffer, &sceneUniform);
         commandBuffer.copyBuffer(objectStorageBuffer, objectStorage.data());
+        commandBuffer.bufferBarrier(
+            {sceneUniformBuffer, objectStorageBuffer}, vk::PipelineStageFlagBits::eTransfer,
+            vk::PipelineStageFlagBits::eAllGraphics, vk::AccessFlagBits::eTransferWrite,
+            vk::AccessFlagBits::eShaderRead);
+
+        // Shadow pass
+        if (lightObj) {
+            sceneUniform.enableShadowMapping = 1;
+            shadowMapPass.render(commandBuffer, shadowMapImage, scene, *lightObj, frame);
+        }
 
         // Draw scene
         commandBuffer.beginDebugLabel("Renderer::render()");
