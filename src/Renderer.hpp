@@ -64,9 +64,7 @@ public:
                                      {extent.width, extent.height});
 
         DirectionalLight* light = lightObj.get<DirectionalLight>();
-        glm::mat4 proj = glm::ortho<float>(-10, 10, -10, 10, -10, 20);
-        glm::mat4 view = glm::lookAt(light->getDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-        shadowViewProj = proj * view;
+        glm::mat4 shadowViewProj = getViewProj(*light);
         auto& objects = scene.getObjects();
         for (auto& object : objects) {
             if (Mesh* mesh = object.get<Mesh>()) {
@@ -90,9 +88,24 @@ public:
         return timer->elapsedInMilli();
     }
 
-    glm::mat4 getBiasedViewProj() const {
-        assert(initialized);
-        return biasMatrix * shadowViewProj;
+    glm::mat4 getViewProj(const DirectionalLight& light) const {
+        glm::mat4 proj = glm::ortho<float>(-10, 10, -10, 10, -10, 20);
+        glm::mat4 view = glm::lookAt(light.getDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+        return proj * view;
+    }
+
+    glm::mat4 getBiasedViewProj(const DirectionalLight& light) const {
+        // NOTE:
+        // x = remap(x, (-1, +1), (0, 1))
+        // y = invert(remap(y, (-1, +1), (0, 1)))
+        // z = z
+        static constexpr glm::mat4 biasMatrix{
+            0.5f, 0.0f,  0.0f, 0.0f,  //
+            0.0f, -0.5f, 0.0f, 0.0f,  //
+            0.0f, 0.0f,  1.0f, 0.0f,  //
+            0.5f, 0.5f,  0.0f, 1.0f,  //
+        };
+        return biasMatrix * getViewProj(light);
     }
 
 private:
@@ -103,17 +116,6 @@ private:
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;
     rv::GPUTimerHandle timer;
-
-    glm::mat4 shadowViewProj{};
-
-    // NOTE:
-    // x =        remap(x, (-1, +1), (0, 1))
-    // y = invert(remap(y, (-1, +1), (0, 1)))
-    // z = z
-    static constexpr glm::mat4 biasMatrix{0.5f, 0.0f,  0.0f, 0.0f,  //
-                                          0.0f, -0.5f, 0.0f, 0.0f,  //
-                                          0.0f, 0.0f,  1.0f, 0.0f,  //
-                                          0.5f, 0.5f,  0.0f, 1.0f};
 };
 
 class Renderer {
@@ -207,7 +209,7 @@ public:
         // NOTE: Shadow map用の行列も更新するのでShadow map passより先に計算
         rv::Camera& camera = scene.getCamera();
         glm::mat4 viewProj = camera.getProj() * camera.getView();
-        const auto& shadowViewProj = shadowMapPass.getBiasedViewProj();
+        glm::mat4 shadowViewProj;
 
         Object* lightObj = scene.findObject<DirectionalLight>();
         if (lightObj) {
@@ -215,6 +217,7 @@ public:
             sceneUniform.existDirectionalLight = 1;
             sceneUniform.lightDirection.xyz = light->getDirection();
             sceneUniform.lightColorIntensity.xyz = light->color * light->intensity;
+            shadowViewProj = shadowMapPass.getBiasedViewProj(*light);
         }
         sceneUniform.ambientColorIntensity.xyz = glm::vec3{0.0f};
 
@@ -243,9 +246,9 @@ public:
         commandBuffer.copyBuffer(sceneUniformBuffer, &sceneUniform);
         commandBuffer.copyBuffer(objectStorageBuffer, objectStorage.data());
         commandBuffer.bufferBarrier(
-            {sceneUniformBuffer, objectStorageBuffer}, vk::PipelineStageFlagBits::eTransfer,
-            vk::PipelineStageFlagBits::eAllGraphics, vk::AccessFlagBits::eTransferWrite,
-            vk::AccessFlagBits::eShaderRead);
+            {sceneUniformBuffer, objectStorageBuffer},  //
+            vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllGraphics,
+            vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead);
 
         // Shadow pass
         if (lightObj) {
