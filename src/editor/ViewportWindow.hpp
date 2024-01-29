@@ -217,6 +217,21 @@ public:
         ImGui::EndChild();
     }
 
+    void showAuxiliaryImage(ImVec2 viewportPos) const {
+        if (!auxiliaryDescSet) {
+            return;
+        }
+
+        float imageWidth = 300.0f;
+        float imageHeight = 300.0f / auxiliaryAspect;
+        float padding = 10.0f;
+        float cursorX = viewportPos.x + width - imageWidth - padding;
+        float cursorY = viewportPos.y + height - imageHeight - padding;
+        ImGui::SetCursorScreenPos(ImVec2(cursorX, cursorY));
+
+        ImGui::Image(auxiliaryDescSet, ImVec2(imageWidth, imageHeight));
+    }
+
     int show(Scene& scene, Object* selectedObject, int frame) {
         int message = Message::None;
         if (ImGui::Begin("Viewport")) {
@@ -224,12 +239,17 @@ public:
                 message |= Message::CameraChanged;
             }
 
+            // Viewport
             ImVec2 windowPos = ImGui::GetCursorScreenPos();
             ImVec2 windowSize = ImGui::GetContentRegionAvail();
             width = windowSize.x;
             height = windowSize.y;
             ImGui::Image(imguiDescSets[currentImageIndex], windowSize);
 
+            // Auxiliary image
+            showAuxiliaryImage(windowPos);
+
+            // Toolbar
             if (isWidgetsVisible) {
                 showToolBar(windowPos);
                 if (showGizmo(scene, selectedObject, frame)) {
@@ -294,6 +314,15 @@ public:
         currentImageIndex = (currentImageIndex + 1) % imageCount;
     }
 
+    void setAuxiliaryImage(const rv::ImageHandle& image) {
+        ImGui_ImplVulkan_RemoveTexture(auxiliaryDescSet);
+        auxiliaryDescSet = ImGui_ImplVulkan_AddTexture(  //
+            image->getSampler(), image->getView(),       //
+            static_cast<VkImageLayout>(image->getLayout()));
+        auxiliaryAspect = static_cast<float>(image->getExtent().width) /
+                          static_cast<float>(image->getExtent().height);
+    }
+
     const rv::Context* context = nullptr;
     IconManager* iconManager = nullptr;
 
@@ -312,6 +341,9 @@ public:
     std::array<rv::ImageHandle, imageCount> colorImages;
     std::array<rv::ImageHandle, imageCount> depthImages;
     std::array<vk::DescriptorSet, imageCount> imguiDescSets;
+
+    vk::DescriptorSet auxiliaryDescSet;
+    float auxiliaryAspect;
 
     // Line drawer
     LineDrawer lineDrawer;

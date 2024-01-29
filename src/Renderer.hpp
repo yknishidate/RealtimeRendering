@@ -285,6 +285,10 @@ public:
         return timer->elapsedInMilli();
     }
 
+    rv::ImageHandle getShadowMap() const {
+        return shadowMapPass.getDepthImage();
+    }
+
 private:
     bool initialized = false;
     const rv::Context* context = nullptr;
