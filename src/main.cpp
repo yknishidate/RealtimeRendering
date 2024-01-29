@@ -84,8 +84,12 @@ public:
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
         if (frame > 1) {
-            if (ImGui::Begin("Performance")) {
+            if (ImGui::Begin("Misc")) {
                 ImGui::Text("Rendering: %f ms", renderer.getRenderingTimeMs());
+                if (ImGui::Button("Recompile")) {
+                    context.getDevice().waitIdle();
+                    renderer.init(context);
+                }
                 ImGui::End();
             }
         }
