@@ -53,9 +53,11 @@ public:
         });
 
         timer = context->createGPUTimer({});
+        initialized = true;
     }
 
     void render(const rv::CommandBuffer& commandBuffer, Scene& scene, Object& lightObj, int frame) {
+        assert(initialized);
         commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
         commandBuffer.transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
 
@@ -92,18 +94,22 @@ public:
     }
 
     float getRenderingTimeMs() const {
+        assert(initialized);
         return timer->elapsedInMilli();
     }
 
     glm::mat4 getBiasedViewProj() const {
+        assert(initialized);
         return biasMatrix * shadowViewProj;
     }
 
     rv::ImageHandle getDepthImage() const {
+        assert(initialized);
         return depthImage;
     }
 
 private:
+    bool initialized = false;
     const rv::Context* context = nullptr;
     ShadowMapConstants constants{};
     vk::Extent3D extent{1024, 1024, 1};
@@ -175,6 +181,7 @@ public:
         });
 
         timer = context->createGPUTimer({});
+        initialized = true;
     }
 
     void render(const rv::CommandBuffer& commandBuffer,
@@ -182,6 +189,7 @@ public:
                 const rv::ImageHandle& depthImage,
                 Scene& scene,
                 int frame) {
+        assert(initialized);
         if (Object* lightObj = scene.findObject<DirectionalLight>()) {
             sceneUniform.existDirectionalLight = 1;
             sceneUniform.enableShadowMapping = 1;
@@ -273,10 +281,12 @@ public:
     }
 
     float getRenderingTimeMs() const {
+        assert(initialized);
         return timer->elapsedInMilli();
     }
 
 private:
+    bool initialized = false;
     const rv::Context* context = nullptr;
     StandardConstants standardConstants{};
     rv::DescriptorSetHandle descSet;

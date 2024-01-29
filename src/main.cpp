@@ -29,6 +29,8 @@ public:
         rv::CPUTimer timer;
 
         scene.setContext(context);
+        scene.loadFromJson(DEV_ASSET_DIR / "scenes" / "two_boxes.json");
+
         iconManager.init(context);
         assetWindow.init(context, scene, iconManager);
         viewportWindow.init(context, iconManager, 1920, 1080);
