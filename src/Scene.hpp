@@ -1,7 +1,7 @@
 #pragma once
+#include <map>
 #include <memory>
 #include <typeindex>
-#include <unordered_map>
 
 #include <reactive/Scene/Camera.hpp>
 #include <reactive/Scene/Mesh.hpp>
@@ -248,7 +248,7 @@ public:
 
 private:
     std::string name;
-    std::unordered_map<std::type_index, std::unique_ptr<Component>> components;
+    std::map<std::type_index, std::unique_ptr<Component>> components;
 };
 
 class Texture {

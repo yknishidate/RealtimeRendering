@@ -19,7 +19,8 @@ public:
               .width = 2560,
               .height = 1440,
               .title = "Reactive Editor",
-              .layers = {rv::Layer::Validation},
+              .vsync = false,
+              .layers = {rv::Layer::Validation, rv::Layer::FPSMonitor},
               .extensions = {rv::Extension::RayTracing},
               .style = rv::UIStyle::Gray,
           }) {}
@@ -89,6 +90,9 @@ public:
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
         if (ImGui::Begin("Misc")) {
+            ImGui::Text("Total frame: %f ms", cpuTimer.elapsedInMilli());
+            cpuTimer.restart();
+
             if (frame > 1) {
                 ImGui::Text("Rendering: %f ms", renderer.getRenderingTimeMs());
             }
@@ -130,6 +134,9 @@ public:
     AssetWindow assetWindow;
     IconManager iconManager;
     MenuBar menuBar;
+
+    // Misc
+    rv::CPUTimer cpuTimer;
 };
 
 int main() {
