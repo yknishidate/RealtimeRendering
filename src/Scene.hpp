@@ -129,9 +129,21 @@ struct AmbientLight {
 struct Mesh {
     rv::Mesh* mesh = nullptr;
     Material* material = nullptr;
+    rv::AABB aabb;
 
     Mesh(rv::Mesh* mesh, Material* material) : mesh{mesh}, material{material} {
         assert(mesh && "Mesh cannot be created empty");
+        glm::vec3 min = mesh->vertices[0].pos;
+        glm::vec3 max = mesh->vertices[0].pos;
+        for (auto& vert : mesh->vertices) {
+            min = glm::min(min, vert.pos);
+            max = glm::max(max, vert.pos);
+        }
+        aabb = rv::AABB{min, max};
+    }
+
+    rv::AABB getAABB() const {
+        return aabb;
     }
 };
 
@@ -226,6 +238,44 @@ public:
 
     std::string getName() const {
         return name;
+    }
+
+    // TODO:
+    // あまり Object 内に実装を入れたくない
+    // 複数の Component が連携する実装の管理方法を検討する
+    rv::AABB getAABB() const {
+        // WARN: frameは受け取らない
+        // TODO: transformは常に現在フレームの状態を持っていてほしい
+        if (!mesh) {
+            return {};
+        }
+
+        rv::AABB aabb = mesh->getAABB();
+        if (!transform) {
+            return aabb;
+        }
+
+        // Apply scale to the extents
+        aabb.extents *= transform->scale;
+
+        // Rotate corners of the AABB and find min/max extents
+        std::vector<glm::vec3> corners = aabb.getCorners();
+        glm::vec3 min = aabb.center;
+        glm::vec3 max = aabb.center;
+        for (auto& corner : corners) {
+            // Apply rotation
+            glm::vec3 rotated_corner = transform->rotation * (corner - aabb.center) + aabb.center;
+
+            // Update min and max extents
+            min = glm::min(min, rotated_corner);
+            max = glm::max(max, rotated_corner);
+        }
+        // Compute new AABB
+        rv::AABB transformedAABB(min, max);
+
+        // Apply translation
+        transformedAABB.center += transform->translation;
+        return transformedAABB;
     }
 
 private:
@@ -451,6 +501,14 @@ public:
 
     std::vector<Texture>& getTextures() {
         return textures;
+    }
+
+    rv::AABB getAABB() const {
+        rv::AABB aabb = objects.front().getAABB();
+        for (auto& obj : objects) {
+            aabb = rv::AABB::merge(aabb, obj.getAABB());
+        }
+        return aabb;
     }
 
 private:

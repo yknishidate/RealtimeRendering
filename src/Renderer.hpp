@@ -87,6 +87,21 @@ public:
         return proj * view;
     }
 
+    glm::mat4 getViewProj(const DirectionalLight& light, const rv::AABB& aabb) const {
+        //  Calculate bounds based on the AABB and light direction
+        float left = aabb.center.x - aabb.extents.x;
+        float right = aabb.center.x + aabb.extents.x;
+        float bottom = aabb.center.y - aabb.extents.y;
+        float top = aabb.center.y + aabb.extents.y;
+        float near = aabb.center.z - aabb.extents.z;
+        float far = aabb.center.z + aabb.extents.z;
+
+        // Adjust these bounds based on the light direction and scene requirements
+        glm::mat4 proj = glm::ortho<float>(left, right, bottom, top, near, far);
+        glm::mat4 view = glm::lookAt(light.getDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+        return proj * view;
+    }
+
 private:
     bool initialized = false;
     const rv::Context* context = nullptr;

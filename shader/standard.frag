@@ -22,7 +22,7 @@ void main() {
 
         if(scene.enableShadowMapping == 1){
             float bias = 0.001 * tan(acos(clampedCosTheta));
-            bias = clamp(clampedCosTheta, 0.0, 0.005);
+            bias = clamp(clampedCosTheta, 0.0, 0.01);
             
             #ifdef USE_PCF
                 float rate = 0.0;
