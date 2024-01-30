@@ -93,7 +93,6 @@ public:
                          vk::ImageUsageFlagBits::eTransferSrc |
                          vk::ImageUsageFlagBits::eColorAttachment,
                 .extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1},
-                //.format = vk::Format::eR8G8B8A8Unorm,
                 .format = vk::Format::eB8G8R8A8Unorm,
                 .debugName = "ViewportRenderer::colorImage",
             });

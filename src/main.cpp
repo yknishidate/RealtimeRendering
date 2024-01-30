@@ -53,7 +53,14 @@ public:
         spdlog::info("Started: {} ms", timer.elapsedInMilli());
     }
 
+    void onKey(int key, int scancode, int action, int mods) override {
+        if (key == GLFW_KEY_P && action == GLFW_PRESS) {
+            play = !play;
+        }
+    }
+
     void onUpdate() override {
+        // Camera
         auto& camera = scene.getCamera();
         for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
             if (isKeyDown(key)) {
@@ -80,9 +87,9 @@ public:
 
     void onRender(const rv::CommandBufferHandle& commandBuffer) override {
         commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
-        commandBuffer->clearDepthStencilImage(getDefaultDepthImage(), 1.0f, 0);
 
         if (play) {
+            commandBuffer->clearDepthStencilImage(getDefaultDepthImage(), 1.0f, 0);
             renderer.render(*commandBuffer,  //
                             getCurrentColorImage(),
                             getDefaultDepthImage(),  //
