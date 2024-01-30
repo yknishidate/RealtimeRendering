@@ -5,7 +5,7 @@
 
 class MenuBar {
 public:
-    void openScene(Scene& scene) const {
+    static void openScene(Scene& scene) {
         nfdchar_t* outPath = nullptr;
         nfdresult_t result = NFD_OpenDialog("json", nullptr, &outPath);
         if (result == NFD_OKAY) {
@@ -14,7 +14,7 @@ public:
         }
     }
 
-    void show(Scene& scene, bool* isWidgetsVisible) const {
+    static void show(Scene& scene, bool* isWidgetsVisible) {
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("Open..", "Ctrl+O")) {

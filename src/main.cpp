@@ -26,7 +26,7 @@ public:
           }) {}
 
     void onShutdown() override {
-        IconManager::shutdown();
+        IconManager::clearIcons();
     }
 
     void onStart() override {
@@ -37,10 +37,8 @@ public:
         scene.setContext(context);
         scene.loadFromJson(DEV_ASSET_DIR / "scenes" / "two_boxes.json");
 
-        IconManager::init(context);
-        assetWindow.init(context, scene);
+        IconManager::loadIcons(context);
         viewportWindow.init(context, 1920, 1080);
-        attributeWindow.init(context, scene);
 
         renderer.init(context);
         viewportWindow.setAuxiliaryImage(renderer.getShadowMap());
@@ -88,7 +86,7 @@ public:
         ImGui::Begin("DockSpace", nullptr, windowFlags);
         ImGui::PopStyleVar(3);
 
-        menuBar.show(scene, &viewportWindow.isWidgetsVisible);
+        MenuBar::show(scene, &viewportWindow.isWidgetsVisible);
 
         ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
@@ -108,11 +106,11 @@ public:
             ImGui::End();
         }
 
-        sceneWindow.show(scene, &selectedObject);
+        SceneWindow::show(scene, &selectedObject);
         int message = Message::None;
-        message |= attributeWindow.show(selectedObject);
+        message |= AttributeWindow::show(selectedObject);
         message |= viewportWindow.show(scene, selectedObject, frame);
-        assetWindow.show();
+        AssetWindow::show(context, scene);
 
         renderer.render(*commandBuffer,  //
                         viewportWindow.getCurrentColorImage(),

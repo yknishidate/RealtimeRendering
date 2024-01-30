@@ -5,7 +5,7 @@
 
 class SceneWindow {
 public:
-    void show(Scene& scene, Object** selectedObject) const {
+    static void show(Scene& scene, Object** selectedObject) {
         ImGui::Begin("Scene");
 
         for (auto& object : scene.getObjects()) {

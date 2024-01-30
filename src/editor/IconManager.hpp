@@ -9,7 +9,7 @@
 
 class IconManager {
 public:
-    static void init(const rv::Context& context) {
+    static void loadIcons(const rv::Context& context) {
         // Manipulate
         addIcon(context, "manip_translate", (DEV_ASSET_DIR / "icons/manip_translate.png").string());
         addIcon(context, "manip_rotate", (DEV_ASSET_DIR / "icons/manip_rotate.png").string());
@@ -21,7 +21,7 @@ public:
         addIcon(context, "asset_texture", (DEV_ASSET_DIR / "icons/asset_texture.png").string());
     }
 
-    static void shutdown() {
+    static void clearIcons() {
         icons.clear();
     }
 
