@@ -275,7 +275,7 @@ public:
                         glm::vec3{0.0f, 0.5f, 0.0f}, 2.0f);
     }
 
-    void drawContents(const rv::CommandBuffer& commandBuffer, Scene& scene) {
+    void drawContents(const rv::CommandBuffer& commandBuffer, Scene& scene) const {
         if (!isWidgetsVisible) {
             return;
         }

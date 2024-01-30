@@ -114,6 +114,13 @@ public:
             ImGui::DragFloat("Intensity", &light->intensity, 0.001f, 0.0f, 100.0f);
             ImGui::SliderFloat("Phi", &light->phi, -180.0f, 180.0f);
             ImGui::SliderFloat("Theta", &light->theta, -90.0f, 90.0f);
+
+            ImGui::Checkbox("Shadow", &light->enableShadow);
+            if (light->enableShadow) {
+                ImGui::Checkbox("Frontface culling", &light->enableShadowCulling);
+                ImGui::SliderFloat("Shadow bias", &light->shadowBias, 0.0f, 0.01f);
+            }
+
             ImGui::TreePop();
         }
     }

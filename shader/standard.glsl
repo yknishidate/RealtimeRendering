@@ -25,6 +25,7 @@ struct SceneData{
     glm::vec4 ambientColorIntensity{0.0f};
     int existDirectionalLight;
     int enableShadowMapping;
+    float shadowBias = 0.005f;
 #else
     mat4 cameraViewProj;
     mat4 shadowViewProj;
@@ -33,6 +34,7 @@ struct SceneData{
     vec4 ambientColorIntensity;
     int existDirectionalLight;
     int enableShadowMapping;
+    float shadowBias;
 #endif
 };
 

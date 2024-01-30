@@ -104,6 +104,10 @@ struct DirectionalLight {
     float phi = 0.0f;
     float theta = 0.0f;
 
+    bool enableShadow = true;
+    bool enableShadowCulling = false;
+    float shadowBias = 0.005f;
+
     glm::vec3 getDirection() const {
         float _phi = glm::radians(phi);
         float _theta = glm::radians(theta);
@@ -305,6 +309,7 @@ public:
         context = &_context;
     }
 
+    // TODO: 名前被りを解決
     Object& addObject(std::string name) {
         assert(objects.size() < maxObjectCount);
 

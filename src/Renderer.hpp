@@ -35,6 +35,7 @@ public:
             .vertexAttributes = rv::Vertex::getAttributeDescriptions(),
             .colorFormats = {},
             .depthFormat = shadowMapFormat,
+            .cullMode = "dynamic",
         });
 
         timer = context->createGPUTimer({});
@@ -43,7 +44,8 @@ public:
 
     void render(const rv::CommandBuffer& commandBuffer,
                 rv::ImageHandle shadowMapImage,
-                Scene& scene) const {
+                Scene& scene,
+                const DirectionalLight& light) const {
         assert(initialized);
         vk::Extent3D extent = shadowMapImage->getExtent();
         commandBuffer.clearDepthStencilImage(shadowMapImage, 1.0f, 0);
@@ -55,6 +57,8 @@ public:
 
         commandBuffer.setViewport(extent.width, extent.height);
         commandBuffer.setScissor(extent.width, extent.height);
+        commandBuffer.setCullMode(light.enableShadowCulling ? vk::CullModeFlagBits::eFront
+                                                            : vk::CullModeFlagBits::eNone);
         commandBuffer.beginTimestamp(timer);
         commandBuffer.beginRendering(rv::ImageHandle{}, shadowMapImage, {0, 0},
                                      {extent.width, extent.height});
@@ -79,12 +83,6 @@ public:
     float getRenderingTimeMs() const {
         assert(initialized);
         return timer->elapsedInMilli();
-    }
-
-    glm::mat4 getViewProj(const DirectionalLight& light) const {
-        glm::mat4 proj = glm::ortho<float>(-10, 10, -10, 10, -10, 20);
-        glm::mat4 view = glm::lookAt(light.getDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-        return proj * view;
     }
 
     glm::mat4 getViewProj(const DirectionalLight& light, const rv::AABB& aabb) const {
@@ -222,13 +220,13 @@ public:
         sceneUniform.cameraViewProj = camera.getProj() * camera.getView();
 
         Object* dirLightObj = scene.findObject<DirectionalLight>();
+        const DirectionalLight* dirLight = dirLightObj->get<DirectionalLight>();
         if (dirLightObj) {
-            const DirectionalLight* light = dirLightObj->get<DirectionalLight>();
             sceneUniform.existDirectionalLight = 1;
-            sceneUniform.lightDirection.xyz = light->getDirection();
-            sceneUniform.lightColorIntensity.xyz = light->color * light->intensity;
-            // sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*light);
-            sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*light, scene.getAABB());
+            sceneUniform.lightDirection.xyz = dirLight->getDirection();
+            sceneUniform.lightColorIntensity.xyz = dirLight->color * dirLight->intensity;
+            sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*dirLight, scene.getAABB());
+            sceneUniform.shadowBias = dirLight->shadowBias;
         }
         if (Object* ambLightObj = scene.findObject<AmbientLight>()) {
             auto* light = ambLightObj->get<AmbientLight>();
@@ -262,9 +260,11 @@ public:
             vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead);
 
         // Shadow pass
-        if (dirLightObj) {
+        if (dirLightObj && dirLight->enableShadow) {
             sceneUniform.enableShadowMapping = 1;
-            shadowMapPass.render(commandBuffer, shadowMapImage, scene);
+            shadowMapPass.render(commandBuffer, shadowMapImage, scene, *dirLight);
+        } else {
+            sceneUniform.enableShadowMapping = 0;
         }
 
         // Draw scene

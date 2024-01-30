@@ -21,8 +21,8 @@ void main() {
         directionalTerm = clampedCosTheta * scene.lightColorIntensity.rgb;
 
         if(scene.enableShadowMapping == 1){
-            float bias = 0.001 * tan(acos(clampedCosTheta));
-            bias = clamp(clampedCosTheta, 0.0, 0.01);
+            float bias = scene.shadowBias * tan(acos(clampedCosTheta));
+            bias = clamp(clampedCosTheta, 0.0, scene.shadowBias * 2.0);
             
             #ifdef USE_PCF
                 float rate = 0.0;

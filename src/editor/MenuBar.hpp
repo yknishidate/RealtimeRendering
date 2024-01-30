@@ -25,13 +25,16 @@ public:
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Create")) {
-                if (ImGui::MenuItem("Directional light")) {
-                    if (!scene.findObject<DirectionalLight>()) {
-                        scene.addObject("Directional light").add<DirectionalLight>();
+                if (ImGui::BeginMenu("Light")) {
+                    if (ImGui::MenuItem("Directional light")) {
+                        if (!scene.findObject<DirectionalLight>()) {
+                            scene.addObject("Directional light").add<DirectionalLight>();
+                        }
                     }
-                }
-                if (ImGui::MenuItem("Point light")) {
-                    scene.addObject("Point light").add<PointLight>();
+                    if (ImGui::MenuItem("Point light")) {
+                        scene.addObject("Point light").add<PointLight>();
+                    }
+                    ImGui::EndMenu();
                 }
                 ImGui::EndMenu();
             }
