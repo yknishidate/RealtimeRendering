@@ -6,6 +6,7 @@
 
 #include "Renderer.hpp"
 #include "Scene.hpp"
+#include "ViewportRenderer.hpp"
 #include "editor/AssetWindow.hpp"
 #include "editor/AttributeWindow.hpp"
 #include "editor/MenuBar.hpp"
@@ -38,10 +39,10 @@ public:
         scene.loadFromJson(DEV_ASSET_DIR / "scenes" / "two_boxes.json");
 
         IconManager::loadIcons(context);
-        viewportWindow.init(context, 1920, 1080);
 
+        viewportRenderer.init(context, 1920, 1080);
         renderer.init(context);
-        viewportWindow.setAuxiliaryImage(renderer.getShadowMap());
+        ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
 
         spdlog::info("Started: {} ms", timer.elapsedInMilli());
     }
@@ -54,17 +55,17 @@ public:
             }
         }
 
-        camera.processDragDelta(viewportWindow.dragDelta);
-        camera.processMouseScroll(viewportWindow.mouseScroll);
+        camera.processDragDelta(ViewportWindow::dragDelta);
+        camera.processMouseScroll(ViewportWindow::mouseScroll);
         frame++;
     }
 
     void onRender(const rv::CommandBufferHandle& commandBuffer) override {
-        if (viewportWindow.needsRecreate()) {
+        if (viewportRenderer.needsRecreate()) {
             context.getDevice().waitIdle();
-            viewportWindow.createImages(static_cast<uint32_t>(viewportWindow.width),
-                                        static_cast<uint32_t>(viewportWindow.height));
-            scene.getCamera().setAspect(viewportWindow.width / viewportWindow.height);
+            viewportRenderer.createImages(static_cast<uint32_t>(ViewportWindow::width),
+                                          static_cast<uint32_t>(ViewportWindow::height));
+            scene.getCamera().setAspect(ViewportWindow::width / ViewportWindow::height);
         }
         commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
 
@@ -86,7 +87,7 @@ public:
         ImGui::Begin("DockSpace", nullptr, windowFlags);
         ImGui::PopStyleVar(3);
 
-        MenuBar::show(scene, &viewportWindow.isWidgetsVisible);
+        MenuBar::show(scene, &ViewportWindow::isWidgetsVisible);
 
         ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
@@ -101,7 +102,7 @@ public:
             if (ImGui::Button("Recompile")) {
                 context.getDevice().waitIdle();
                 renderer.init(context);
-                viewportWindow.setAuxiliaryImage(renderer.getShadowMap());
+                ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
             }
             ImGui::End();
         }
@@ -109,14 +110,15 @@ public:
         SceneWindow::show(scene, &selectedObject);
         int message = Message::None;
         message |= AttributeWindow::show(selectedObject);
-        message |= viewportWindow.show(scene, selectedObject, frame);
+        message |= ViewportWindow::show(scene, viewportRenderer.getCurrentImageDescSet(),
+                                        selectedObject, frame);
         AssetWindow::show(context, scene);
 
         renderer.render(*commandBuffer,  //
-                        viewportWindow.getCurrentColorImage(),
-                        viewportWindow.getCurrentDepthImage(), scene, frame);
-        viewportWindow.drawContents(*commandBuffer, scene);
-        viewportWindow.advanceImageIndex();
+                        viewportRenderer.getCurrentColorImage(),
+                        viewportRenderer.getCurrentDepthImage(), scene, frame);
+        viewportRenderer.drawContents(*commandBuffer, scene);
+        viewportRenderer.advanceImageIndex();
 
         ImGui::End();
     }
@@ -127,14 +129,10 @@ public:
 
     // Renderer
     Renderer renderer;
+    ViewportRenderer viewportRenderer;
 
     // Editor
     Object* selectedObject = nullptr;
-    SceneWindow sceneWindow;
-    ViewportWindow viewportWindow;
-    AttributeWindow attributeWindow;
-    AssetWindow assetWindow;
-    MenuBar menuBar;
 
     // Misc
     rv::CPUTimer cpuTimer;
