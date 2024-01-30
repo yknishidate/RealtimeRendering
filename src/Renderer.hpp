@@ -88,17 +88,35 @@ public:
     }
 
     glm::mat4 getViewProj(const DirectionalLight& light, const rv::AABB& aabb) const {
-        //  Calculate bounds based on the AABB and light direction
-        float left = aabb.center.x - aabb.extents.x;
-        float right = aabb.center.x + aabb.extents.x;
-        float bottom = aabb.center.y - aabb.extents.y;
-        float top = aabb.center.y + aabb.extents.y;
-        float near = aabb.center.z - aabb.extents.z;
-        float far = aabb.center.z + aabb.extents.z;
+        // Transform AABB to light space
+        std::vector<glm::vec3> corners = aabb.getCorners();
+        glm::vec3 center = aabb.center;
+        glm::vec3 dir = light.getDirection();
+        glm::vec3 furthestCorner = aabb.getFurthestCorner(dir);
+        float length = glm::dot(furthestCorner, dir);
+        glm::mat4 view = glm::lookAt(center, center - dir * length, glm::vec3(0, 1, 0));
 
-        // Adjust these bounds based on the light direction and scene requirements
+        // Initialize bounds
+        glm::vec3 minBounds = glm::vec3(FLT_MAX);
+        glm::vec3 maxBounds = glm::vec3(-FLT_MAX);
+
+        for (const auto& corner : corners) {
+            glm::vec3 transformedCorner = glm::vec3(view * glm::vec4(corner, 1.0f));
+            minBounds = glm::min(minBounds, transformedCorner);
+            maxBounds = glm::max(maxBounds, transformedCorner);
+        }
+
+        // Calculate orthographic projection bounds
+        float scaling = 1.05f;
+        float left = minBounds.x * scaling;
+        float right = maxBounds.x * scaling;
+        float bottom = minBounds.y * scaling;
+        float top = maxBounds.y * scaling;
+        float near = minBounds.z * scaling;
+        float far = maxBounds.z * scaling;
+
+        // Create orthographic projection matrix
         glm::mat4 proj = glm::ortho<float>(left, right, bottom, top, near, far);
-        glm::mat4 view = glm::lookAt(light.getDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
         return proj * view;
     }
 
@@ -209,8 +227,8 @@ public:
             sceneUniform.existDirectionalLight = 1;
             sceneUniform.lightDirection.xyz = light->getDirection();
             sceneUniform.lightColorIntensity.xyz = light->color * light->intensity;
-            sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*light);
-            // sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*light, scene.getAABB());
+            // sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*light);
+            sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*light, scene.getAABB());
         }
         if (Object* ambLightObj = scene.findObject<AmbientLight>()) {
             auto* light = ambLightObj->get<AmbientLight>();
