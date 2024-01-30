@@ -210,6 +210,7 @@ public:
             sceneUniform.lightDirection.xyz = light->getDirection();
             sceneUniform.lightColorIntensity.xyz = light->color * light->intensity;
             sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*light);
+            // sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*light, scene.getAABB());
         }
         if (Object* ambLightObj = scene.findObject<AmbientLight>()) {
             auto* light = ambLightObj->get<AmbientLight>();

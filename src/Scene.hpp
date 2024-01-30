@@ -260,15 +260,16 @@ public:
 
         // Rotate corners of the AABB and find min/max extents
         std::vector<glm::vec3> corners = aabb.getCorners();
-        glm::vec3 min = aabb.center;
-        glm::vec3 max = aabb.center;
+
+        glm::vec3 min = glm::vec3{std::numeric_limits<float>::max()};
+        glm::vec3 max = -glm::vec3{std::numeric_limits<float>::max()};
         for (auto& corner : corners) {
             // Apply rotation
-            glm::vec3 rotated_corner = transform->rotation * (corner - aabb.center) + aabb.center;
+            glm::vec3 rotatedCorner = transform->rotation * (corner - aabb.center);
 
             // Update min and max extents
-            min = glm::min(min, rotated_corner);
-            max = glm::max(max, rotated_corner);
+            min = glm::min(min, rotatedCorner);
+            max = glm::max(max, rotatedCorner);
         }
         // Compute new AABB
         rv::AABB transformedAABB(min, max);

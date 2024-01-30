@@ -57,10 +57,11 @@ public:
               const rv::Mesh& mesh,
               const glm::mat4& mvp,
               const glm::vec3& color,
-              float lineWidth) {
+              float lineWidth) const {
         commandBuffer.bindDescriptorSet(descSet, pipeline);
         commandBuffer.bindPipeline(pipeline);
 
+        PushConstants pushConstants{};
         pushConstants.mvp = mvp;
         pushConstants.color = color;
         commandBuffer.setLineWidth(lineWidth);
@@ -70,7 +71,6 @@ public:
 
     rv::GraphicsPipelineHandle pipeline;
     rv::DescriptorSetHandle descSet;
-    PushConstants pushConstants{};
 };
 
 class ViewportWindow {
@@ -267,6 +267,14 @@ public:
         return message;
     }
 
+    void drawAABB(const rv::CommandBuffer& commandBuffer, rv::AABB aabb, glm::mat4 viewProj) const {
+        glm::mat4 scale = glm::scale(glm::mat4{1.0f}, aabb.extents);
+        glm::mat4 translate = glm::translate(glm::mat4{1.0f}, aabb.center);
+        glm::mat4 model = translate * scale;
+        lineDrawer.draw(commandBuffer, cubeLineMesh, viewProj * model,  //
+                        glm::vec3{0.0f, 0.5f, 0.0f}, 2.0f);
+    }
+
     void drawContents(const rv::CommandBuffer& commandBuffer, Scene& scene) {
         if (!isWidgetsVisible) {
             return;
@@ -288,6 +296,7 @@ public:
 
         // Draw scene objects
         for (auto& object : scene.getObjects()) {
+            // Draw directional light
             if (const DirectionalLight* light = object.get<DirectionalLight>()) {
                 std::vector<rv::Vertex> vertices(2);
                 vertices[0].pos = glm::vec3{0.0f};
@@ -296,14 +305,13 @@ public:
                 lineDrawer.draw(commandBuffer, singleLineMesh, viewProj,
                                 glm::vec3{0.7f, 0.7f, 0.7f}, 2.0f);
             }
+
+            // Draw AABB
+            drawAABB(commandBuffer, object.getAABB(), viewProj);
         }
 
-        // Draw AABB
-        rv::AABB aabb = scene.getAABB();
-        glm::mat4 model = glm::scale(glm::mat4{1.0f}, aabb.extents);
-        model *= glm::translate(glm::mat4{1.0f}, aabb.center);
-        lineDrawer.draw(commandBuffer, cubeLineMesh, viewProj * model,  //
-                        glm::vec3{0.0f, 0.5f, 0.0f}, 2.0f);
+        // Draw scene AABB
+        drawAABB(commandBuffer, scene.getAABB(), viewProj);
 
         commandBuffer.endRendering();
     }
