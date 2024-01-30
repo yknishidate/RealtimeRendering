@@ -74,12 +74,12 @@ public:
             glm::vec2 cursorOffset = cursorPos - lastCursorPos;
             lastCursorPos = cursorPos;
             if (isMouseButtonDown(GLFW_MOUSE_BUTTON_1)) {
-                camera.processDragDelta({cursorOffset.x, -cursorOffset.y});
+                camera.processDragDelta(glm::vec2{cursorOffset.x, -cursorOffset.y} * 0.5f);
             }
             camera.processMouseScroll(getMouseWheel().y);
             resetMouseWheel();
         } else {
-            camera.processDragDelta(ViewportWindow::dragDelta);
+            camera.processDragDelta(ViewportWindow::dragDelta * 0.5f);
             camera.processMouseScroll(ViewportWindow::mouseScroll);
         }
         frame++;
