@@ -23,7 +23,7 @@ struct Material {
     std::string name;
 };
 
-struct Transform : public Component {
+struct Transform final : Component {
     Transform() = default;
     Transform(glm::vec3 _translation, glm::quat _rotation, glm::vec3 _scale)
         : translation{_translation}, rotation{_rotation}, scale{_scale} {}
@@ -88,7 +88,7 @@ private:
             return {keyFrame.translation, keyFrame.rotation, keyFrame.scale};
         }
         // Search frame
-        for (int i = 0; i < keyFrames.size(); i++) {
+        for (size_t i = 0; i < keyFrames.size(); i++) {
             const auto& keyFrame = keyFrames[i];
             if (keyFrame.frame == frame) {
                 return {keyFrame.translation, keyFrame.rotation, keyFrame.scale};
@@ -98,7 +98,7 @@ private:
                 const KeyFrame& prev = keyFrames[i - 1];
                 const KeyFrame& next = keyFrames[i];
                 frame = prev.frame;
-                float t = static_cast<float>(frame) / (next.frame - prev.frame);
+                float t = static_cast<float>(frame) / static_cast<float>(next.frame - prev.frame);
                 return lerp({prev.translation, prev.rotation, prev.scale},
                             {next.translation, next.rotation, next.scale}, t);
             }
@@ -108,7 +108,7 @@ private:
     }
 };
 
-struct DirectionalLight : public Component {
+struct DirectionalLight : Component {
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
     float phi = 0.0f;
@@ -128,19 +128,19 @@ struct DirectionalLight : public Component {
     }
 };
 
-struct PointLight : public Component {
+struct PointLight final : Component {
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
     glm::vec3 position = {0.0f, 0.0f, 0.0f};
     float radius = 1.0f;
 };
 
-struct AmbientLight : public Component {
+struct AmbientLight final : Component {
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
 };
 
-struct Mesh : public Component {
+struct Mesh final : Component {
     rv::Mesh* mesh = nullptr;
     Material* material = nullptr;
     rv::AABB aabb;
@@ -168,6 +168,9 @@ public:
 
     Object(const Object& other) = delete;
     Object(Object&& other) = default;
+
+    Object& operator=(const Object& other) = delete;
+    Object& operator=(Object&& other) = default;
 
     template <typename T, typename... Args>
     T& add(Args&&... args) {
@@ -481,7 +484,8 @@ private:
 
     // vectorの再アロケートが起きると外部で持っている要素へのポインタが壊れるため
     // 事前に大きなサイズでメモリ確保しておく。
-    // ポインタではなく別のハンドルやIDで参照させれば再アロケートも可能
+    // ポインタではなく別のハンドルやIDで参照させれば再アロケートも可能。
+    // もしくは外部のポインタを強制的に一度nullptrにしても良いが、一般的に難しい。
     int maxObjectCount = 10000;
     std::vector<Object> objects;
     rv::Camera camera{};
