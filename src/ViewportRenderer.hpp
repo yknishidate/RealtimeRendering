@@ -150,9 +150,9 @@ public:
     const rv::Context* context = nullptr;
 
     // Line drawer
-    LineDrawer lineDrawer;
-    rv::Mesh mainGridMesh;
-    rv::Mesh subGridMesh;
-    rv::Mesh singleLineMesh;
-    rv::Mesh cubeLineMesh;
+    LineDrawer lineDrawer{};
+    rv::Mesh mainGridMesh{};
+    rv::Mesh subGridMesh{};
+    rv::Mesh singleLineMesh{};
+    rv::Mesh cubeLineMesh{};
 };
