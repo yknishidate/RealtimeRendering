@@ -189,7 +189,7 @@ public:
             .fragmentShader = shaders[1],
             .vertexStride = sizeof(rv::Vertex),
             .vertexAttributes = rv::Vertex::getAttributeDescriptions(),
-            .colorFormats = vk::Format::eR8G8B8A8Unorm,
+            .colorFormats = vk::Format::eB8G8R8A8Unorm,
         });
 
         shadowMapPass.init(*context, descSet, shadowMapFormat);

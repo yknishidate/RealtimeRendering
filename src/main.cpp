@@ -61,24 +61,43 @@ public:
             }
         }
 
-        camera.processDragDelta(ViewportWindow::dragDelta);
-        camera.processMouseScroll(ViewportWindow::mouseScroll);
+        if (play) {
+            static glm::vec2 lastCursorPos{0.0f};
+            glm::vec2 cursorPos = getCursorPos();
+            glm::vec2 cursorOffset = cursorPos - lastCursorPos;
+            lastCursorPos = cursorPos;
+            if (isMouseButtonDown(GLFW_MOUSE_BUTTON_1)) {
+                camera.processDragDelta({cursorOffset.x, -cursorOffset.y});
+            }
+            camera.processMouseScroll(getMouseWheel().y);
+            resetMouseWheel();
+        } else {
+            camera.processDragDelta(ViewportWindow::dragDelta);
+            camera.processMouseScroll(ViewportWindow::mouseScroll);
+        }
         frame++;
     }
 
     void onRender(const rv::CommandBufferHandle& commandBuffer) override {
-        editor.show(context, scene, renderer);
-
         commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
+        commandBuffer->clearDepthStencilImage(getDefaultDepthImage(), 1.0f, 0);
 
-        renderer.render(*commandBuffer,  //
-                        editor.getCurrentColorImage(),
-                        editor.getCurrentDepthImage(),  //
-                        scene, frame);
-        viewportRenderer.render(*commandBuffer,                 //
-                                editor.getCurrentColorImage(),  //
-                                editor.getCurrentDepthImage(),  //
-                                scene);
+        if (play) {
+            renderer.render(*commandBuffer,  //
+                            getCurrentColorImage(),
+                            getDefaultDepthImage(),  //
+                            scene, frame);
+        } else {
+            editor.show(context, scene, renderer);
+            renderer.render(*commandBuffer,  //
+                            editor.getCurrentColorImage(),
+                            editor.getCurrentDepthImage(),  //
+                            scene, frame);
+            viewportRenderer.render(*commandBuffer,                 //
+                                    editor.getCurrentColorImage(),  //
+                                    editor.getCurrentDepthImage(),  //
+                                    scene);
+        }
     }
 
     int frame = 0;
@@ -86,6 +105,7 @@ public:
     Renderer renderer;
     ViewportRenderer viewportRenderer;
     Editor editor;
+    bool play = true;
 };
 
 int main() {
