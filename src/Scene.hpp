@@ -1,6 +1,12 @@
 #pragma once
+#include <memory>
+#include <typeindex>
+#include <unordered_map>
+
 #include <reactive/Scene/Camera.hpp>
 #include <reactive/Scene/Mesh.hpp>
+
+struct Component {};
 
 struct Material {
     glm::vec4 baseColor{1.0f};
@@ -17,7 +23,11 @@ struct Material {
     std::string name;
 };
 
-struct Transform {
+struct Transform : public Component {
+    Transform() = default;
+    Transform(glm::vec3 _translation, glm::quat _rotation, glm::vec3 _scale)
+        : translation{_translation}, rotation{_rotation}, scale{_scale} {}
+
     glm::vec3 translation = {0.0f, 0.0f, 0.0f};
     glm::quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     glm::vec3 scale = {1.0f, 1.0f, 1.0f};
@@ -98,7 +108,7 @@ private:
     }
 };
 
-struct DirectionalLight {
+struct DirectionalLight : public Component {
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
     float phi = 0.0f;
@@ -118,19 +128,19 @@ struct DirectionalLight {
     }
 };
 
-struct PointLight {
+struct PointLight : public Component {
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
     glm::vec3 position = {0.0f, 0.0f, 0.0f};
     float radius = 1.0f;
 };
 
-struct AmbientLight {
+struct AmbientLight : public Component {
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
 };
 
-struct Mesh {
+struct Mesh : public Component {
     rv::Mesh* mesh = nullptr;
     Material* material = nullptr;
     rv::AABB aabb;
@@ -154,88 +164,39 @@ struct Mesh {
 class Object {
 public:
     Object(std::string _name) : name{std::move(_name)} {}
+    ~Object() = default;
+
+    Object(const Object& other) = delete;
+    Object(Object&& other) = default;
 
     template <typename T, typename... Args>
     T& add(Args&&... args) {
-        if constexpr (std::is_same_v<T, Transform>) {
-            transform = Transform(std::forward<Args>(args)...);
-            return transform.value();
+        const std::type_info& info = typeid(T);
+        const std::type_index& index = {info};
+        if (components.contains(index)) {
+            spdlog::warn("{} is already added.", info.name());
+            return *static_cast<T*>(components.at(index).get());
         }
-        if constexpr (std::is_same_v<T, Mesh>) {
-            mesh = Mesh(std::forward<Args>(args)...);
-            return mesh.value();
-        }
-        if constexpr (std::is_same_v<T, DirectionalLight>) {
-            directionalLight = DirectionalLight(std::forward<Args>(args)...);
-            return directionalLight.value();
-        }
-        if constexpr (std::is_same_v<T, PointLight>) {
-            pointLight = PointLight(std::forward<Args>(args)...);
-            return pointLight.value();
-        }
-        if constexpr (std::is_same_v<T, AmbientLight>) {
-            ambientLight = AmbientLight(std::forward<Args>(args)...);
-            return ambientLight.value();
-        }
+        components[index] = std::make_unique<T>(std::forward<Args>(args)...);
+        return *static_cast<T*>(components.at(index).get());
     }
 
     template <typename T>
     const T* get() const {
-        if constexpr (std::is_same<T, Transform>()) {
-            if (transform) {
-                return &transform.value();
-            }
-        }
-        if constexpr (std::is_same<T, Mesh>()) {
-            if (mesh) {
-                return &mesh.value();
-            }
-        }
-        if constexpr (std::is_same<T, DirectionalLight>()) {
-            if (directionalLight) {
-                return &directionalLight.value();
-            }
-        }
-        if constexpr (std::is_same<T, PointLight>()) {
-            if (pointLight) {
-                return &pointLight.value();
-            }
-        }
-        if constexpr (std::is_same<T, AmbientLight>()) {
-            if (ambientLight) {
-                return &ambientLight.value();
-            }
+        const std::type_info& info = typeid(T);
+        const std::type_index& index = {info};
+        if (components.contains(index)) {
+            return static_cast<T*>(components.at(index).get());
         }
         return nullptr;
     }
 
     template <typename T>
     T* get() {
-        // TODO: 流石に種類追加したときのメンテコストが高すぎる
-        if constexpr (std::is_same<T, Transform>()) {
-            if (transform) {
-                return &transform.value();
-            }
-        }
-        if constexpr (std::is_same<T, Mesh>()) {
-            if (mesh) {
-                return &mesh.value();
-            }
-        }
-        if constexpr (std::is_same<T, DirectionalLight>()) {
-            if (directionalLight) {
-                return &directionalLight.value();
-            }
-        }
-        if constexpr (std::is_same<T, PointLight>()) {
-            if (pointLight) {
-                return &pointLight.value();
-            }
-        }
-        if constexpr (std::is_same<T, AmbientLight>()) {
-            if (ambientLight) {
-                return &ambientLight.value();
-            }
+        const std::type_info& info = typeid(T);
+        const std::type_index& index = {info};
+        if (components.contains(index)) {
+            return static_cast<T*>(components.at(index).get());
         }
         return nullptr;
     }
@@ -250,6 +211,8 @@ public:
     rv::AABB getAABB() const {
         // WARN: frameは受け取らない
         // TODO: transformは常に現在フレームの状態を持っていてほしい
+        auto* mesh = get<Mesh>();
+        auto* transform = get<Transform>();
         if (!mesh) {
             return {};
         }
@@ -285,11 +248,7 @@ public:
 
 private:
     std::string name;
-    std::optional<Transform> transform;
-    std::optional<Mesh> mesh;
-    std::optional<DirectionalLight> directionalLight;
-    std::optional<PointLight> pointLight;
-    std::optional<AmbientLight> ambientLight;
+    std::unordered_map<std::type_index, std::unique_ptr<Component>> components;
 };
 
 class Texture {
@@ -464,7 +423,7 @@ public:
                 transform->scale.z = object["scale"][2];
             }
 
-            objects.push_back(_object);
+            objects.push_back(std::move(_object));
         }
 
         if (json.contains("camera")) {
