@@ -10,7 +10,7 @@
 
 class LineDrawer {
     struct PushConstants {
-        glm::mat4 viewProj{};
+        glm::mat4 mvp{};
         glm::vec3 color{};
     };
 
@@ -55,13 +55,13 @@ public:
 
     void draw(const rv::CommandBuffer& commandBuffer,
               const rv::Mesh& mesh,
-              const glm::mat4& viewProj,
+              const glm::mat4& mvp,
               const glm::vec3& color,
               float lineWidth) {
         commandBuffer.bindDescriptorSet(descSet, pipeline);
         commandBuffer.bindPipeline(pipeline);
 
-        pushConstants.viewProj = viewProj;
+        pushConstants.mvp = mvp;
         pushConstants.color = color;
         commandBuffer.setLineWidth(lineWidth);
         commandBuffer.pushConstants(pipeline, &pushConstants);
@@ -101,6 +101,8 @@ public:
         std::vector<uint32_t> indices = {0, 1};
         singleLineMesh = rv::Mesh{*context, rv::MemoryUsage::DeviceHost, vertices, indices,
                                   "ViewportWindow::singleLineMesh"};
+
+        cubeLineMesh = rv::Mesh::createCubeLineMesh(*context, {"ViewportWindow::cubeLineMesh"});
     }
 
     bool editTransform(const rv::Camera& camera, glm::mat4& matrix) const {
@@ -246,6 +248,7 @@ public:
             height = windowSize.y;
             ImGui::Image(imguiDescSets[currentImageIndex], windowSize);
 
+            // TODO: もっと細かくオプションを用意する
             if (isWidgetsVisible) {
                 // Auxiliary image
                 showAuxiliaryImage(windowPos);
@@ -294,6 +297,13 @@ public:
                                 glm::vec3{0.7f, 0.7f, 0.7f}, 2.0f);
             }
         }
+
+        // Draw AABB
+        rv::AABB aabb = scene.getAABB();
+        glm::mat4 model = glm::scale(glm::mat4{1.0f}, aabb.extents);
+        model *= glm::translate(glm::mat4{1.0f}, aabb.center);
+        lineDrawer.draw(commandBuffer, cubeLineMesh, viewProj * model,  //
+                        glm::vec3{0.0f, 0.5f, 0.0f}, 2.0f);
 
         commandBuffer.endRendering();
     }
@@ -352,6 +362,7 @@ public:
     rv::Mesh mainGridMesh;
     rv::Mesh subGridMesh;
     rv::Mesh singleLineMesh;
+    rv::Mesh cubeLineMesh;
 
     // Gizmo
     ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
