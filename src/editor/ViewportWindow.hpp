@@ -17,6 +17,7 @@ enum Type {
     MaterialChanged = 1 << 1,
     CameraChanged = 1 << 2,
     TextureAdded = 1 << 3,
+    RecompileRequested = 1 << 4,
 };
 }
 
@@ -54,7 +55,9 @@ public:
         return changed;
     }
 
-    static bool showGizmo(Scene& scene, Object* selectedObject, int frame) {
+    static bool showGizmo(Scene& scene, Object* selectedObject) {
+        // TODO: support animation
+
         if (!selectedObject) {
             return false;
         }
@@ -64,7 +67,7 @@ public:
         }
 
         bool changed = false;
-        glm::mat4 model = transform->computeTransformMatrix(frame);
+        glm::mat4 model = transform->computeTransformMatrix();
         changed |= editTransform(scene.getCamera(), model);
 
         glm::vec3 skew;
@@ -120,7 +123,8 @@ public:
         ImGui::Image(auxiliaryDescSet, ImVec2(imageWidth, imageHeight));
     }
 
-    static int show(Scene& scene, vk::DescriptorSet image, Object* selectedObject, int frame) {
+    static int show(Scene& scene, vk::DescriptorSet image, Object* selectedObject) {
+        // TODO: support animation
         int message = Message::None;
         if (ImGui::Begin("Viewport")) {
             if (processMouseInput()) {
@@ -143,7 +147,7 @@ public:
             }
 
             if (isGizmoVisible) {
-                if (showGizmo(scene, selectedObject, frame)) {
+                if (showGizmo(scene, selectedObject)) {
                     message |= Message::TransformChanged;
                 }
             }

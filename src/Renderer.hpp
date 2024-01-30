@@ -304,10 +304,15 @@ public:
                                    vk::AccessFlagBits::eShaderRead);
 
         commandBuffer.endDebugLabel();
+
+        firstFrameRendered = true;
     }
 
     float getRenderingTimeMs() const {
         assert(initialized);
+        if (!firstFrameRendered) {
+            return 0.0f;
+        }
         return timer->elapsedInMilli();
     }
 
@@ -325,6 +330,7 @@ private:
     // 内部で利用するバッファやイメージはRendererが一元管理する
 
     bool initialized = false;
+    bool firstFrameRendered = false;
     const rv::Context* context = nullptr;
     StandardConstants standardConstants{};
     rv::DescriptorSetHandle descSet;
