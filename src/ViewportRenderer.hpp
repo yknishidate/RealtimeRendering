@@ -4,6 +4,7 @@
 #include <glm/gtx/matrix_decompose.hpp>
 
 #include "Scene.hpp"
+#include "editor/ViewportWindow.hpp"
 #include "reactive/reactive.hpp"
 
 class LineDrawer {
@@ -73,10 +74,8 @@ public:
 
 class ViewportRenderer {
 public:
-    void init(const rv::Context& _context, uint32_t _width, uint32_t _height) {
+    void init(const rv::Context& _context) {
         context = &_context;
-
-        createImages(_width, _height);
 
         lineDrawer.createPipeline(*context);
 
@@ -99,44 +98,6 @@ public:
         cubeLineMesh = rv::Mesh::createCubeLineMesh(*context, {"ViewportRenderer::cubeLineMesh"});
     }
 
-    void createImages(uint32_t _width, uint32_t _height) {
-        width = static_cast<float>(_width);
-        height = static_cast<float>(_height);
-
-        for (int i = 0; i < imageCount; i++) {
-            colorImages[i] = context->createImage({
-                .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
-                         vk::ImageUsageFlagBits::eTransferDst |
-                         vk::ImageUsageFlagBits::eTransferSrc |
-                         vk::ImageUsageFlagBits::eColorAttachment,
-                .extent = {_width, _height, 1},
-                .format = vk::Format::eR8G8B8A8Unorm,
-                .debugName = "ViewportRenderer::colorImage",
-            });
-
-            // Create desc set
-            ImGui_ImplVulkan_RemoveTexture(imguiDescSets[i]);
-            imguiDescSets[i] = ImGui_ImplVulkan_AddTexture(
-                colorImages[i]->getSampler(), colorImages[i]->getView(), VK_IMAGE_LAYOUT_GENERAL);
-
-            depthImages[i] = context->createImage({
-                .usage = rv::ImageUsage::DepthAttachment,
-                .extent = {_width, _height, 1},
-                .format = vk::Format::eD32Sfloat,
-                .aspect = vk::ImageAspectFlagBits::eDepth,
-                .debugName = "ViewportRenderer::depthImage",
-            });
-        }
-
-        context->oneTimeSubmit([&](auto commandBuffer) {
-            for (int i = 0; i < imageCount; i++) {
-                commandBuffer->transitionLayout(colorImages[i], vk::ImageLayout::eGeneral);
-                commandBuffer->transitionLayout(depthImages[i],
-                                                vk::ImageLayout::eDepthAttachmentOptimal);
-            }
-        });
-    }
-
     void drawAABB(const rv::CommandBuffer& commandBuffer, rv::AABB aabb, glm::mat4 viewProj) const {
         glm::mat4 scale = glm::scale(glm::mat4{1.0f}, aabb.extents);
         glm::mat4 translate = glm::translate(glm::mat4{1.0f}, aabb.center);
@@ -145,16 +106,20 @@ public:
                         glm::vec3{0.0f, 0.5f, 0.0f}, 2.0f);
     }
 
-    void render(const rv::CommandBuffer& commandBuffer, Scene& scene) const {
-        vk::Extent3D extent = colorImages[currentImageIndex]->getExtent();
-        commandBuffer.beginRendering(colorImages[currentImageIndex], depthImages[currentImageIndex],
-                                     {0, 0}, {extent.width, extent.height});
+    void render(const rv::CommandBuffer& commandBuffer,
+                rv::ImageHandle colorImage,
+                rv::ImageHandle depthImage,
+                Scene& scene) const {
+        vk::Extent3D extent = colorImage->getExtent();
+        commandBuffer.beginRendering(colorImage, depthImage, {0, 0}, {extent.width, extent.height});
 
         const rv::Camera& camera = scene.getCamera();
         glm::mat4 viewProj = camera.getProj() * camera.getView();
 
-        commandBuffer.setViewport(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-        commandBuffer.setScissor(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+        commandBuffer.setViewport(static_cast<uint32_t>(ViewportWindow::width),
+                                  static_cast<uint32_t>(ViewportWindow::height));
+        commandBuffer.setScissor(static_cast<uint32_t>(ViewportWindow::width),
+                                 static_cast<uint32_t>(ViewportWindow::height));
 
         // Draw grid
         lineDrawer.draw(commandBuffer, mainGridMesh, viewProj, glm::vec3{0.4f, 0.4f, 0.4f}, 2.0f);
@@ -182,38 +147,7 @@ public:
         commandBuffer.endRendering();
     }
 
-    bool needsRecreate() const {
-        vk::Extent3D extent = colorImages[currentImageIndex]->getExtent();
-        return static_cast<uint32_t>(width) != extent.width ||
-               static_cast<uint32_t>(height) != extent.height;
-    }
-
-    rv::ImageHandle getCurrentColorImage() const {
-        return colorImages[currentImageIndex];
-    }
-
-    rv::ImageHandle getCurrentDepthImage() const {
-        return depthImages[currentImageIndex];
-    }
-
-    vk::DescriptorSet getCurrentImageDescSet() const {
-        return imguiDescSets[currentImageIndex];
-    }
-
-    void advanceImageIndex() {
-        currentImageIndex = (currentImageIndex + 1) % imageCount;
-    }
-
     const rv::Context* context = nullptr;
-
-    // Image
-    static constexpr int imageCount = 3;
-    int currentImageIndex = 0;
-    float width = 0.0f;
-    float height = 0.0f;
-    std::array<rv::ImageHandle, imageCount> colorImages;
-    std::array<rv::ImageHandle, imageCount> depthImages;
-    std::array<vk::DescriptorSet, imageCount> imguiDescSets;
 
     // Line drawer
     LineDrawer lineDrawer;

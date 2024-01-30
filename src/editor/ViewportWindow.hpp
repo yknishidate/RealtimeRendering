@@ -5,8 +5,20 @@
 
 #include <glm/gtx/matrix_decompose.hpp>
 
+#include <reactive/reactive.hpp>
+
+#include "IconManager.hpp"
 #include "Scene.hpp"
-#include "reactive/reactive.hpp"
+
+namespace Message {
+enum Type {
+    None = 0,
+    TransformChanged = 1 << 0,
+    MaterialChanged = 1 << 1,
+    CameraChanged = 1 << 2,
+    TextureAdded = 1 << 3,
+};
+}
 
 class ViewportWindow {
 public:

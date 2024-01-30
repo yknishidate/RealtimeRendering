@@ -3,16 +3,6 @@
 
 #include "Scene.hpp"
 
-namespace Message {
-enum Type {
-    None = 0,
-    TransformChanged = 1 << 0,
-    MaterialChanged = 1 << 1,
-    CameraChanged = 1 << 2,
-    TextureAdded = 1 << 3,
-};
-}
-
 class AttributeWindow {
 public:
     static int show(const Object* object) {
