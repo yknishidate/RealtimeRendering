@@ -6,7 +6,10 @@
 #include <reactive/Scene/Camera.hpp>
 #include <reactive/Scene/Mesh.hpp>
 
-struct Component {};
+struct Component {
+    virtual ~Component() = default;
+    virtual bool showAttributes() = 0;
+};
 
 struct Material {
     glm::vec4 baseColor{1.0f};
@@ -68,6 +71,26 @@ struct Transform final : Component {
         return computeTransform(frame).computeNormalMatrix();
     }
 
+    bool showAttributes() override {
+        bool changed = false;
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNode("Transform")) {
+            // Translation
+            changed |= ImGui::DragFloat3("Translation", glm::value_ptr(translation), 0.01f);
+
+            // Rotation
+            glm::vec3 eulerAngles = glm::degrees(glm::eulerAngles(rotation));
+            changed |= ImGui::DragFloat3("Rotation", glm::value_ptr(eulerAngles), 1.0f);
+            rotation = glm::quat(glm::radians(eulerAngles));
+
+            // Scale
+            changed |= ImGui::DragFloat3("Scale", glm::value_ptr(scale), 0.01f);
+
+            ImGui::TreePop();
+        }
+        return changed;
+    }
+
 private:
     static Transform lerp(const Transform& a, const Transform& b, float t) {
         Transform transform;
@@ -126,18 +149,60 @@ struct DirectionalLight : Component {
         float z = sin(_theta) * cos(_phi);
         return {x, y, z};
     }
+
+    bool showAttributes() override {
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        bool changed = false;
+        if (ImGui::TreeNode("Directional light")) {
+            changed |= ImGui::ColorEdit3("Color", glm::value_ptr(color));
+            changed |= ImGui::DragFloat("Intensity", &intensity, 0.001f, 0.0f, 100.0f);
+            changed |= ImGui::SliderFloat("Phi", &phi, -180.0f, 180.0f);
+            changed |= ImGui::SliderFloat("Theta", &theta, -90.0f, 90.0f);
+
+            changed |= ImGui::Checkbox("Shadow", &enableShadow);
+            if (enableShadow) {
+                changed |= ImGui::Checkbox("Frontface culling", &enableShadowCulling);
+                changed |= ImGui::SliderFloat("Shadow bias", &shadowBias, 0.0f, 0.01f);
+            }
+
+            ImGui::TreePop();
+        }
+        return changed;
+    }
 };
 
 struct PointLight final : Component {
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
-    glm::vec3 position = {0.0f, 0.0f, 0.0f};
     float radius = 1.0f;
+
+    bool showAttributes() override {
+        bool changed = false;
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNode("Point light")) {
+            changed |= ImGui::ColorEdit3("Color", glm::value_ptr(color));
+            changed |= ImGui::DragFloat("Intensity", &intensity, 0.001f, 0.0f, 100.0f);
+            changed |= ImGui::DragFloat("Radius", &radius, 0.001f, 0.0f, 100.0f);
+            ImGui::TreePop();
+        }
+        return changed;
+    }
 };
 
 struct AmbientLight final : Component {
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
+
+    bool showAttributes() override {
+        bool changed = false;
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNode("Ambient light")) {
+            changed |= ImGui::ColorEdit3("Color", glm::value_ptr(color));
+            changed |= ImGui::DragFloat("Intensity", &intensity, 0.001f, 0.0f, 100.0f);
+            ImGui::TreePop();
+        }
+        return changed;
+    }
 };
 
 struct Mesh final : Component {
@@ -158,6 +223,30 @@ struct Mesh final : Component {
 
     rv::AABB getAABB() const {
         return aabb;
+    }
+
+    bool showAttributes() override {
+        bool changed = false;
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        if (ImGui::TreeNode("Mesh")) {
+            // Mesh
+            ImGui::Text(("Mesh: " + mesh->name).c_str());
+
+            // Material
+            if (!material) {
+                ImGui::Text("Material: Empty");
+                return false;
+            }
+
+            ImGui::Text(("Material: " + material->name).c_str());
+            changed |= ImGui::ColorEdit4("Base color", &material->baseColor[0]);
+            changed |= ImGui::ColorEdit3("Emissive", &material->emissive[0]);
+            changed |= ImGui::SliderFloat("Metallic", &material->metallic, 0.0f, 1.0f);
+            changed |= ImGui::SliderFloat("Roughness", &material->roughness, 0.0f, 1.0f);
+            changed |= ImGui::SliderFloat("IOR", &material->ior, 0.01f, 5.0f);
+            ImGui::TreePop();
+        }
+        return changed;
     }
 };
 
@@ -247,6 +336,10 @@ public:
         // Apply translation
         transformedAABB.center += transform->translation;
         return transformedAABB;
+    }
+
+    const auto& getComponents() const {
+        return components;
     }
 
 private:
@@ -351,6 +444,34 @@ public:
 
             Object _object{object["name"]};
 
+            if (object.contains("translation")) {
+                auto& transform = _object.add<Transform>();
+                transform.translation.x = object["translation"][0];
+                transform.translation.y = object["translation"][1];
+                transform.translation.z = object["translation"][2];
+            }
+
+            if (object.contains("rotation")) {
+                auto* transform = _object.get<Transform>();
+                if (!transform) {
+                    transform = &_object.add<Transform>();
+                }
+                transform->rotation.x = object["rotation"][0];
+                transform->rotation.y = object["rotation"][1];
+                transform->rotation.z = object["rotation"][2];
+                transform->rotation.w = object["rotation"][3];
+            }
+
+            if (object.contains("scale")) {
+                auto* transform = _object.get<Transform>();
+                if (!transform) {
+                    transform = &_object.add<Transform>();
+                }
+                transform->scale.x = object["scale"][0];
+                transform->scale.y = object["scale"][1];
+                transform->scale.z = object["scale"][2];
+            }
+
             if (object["type"] == "Mesh") {
                 assert(object.contains("mesh"));
                 auto& mesh = _object.add<Mesh>(&meshes[object["mesh"]], nullptr);
@@ -396,34 +517,6 @@ public:
                 }
             } else {
                 assert(false && "Not implemented");
-            }
-
-            if (object.contains("translation")) {
-                auto& transform = _object.add<Transform>();
-                transform.translation.x = object["translation"][0];
-                transform.translation.y = object["translation"][1];
-                transform.translation.z = object["translation"][2];
-            }
-
-            if (object.contains("rotation")) {
-                auto* transform = _object.get<Transform>();
-                if (!transform) {
-                    transform = &_object.add<Transform>();
-                }
-                transform->rotation.x = object["rotation"][0];
-                transform->rotation.y = object["rotation"][1];
-                transform->rotation.z = object["rotation"][2];
-                transform->rotation.w = object["rotation"][3];
-            }
-
-            if (object.contains("scale")) {
-                auto* transform = _object.get<Transform>();
-                if (!transform) {
-                    transform = &_object.add<Transform>();
-                }
-                transform->scale.x = object["scale"][0];
-                transform->scale.y = object["scale"][1];
-                transform->scale.z = object["scale"][2];
             }
 
             objects.push_back(std::move(_object));
