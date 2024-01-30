@@ -2,6 +2,7 @@
 #include <imgui.h>
 
 #include "Scene.hpp"
+#include "ViewportWindow.hpp"
 
 class MenuBar {
 public:
@@ -14,7 +15,7 @@ public:
         }
     }
 
-    static void show(Scene& scene, bool* isWidgetsVisible) {
+    static void show(Scene& scene) {
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("Open..", "Ctrl+O")) {
@@ -39,7 +40,12 @@ public:
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Option")) {
-                ImGui::Checkbox("Viewport widgets", isWidgetsVisible);
+                if (ImGui::BeginMenu("Viewport")) {
+                    ImGui::Checkbox("Gizmo", &ViewportWindow::isGizmoVisible);
+                    ImGui::Checkbox("Tool bar", &ViewportWindow::isToolBarVisible);
+                    ImGui::Checkbox("Auxiliary image", &ViewportWindow::isAuxiliaryImageVisible);
+                    ImGui::EndMenu();
+                }
                 ImGui::EndMenu();
             }
             ImGui::EndMenuBar();

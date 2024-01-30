@@ -87,7 +87,7 @@ public:
         ImGui::Begin("DockSpace", nullptr, windowFlags);
         ImGui::PopStyleVar(3);
 
-        MenuBar::show(scene, &ViewportWindow::isWidgetsVisible);
+        MenuBar::show(scene);
 
         ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
@@ -117,7 +117,7 @@ public:
         renderer.render(*commandBuffer,  //
                         viewportRenderer.getCurrentColorImage(),
                         viewportRenderer.getCurrentDepthImage(), scene, frame);
-        viewportRenderer.drawContents(*commandBuffer, scene);
+        viewportRenderer.render(*commandBuffer, scene);
         viewportRenderer.advanceImageIndex();
 
         ImGui::End();

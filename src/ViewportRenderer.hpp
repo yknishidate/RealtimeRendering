@@ -145,7 +145,7 @@ public:
                         glm::vec3{0.0f, 0.5f, 0.0f}, 2.0f);
     }
 
-    void drawContents(const rv::CommandBuffer& commandBuffer, Scene& scene) const {
+    void render(const rv::CommandBuffer& commandBuffer, Scene& scene) const {
         vk::Extent3D extent = colorImages[currentImageIndex]->getExtent();
         commandBuffer.beginRendering(colorImages[currentImageIndex], depthImages[currentImageIndex],
                                      {0, 0}, {extent.width, extent.height});

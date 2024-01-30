@@ -122,15 +122,15 @@ public:
             height = windowSize.y;
             ImGui::Image(image, windowSize);
 
-            // TODO: もっと細かくオプションを用意する
-            if (isWidgetsVisible) {
-                // Auxiliary image
+            if (isAuxiliaryImageVisible) {
                 showAuxiliaryImage(windowPos);
+            }
 
-                // Toolbar
+            if (isToolBarVisible) {
                 showToolBar(windowPos);
+            }
 
-                // Gizmo
+            if (isGizmoVisible) {
                 if (showGizmo(scene, selectedObject, frame)) {
                     message |= Message::TransformChanged;
                 }
@@ -150,8 +150,10 @@ public:
                           static_cast<float>(image->getExtent().height);
     }
 
-    // Option
-    inline static bool isWidgetsVisible = true;
+    // Options
+    inline static bool isAuxiliaryImageVisible = true;
+    inline static bool isToolBarVisible = true;
+    inline static bool isGizmoVisible = true;
 
     // Input
     inline static glm::vec2 dragDelta = {0.0f, 0.0f};
