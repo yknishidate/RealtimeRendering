@@ -9,7 +9,7 @@
 
 class IconManager {
 public:
-    void init(const rv::Context& context) {
+    static void init(const rv::Context& context) {
         // Manipulate
         addIcon(context, "manip_translate", (DEV_ASSET_DIR / "icons/manip_translate.png").string());
         addIcon(context, "manip_rotate", (DEV_ASSET_DIR / "icons/manip_rotate.png").string());
@@ -21,7 +21,11 @@ public:
         addIcon(context, "asset_texture", (DEV_ASSET_DIR / "icons/asset_texture.png").string());
     }
 
-    bool isHover(float thumbnailSize) const {
+    static void shutdown() {
+        icons.clear();
+    }
+
+    static bool isHover(float thumbnailSize) {
         ImVec2 mousePos = ImGui::GetMousePos();
         ImVec2 buttonMin = ImGui::GetCursorScreenPos();
         ImVec2 buttonMax = ImVec2(buttonMin.x + thumbnailSize, buttonMin.y + thumbnailSize);
@@ -29,12 +33,12 @@ public:
                mousePos.x <= buttonMax.x && mousePos.y <= buttonMax.y;
     }
 
-    ImVec2 getImageSize(const std::string& iconName) {
+    static ImVec2 getImageSize(const std::string& iconName) {
         vk::Extent3D extent = icons[iconName].image->getExtent();
         return {static_cast<float>(extent.width), static_cast<float>(extent.height)};
     }
 
-    std::pair<ImVec2, ImVec2> computeCenterCroppedUVs(ImVec2 imageSize) const {
+    static std::pair<ImVec2, ImVec2> computeCenterCroppedUVs(ImVec2 imageSize) {
         float aspectRatioImage = imageSize.x / imageSize.y;
         float aspectRatioButton = 1.0f;
 
@@ -53,7 +57,7 @@ public:
         return {uv0, uv1};
     }
 
-    void showIcon(
+    static void showIcon(
         const std::string& iconName,
         const std::string& itemName,
         float thumbnailSize,
@@ -75,7 +79,7 @@ public:
         ImGui::NextColumn();
     }
 
-    void showDraggableIcon(
+    static void showDraggableIcon(
         const std::string& iconName,
         const std::string& itemName,
         float thumbnailSize,
@@ -104,7 +108,7 @@ public:
         ImGui::NextColumn();
     }
 
-    void showDroppableIcon(
+    static void showDroppableIcon(
         const std::string& iconName,
         const std::string& itemName,
         float thumbnailSize,
@@ -136,18 +140,20 @@ public:
     }
 
     // With loading. For UI icon
-    void addIcon(const rv::Context& context, const std::string& name, const std::string& filepath) {
+    static void addIcon(const rv::Context& context,
+                        const std::string& name,
+                        const std::string& filepath) {
         icons[name].image = rv::Image::loadFromFile(context, filepath);
-        icons[name].descSet = ImGui_ImplVulkan_AddTexture(  // break
+        icons[name].descSet = ImGui_ImplVulkan_AddTexture(  //
             icons[name].image->getSampler(), icons[name].image->getView(),
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
     // Without loading. For texture
-    void addIcon(const std::string& name, rv::ImageHandle texture) {
+    static void addIcon(const std::string& name, rv::ImageHandle texture) {
         // WARN: this image has ownership
         icons[name].image = std::move(texture);
-        icons[name].descSet = ImGui_ImplVulkan_AddTexture(  // break
+        icons[name].descSet = ImGui_ImplVulkan_AddTexture(  //
             icons[name].image->getSampler(), icons[name].image->getView(),
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
@@ -157,5 +163,5 @@ public:
         vk::DescriptorSet descSet;
     };
 
-    std::unordered_map<std::string, IconData> icons;
+    inline static std::unordered_map<std::string, IconData> icons;
 };

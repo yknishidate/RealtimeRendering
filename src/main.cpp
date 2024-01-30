@@ -25,6 +25,10 @@ public:
               .style = rv::UIStyle::Gray,
           }) {}
 
+    void onShutdown() override {
+        IconManager::shutdown();
+    }
+
     void onStart() override {
         std::filesystem::create_directories(DEV_SHADER_DIR / "spv");
 
@@ -33,10 +37,10 @@ public:
         scene.setContext(context);
         scene.loadFromJson(DEV_ASSET_DIR / "scenes" / "two_boxes.json");
 
-        iconManager.init(context);
-        assetWindow.init(context, scene, iconManager);
-        viewportWindow.init(context, iconManager, 1920, 1080);
-        attributeWindow.init(context, scene, iconManager);
+        IconManager::init(context);
+        assetWindow.init(context, scene);
+        viewportWindow.init(context, 1920, 1080);
+        attributeWindow.init(context, scene);
 
         renderer.init(context);
         viewportWindow.setAuxiliaryImage(renderer.getShadowMap());
@@ -132,7 +136,6 @@ public:
     ViewportWindow viewportWindow;
     AttributeWindow attributeWindow;
     AssetWindow assetWindow;
-    IconManager iconManager;
     MenuBar menuBar;
 
     // Misc

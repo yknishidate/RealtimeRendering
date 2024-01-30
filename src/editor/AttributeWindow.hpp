@@ -15,16 +15,15 @@ enum Type {
 
 class AttributeWindow {
 public:
-    void init(const rv::Context& _context, Scene& _scene, IconManager& _iconManager) {
+    void init(const rv::Context& _context, Scene& _scene) {
         using namespace std::literals::string_literals;
         context = &_context;
         scene = &_scene;
-        iconManager = &_iconManager;
-        iconManager->addIcon(*context, "asset_texture",
+        IconManager::addIcon(*context, "asset_texture",
                              (DEV_ASSET_DIR / "icons/asset_texture.png"s).string());
     }
 
-    int show(Object* object) const {
+    int show(const Object* object) const {
         ImGui::Begin("Attribute");
         int message = Message::None;
         if (object) {
@@ -38,5 +37,4 @@ public:
 
     const rv::Context* context = nullptr;
     Scene* scene = nullptr;
-    IconManager* iconManager = nullptr;
 };

@@ -75,12 +75,8 @@ public:
 
 class ViewportWindow {
 public:
-    void init(const rv::Context& _context,
-              IconManager& _iconManager,
-              uint32_t _width,
-              uint32_t _height) {
+    void init(const rv::Context& _context, uint32_t _width, uint32_t _height) {
         context = &_context;
-        iconManager = &_iconManager;
 
         createImages(_width, _height);
 
@@ -192,10 +188,10 @@ public:
 
     void showToolIcon(const std::string& name, float thumbnailSize, ImGuizmo::OPERATION operation) {
         ImVec4 bgColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-        if (currentGizmoOperation == operation || iconManager->isHover(thumbnailSize)) {
+        if (currentGizmoOperation == operation || IconManager::isHover(thumbnailSize)) {
             bgColor = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
         }
-        iconManager->showIcon(name, "", thumbnailSize, bgColor,
+        IconManager::showIcon(name, "", thumbnailSize, bgColor,
                               [&]() { currentGizmoOperation = operation; });
     }
 
@@ -344,7 +340,6 @@ public:
     }
 
     const rv::Context* context = nullptr;
-    IconManager* iconManager = nullptr;
 
     // Option
     bool isWidgetsVisible = true;

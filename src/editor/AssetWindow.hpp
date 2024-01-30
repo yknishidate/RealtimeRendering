@@ -7,10 +7,9 @@
 
 class AssetWindow {
 public:
-    void init(const rv::Context& _context, Scene& _scene, IconManager& _iconManager) {
+    void init(const rv::Context& _context, Scene& _scene) {
         context = &_context;
         scene = &_scene;
-        iconManager = &_iconManager;
     }
 
     void importTexture(const char* filepath) const {
@@ -26,7 +25,7 @@ public:
             texture.image = rv::Image::loadFromFileHDR(*context, texture.filepath);
         }
         scene->getTextures().push_back(texture);
-        iconManager->addIcon(texture.name, texture.image);
+        IconManager::addIcon(texture.name, texture.image);
     }
 
     void openImportDialog() const {
@@ -49,16 +48,16 @@ public:
             ImGui::Columns(columnCount, 0, false);
 
             for (auto& mesh : scene->getMeshes()) {
-                iconManager->showDraggableIcon("asset_mesh", mesh.name, thumbnailSize,
+                IconManager::showDraggableIcon("asset_mesh", mesh.name, thumbnailSize,
                                                ImVec4(0, 0, 0, 1));
             }
 
             for (auto& material : scene->getMaterials()) {
-                iconManager->showDraggableIcon("asset_material", material.name, thumbnailSize,
+                IconManager::showDraggableIcon("asset_material", material.name, thumbnailSize,
                                                ImVec4(0, 0, 0, 1));
             }
             for (auto& texture : scene->getTextures()) {
-                iconManager->showDraggableIcon(texture.name, texture.name, thumbnailSize,
+                IconManager::showDraggableIcon(texture.name, texture.name, thumbnailSize,
                                                ImVec4(0, 0, 0, 1));
             }
 
@@ -78,5 +77,4 @@ public:
 
     const rv::Context* context = nullptr;
     Scene* scene = nullptr;
-    IconManager* iconManager = nullptr;
 };
