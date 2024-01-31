@@ -60,6 +60,7 @@ public:
     }
 
     void onUpdate() override {
+        updateTimer.restart();
         // Camera
         auto& camera = scene.getCamera();
         for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
@@ -83,9 +84,11 @@ public:
             camera.processMouseScroll(ViewportWindow::mouseScroll);
         }
         frame++;
+        editor.setUpdateTime(updateTimer.elapsedInMilli());
     }
 
     void onRender(const rv::CommandBufferHandle& commandBuffer) override {
+        renderTimer.restart();
         commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
 
         if (play) {
@@ -105,6 +108,7 @@ public:
                                     editor.getCurrentDepthImage(),  //
                                     scene);
         }
+        editor.setRenderTime(renderTimer.elapsedInMilli());
     }
 
     int frame = 0;
@@ -113,6 +117,8 @@ public:
     ViewportRenderer viewportRenderer;
     Editor editor;
     bool play = true;
+    rv::CPUTimer updateTimer;
+    rv::CPUTimer renderTimer;
 };
 
 int main() {

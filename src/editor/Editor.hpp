@@ -52,10 +52,11 @@ public:
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
         if (ImGui::Begin("Misc")) {
-            ImGui::Text("Total frame: %f ms", cpuTimer.elapsedInMilli());
-            cpuTimer.restart();
+            ImGui::Text("CPU time: %f ms", updateTime + renderTime);
+            ImGui::Text("  Update: %f ms", updateTime);
+            ImGui::Text("  Render: %f ms", renderTime);
 
-            ImGui::Text("Rendering: %f ms", renderer.getRenderingTimeMs());
+            ImGui::Text("GPU timer: %f ms", renderer.getRenderingTimeMs());
             if (ImGui::Button("Recompile")) {
                 context.getDevice().waitIdle();
                 renderer.init(context);
@@ -128,6 +129,14 @@ public:
         return depthImages[currentImageIndex];
     }
 
+    void setUpdateTime(float time) {
+        updateTime = time;
+    }
+
+    void setRenderTime(float time) {
+        renderTime = time;
+    }
+
     // Image
     static constexpr int imageCount = 3;
     int currentImageIndex = 0;
@@ -141,5 +150,6 @@ public:
     Object* selectedObject = nullptr;
 
     // Timer
-    rv::CPUTimer cpuTimer;
+    float updateTime = 0.0f;
+    float renderTime = 0.0f;
 };

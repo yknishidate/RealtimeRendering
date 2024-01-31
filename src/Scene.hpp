@@ -30,10 +30,10 @@ public:
     ~Object() = default;
 
     Object(const Object& other) = delete;
-    Object(Object&& other) = delete;
+    Object(Object&& other) = default;
 
     Object& operator=(const Object& other) = delete;
-    Object& operator=(Object&& other) = delete;
+    Object& operator=(Object&& other) = default;
 
     void update(float dt) {
         for (auto& comp : components | std::views::values) {
@@ -55,7 +55,7 @@ public:
     }
 
     template <typename T>
-    const T* get() const {
+    T* get() {
         const std::type_info& info = typeid(T);
         const std::type_index& index = {info};
         if (components.contains(index)) {
@@ -65,7 +65,7 @@ public:
     }
 
     template <typename T>
-    T* get() {
+    const T* get() const {
         const std::type_info& info = typeid(T);
         const std::type_index& index = {info};
         if (components.contains(index)) {
