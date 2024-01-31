@@ -9,7 +9,7 @@
 class ShadowMapPass {
 public:
     void init(const rv::Context& _context,
-              rv::DescriptorSetHandle _descSet,
+              const rv::DescriptorSetHandle& _descSet,
               vk::Format shadowMapFormat) {
         context = &_context;
         descSet = _descSet;
@@ -44,7 +44,7 @@ public:
     }
 
     void render(const rv::CommandBuffer& commandBuffer,
-                rv::ImageHandle shadowMapImage,
+                const rv::ImageHandle& shadowMapImage,
                 Scene& scene,
                 const DirectionalLight& light) const {
         assert(initialized);
@@ -130,27 +130,32 @@ private:
 
 class AntiAliasingPass {
 public:
-    void init(const rv::Context& context, const rv::ImageHandle& srcImage) {
+    void init(const rv::Context& context,
+              const rv::DescriptorSetHandle& _descSet,
+              const rv::ImageHandle& srcImage) {
+        descSet = _descSet;
+
         std::vector<rv::ShaderHandle> shaders(2);
-        shaders[0] = context.createShader({
-            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "fullscreen.vert",
-                                                      DEV_SHADER_DIR / "spv/fullscreen.vert.spv"),
-            .stage = vk::ShaderStageFlagBits::eVertex,
-        });
+        try {
+            shaders[0] = context.createShader({
+                .code = rv::Compiler::compileOrReadShader(
+                    DEV_SHADER_DIR / "fullscreen.vert", DEV_SHADER_DIR / "spv/fullscreen.vert.spv"),
+                .stage = vk::ShaderStageFlagBits::eVertex,
+            });
 
-        shaders[1] = context.createShader({
-            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "fxaa.frag",
-                                                      DEV_SHADER_DIR / "spv/fxaa.frag.spv"),
-            .stage = vk::ShaderStageFlagBits::eFragment,
-        });
-
-        descSet = context.createDescriptorSet({
-            .shaders = shaders,
-            .images = {{"colorImage", srcImage}},
-        });
+            shaders[1] = context.createShader({
+                .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "fxaa.frag",
+                                                          DEV_SHADER_DIR / "spv/fxaa.frag.spv"),
+                .stage = vk::ShaderStageFlagBits::eFragment,
+            });
+        } catch (const std::exception& e) {
+            spdlog::error(e.what());
+            std::abort();
+        }
 
         pipeline = context.createGraphicsPipeline({
             .descSetLayout = descSet->getLayout(),
+            .pushSize = sizeof(StandardConstants),
             .vertexShader = shaders[0],
             .fragmentShader = shaders[1],
             .colorFormats = srcImage->getFormat(),
@@ -177,6 +182,10 @@ public:
         commandBuffer.beginTimestamp(timer);
         commandBuffer.beginRendering(dstImage, {}, {0, 0}, {extent.width, extent.height});
 
+        StandardConstants constants;
+        constants.screenResolution.x = static_cast<float>(srcImage->getExtent().width);
+        constants.screenResolution.y = static_cast<float>(srcImage->getExtent().height);
+        commandBuffer.pushConstants(pipeline, &constants);
         commandBuffer.draw(3, 1, 0, 0);
 
         commandBuffer.endRendering();
@@ -243,6 +252,7 @@ public:
             .debugName = "Renderer::objectStorageBuffer",
         });
 
+        // NOTE: images内のイメージは作り直しが起きるのでこの段階でbindしてはいけない
         descSet = context->createDescriptorSet({
             .shaders = shaders,
             .buffers =
@@ -250,7 +260,11 @@ public:
                     {"SceneBuffer", sceneUniformBuffer},
                     {"ObjectBuffer", objectStorageBuffer},
                 },
-            .images = {{"shadowMap", shadowMapImage}},
+            .images =
+                {
+                    {"shadowMap", shadowMapImage},
+                    //{"baseColorImage", images.baseColorImage},
+                },
         });
 
         pipeline = context->createGraphicsPipeline({
@@ -265,6 +279,7 @@ public:
         });
 
         shadowMapPass.init(*context, descSet, shadowMapFormat);
+        antiAliasingPass.init(*context, descSet, images.baseColorImage);
 
         timer = context->createGPUTimer({});
         initialized = true;
@@ -286,8 +301,9 @@ public:
         }
 
         commandBuffer.clearColorImage(colorImage, {0.1f, 0.1f, 0.1f, 1.0f});
+        commandBuffer.clearColorImage(images.baseColorImage, {0.1f, 0.1f, 0.1f, 1.0f});
         commandBuffer.clearDepthStencilImage(images.depthImage, 1.0f, 0);
-        commandBuffer.imageBarrier({colorImage, images.depthImage},  //
+        commandBuffer.imageBarrier({colorImage, images.baseColorImage, images.depthImage},  //
                                    vk::PipelineStageFlagBits::eTransfer,
                                    vk::PipelineStageFlagBits::eAllGraphics,
                                    vk::AccessFlagBits::eTransferWrite,
@@ -351,15 +367,16 @@ public:
         commandBuffer.beginDebugLabel("Renderer::render()");
         commandBuffer.bindDescriptorSet(descSet, pipeline);
         commandBuffer.bindPipeline(pipeline);
-        commandBuffer.transitionLayout(colorImage, vk::ImageLayout::eGeneral);
 
         vk::Extent3D extent = colorImage->getExtent();
         commandBuffer.setViewport(extent.width, extent.height);
         commandBuffer.setScissor(extent.width, extent.height);
         commandBuffer.beginTimestamp(timer);
-        commandBuffer.beginRendering(colorImage, images.depthImage, {0, 0},
+        commandBuffer.beginRendering(images.baseColorImage, images.depthImage, {0, 0},
                                      {extent.width, extent.height});
 
+        standardConstants.screenResolution.x = static_cast<float>(extent.width);
+        standardConstants.screenResolution.y = static_cast<float>(extent.height);
         for (int index = 0; index < objects.size(); index++) {
             auto& object = objects[index];
             Mesh* mesh = object.get<Mesh>();
@@ -385,6 +402,11 @@ public:
                                    vk::AccessFlagBits::eShaderRead);
 
         commandBuffer.endDebugLabel();
+
+        // AA
+        antiAliasingPass.render(commandBuffer, images.baseColorImage, colorImage);
+
+        commandBuffer.transitionLayout(colorImage, vk::ImageLayout::eGeneral);
 
         firstFrameRendered = true;
     }
@@ -431,4 +453,6 @@ private:
     vk::Format shadowMapFormat = vk::Format::eD32Sfloat;
     vk::Extent3D shadowMapExtent{1024, 1024, 1};
     rv::ImageHandle shadowMapImage;
+
+    AntiAliasingPass antiAliasingPass;
 };
