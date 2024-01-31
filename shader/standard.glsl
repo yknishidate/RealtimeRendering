@@ -81,6 +81,6 @@ layout(binding = 2) uniform sampler2DShadow shadowMap;
 layout(binding = 2) uniform sampler2D shadowMap;
 #endif // USE_PCF
 
-//layout(binding = 3) uniform sampler2D baseColorImage;
+layout(binding = 3) uniform sampler2D baseColorImage;
 
 #endif

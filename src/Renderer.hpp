@@ -170,7 +170,7 @@ public:
                 const rv::ImageHandle& dstImage) const {
         assert(initialized);
         vk::Extent3D extent = srcImage->getExtent();
-        commandBuffer.transitionLayout(srcImage, vk::ImageLayout::eShaderReadOnlyOptimal);
+        commandBuffer.transitionLayout(srcImage, vk::ImageLayout::eGeneral);
         commandBuffer.transitionLayout(dstImage, vk::ImageLayout::eColorAttachmentOptimal);
 
         commandBuffer.beginDebugLabel("AntiAliasingPass::render()");
@@ -263,7 +263,7 @@ public:
             .images =
                 {
                     {"shadowMap", shadowMapImage},
-                    //{"baseColorImage", images.baseColorImage},
+                    {"baseColorImage", images.baseColorImage},
                 },
         });
 
@@ -297,6 +297,8 @@ public:
             uint32_t width = colorImage->getExtent().width;
             uint32_t height = colorImage->getExtent().height;
             images.createImages(*context, width, height);
+            descSet->set("baseColorImage", images.baseColorImage);
+            descSet->update();
             scene.getCamera().setAspect(static_cast<float>(width) / static_cast<float>(height));
         }
 
