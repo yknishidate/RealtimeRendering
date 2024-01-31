@@ -4,6 +4,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "RenderImages.hpp"
 #include "Renderer.hpp"
 #include "Scene.hpp"
 #include "ViewportRenderer.hpp"
@@ -38,12 +39,15 @@ public:
         rv::CPUTimer timer;
         std::filesystem::create_directories(DEV_SHADER_DIR / "spv");
 
+        // Image
+        images.createImages(context, width, height);
+
         // Scene
         scene.setContext(context);
         scene.loadFromJson(DEV_ASSET_DIR / "scenes" / "two_boxes.json");
 
         // Renderer
-        renderer.init(context);
+        renderer.init(context, images);
         viewportRenderer.init(context);
 
         // Editor
@@ -69,6 +73,7 @@ public:
             }
         }
 
+        // TODO: 入力を抽象化する
         if (play) {
             static glm::vec2 lastCursorPos{0.0f};
             glm::vec2 cursorPos = getCursorPos();
@@ -92,20 +97,15 @@ public:
         commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
 
         if (play) {
-            commandBuffer->clearDepthStencilImage(getDefaultDepthImage(), 1.0f, 0);
             renderer.render(*commandBuffer,  //
-                            getCurrentColorImage(),
-                            getDefaultDepthImage(),  //
-                            scene, frame);
+                            getCurrentColorImage(), images, scene, frame);
         } else {
             editor.show(context, scene, renderer);
             renderer.render(*commandBuffer,  //
-                            editor.getColorImage(),
-                            editor.getDepthImage(),  //
-                            scene, frame);
-            viewportRenderer.render(*commandBuffer,          //
-                                    editor.getColorImage(),  //
-                                    editor.getDepthImage(),  //
+                            editor.getViewportImage(), images, scene, frame);
+            viewportRenderer.render(*commandBuffer,             //
+                                    editor.getViewportImage(),  //
+                                    images,                     //
                                     scene);
         }
         editor.setRenderTime(renderTimer.elapsedInMilli());
@@ -119,6 +119,7 @@ public:
     bool play = false;
     rv::CPUTimer updateTimer;
     rv::CPUTimer renderTimer;
+    RenderImages images;
 };
 
 int main() {

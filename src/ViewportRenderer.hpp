@@ -1,11 +1,11 @@
 #pragma once
-#include <imgui_impl_vulkan.h>
-
 #include <glm/gtx/matrix_decompose.hpp>
 
+#include "reactive/reactive.hpp"
+
+#include "RenderImages.hpp"
 #include "Scene.hpp"
 #include "editor/ViewportWindow.hpp"
-#include "reactive/reactive.hpp"
 
 class LineDrawer {
     struct PushConstants {
@@ -107,11 +107,12 @@ public:
     }
 
     void render(const rv::CommandBuffer& commandBuffer,
-                rv::ImageHandle colorImage,
-                rv::ImageHandle depthImage,
+                const rv::ImageHandle& colorImage,
+                const RenderImages& images,
                 Scene& scene) const {
         vk::Extent3D extent = colorImage->getExtent();
-        commandBuffer.beginRendering(colorImage, depthImage, {0, 0}, {extent.width, extent.height});
+        commandBuffer.beginRendering(colorImage, images.depthImage, {0, 0},
+                                     {extent.width, extent.height});
 
         const rv::Camera& camera = scene.getCamera();
         glm::mat4 viewProj = camera.getProj() * camera.getView();

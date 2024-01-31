@@ -57,11 +57,12 @@ public:
             ImGui::Text("  Render: %f ms", renderTime);
 
             ImGui::Text("GPU time: %f ms", renderer.getRenderingTimeMs());
-            if (ImGui::Button("Recompile")) {
-                context.getDevice().waitIdle();
-                renderer.init(context);
-                ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
-            }
+            // TODO: support
+            // if (ImGui::Button("Recompile")) {
+            //    context.getDevice().waitIdle();
+            //    renderer.init(context);
+            //    ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
+            //}
             ImGui::End();
         }
 
@@ -74,7 +75,7 @@ public:
     }
 
     bool needsRecreateViewportImage() const {
-        vk::Extent3D extent = colorImage->getExtent();
+        vk::Extent3D extent = viewportImage->getExtent();
         return extent.width != static_cast<uint32_t>(ViewportWindow::width) ||  //
                extent.height != static_cast<uint32_t>(ViewportWindow::height);
     }
@@ -83,7 +84,7 @@ public:
         width = ViewportWindow::width;
         height = ViewportWindow::height;
 
-        colorImage = context.createImage({
+        viewportImage = context.createImage({
             .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
                      vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
                      vk::ImageUsageFlagBits::eColorAttachment,
@@ -94,29 +95,16 @@ public:
 
         // Create desc set
         ImGui_ImplVulkan_RemoveTexture(imguiDescSet);
-        imguiDescSet = ImGui_ImplVulkan_AddTexture(colorImage->getSampler(), colorImage->getView(),
-                                                   VK_IMAGE_LAYOUT_GENERAL);
-
-        depthImage = context.createImage({
-            .usage = rv::ImageUsage::DepthAttachment,
-            .extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1},
-            .format = vk::Format::eD32Sfloat,
-            .aspect = vk::ImageAspectFlagBits::eDepth,
-            .debugName = "ViewportRenderer::depthImage",
-        });
+        imguiDescSet = ImGui_ImplVulkan_AddTexture(
+            viewportImage->getSampler(), viewportImage->getView(), VK_IMAGE_LAYOUT_GENERAL);
 
         context.oneTimeSubmit([&](auto commandBuffer) {
-            commandBuffer->transitionLayout(colorImage, vk::ImageLayout::eGeneral);
-            commandBuffer->transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
+            commandBuffer->transitionLayout(viewportImage, vk::ImageLayout::eGeneral);
         });
     }
 
-    rv::ImageHandle getColorImage() const {
-        return colorImage;
-    }
-
-    rv::ImageHandle getDepthImage() const {
-        return depthImage;
+    rv::ImageHandle getViewportImage() const {
+        return viewportImage;
     }
 
     void setUpdateTime(float time) {
@@ -130,8 +118,7 @@ public:
     // Image
     float width = 0.0f;
     float height = 0.0f;
-    rv::ImageHandle colorImage;
-    rv::ImageHandle depthImage;
+    rv::ImageHandle viewportImage;
     vk::DescriptorSet imguiDescSet;
 
     // Editor

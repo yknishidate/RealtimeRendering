@@ -1,6 +1,7 @@
 #pragma once
 #include <reactive/reactive.hpp>
 
+#include "RenderImages.hpp"
 #include "Scene.hpp"
 
 #include "../shader/standard.glsl"
@@ -199,7 +200,7 @@ private:
 
 class Renderer {
 public:
-    void init(const rv::Context& _context) {
+    void init(const rv::Context& _context, RenderImages& images) {
         context = &_context;
 
         shadowMapImage = context->createImage({
@@ -259,7 +260,8 @@ public:
             .fragmentShader = shaders[1],
             .vertexStride = sizeof(rv::Vertex),
             .vertexAttributes = rv::Vertex::getAttributeDescriptions(),
-            .colorFormats = vk::Format::eB8G8R8A8Unorm,  // TODO: getFormat()
+            .colorFormats = images.colorFormat,
+            .depthFormat = images.depthFormat,
         });
 
         shadowMapPass.init(*context, descSet, shadowMapFormat);
@@ -270,14 +272,22 @@ public:
 
     void render(const rv::CommandBuffer& commandBuffer,
                 const rv::ImageHandle& colorImage,
-                const rv::ImageHandle& depthImage,
+                RenderImages& images,
                 Scene& scene,
                 int frame) {
         assert(initialized);
 
+        if (colorImage->getExtent() != images.baseColorImage->getExtent()) {
+            context->getDevice().waitIdle();
+            uint32_t width = colorImage->getExtent().width;
+            uint32_t height = colorImage->getExtent().height;
+            images.createImages(*context, width, height);
+            scene.getCamera().setAspect(static_cast<float>(width) / static_cast<float>(height));
+        }
+
         commandBuffer.clearColorImage(colorImage, {0.1f, 0.1f, 0.1f, 1.0f});
-        commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
-        commandBuffer.imageBarrier({colorImage, depthImage},  //
+        commandBuffer.clearDepthStencilImage(images.depthImage, 1.0f, 0);
+        commandBuffer.imageBarrier({colorImage, images.depthImage},  //
                                    vk::PipelineStageFlagBits::eTransfer,
                                    vk::PipelineStageFlagBits::eAllGraphics,
                                    vk::AccessFlagBits::eTransferWrite,
@@ -347,7 +357,8 @@ public:
         commandBuffer.setViewport(extent.width, extent.height);
         commandBuffer.setScissor(extent.width, extent.height);
         commandBuffer.beginTimestamp(timer);
-        commandBuffer.beginRendering(colorImage, depthImage, {0, 0}, {extent.width, extent.height});
+        commandBuffer.beginRendering(colorImage, images.depthImage, {0, 0},
+                                     {extent.width, extent.height});
 
         for (int index = 0; index < objects.size(); index++) {
             auto& object = objects[index];
@@ -366,7 +377,7 @@ public:
         commandBuffer.endRendering();
         commandBuffer.endTimestamp(timer);
 
-        commandBuffer.imageBarrier({colorImage, depthImage},  //
+        commandBuffer.imageBarrier({colorImage, images.depthImage},  //
                                    vk::PipelineStageFlagBits::eAllGraphics,
                                    vk::PipelineStageFlagBits::eAllGraphics,
                                    vk::AccessFlagBits::eColorAttachmentWrite |
