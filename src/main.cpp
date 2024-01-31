@@ -100,12 +100,12 @@ public:
         } else {
             editor.show(context, scene, renderer);
             renderer.render(*commandBuffer,  //
-                            editor.getCurrentColorImage(),
-                            editor.getCurrentDepthImage(),  //
+                            editor.getColorImage(),
+                            editor.getDepthImage(),  //
                             scene, frame);
-            viewportRenderer.render(*commandBuffer,                 //
-                                    editor.getCurrentColorImage(),  //
-                                    editor.getCurrentDepthImage(),  //
+            viewportRenderer.render(*commandBuffer,          //
+                                    editor.getColorImage(),  //
+                                    editor.getDepthImage(),  //
                                     scene);
         }
         editor.setRenderTime(renderTimer.elapsedInMilli());

@@ -14,7 +14,7 @@ public:
         ViewportWindow::height = 1080;
 
         // Image
-        createViewportImages(context);
+        createViewportImage(context);
     }
 
     void shutdown() {
@@ -22,9 +22,9 @@ public:
     }
 
     void show(const rv::Context& context, Scene& scene, Renderer& renderer) {
-        if (needsRecreateViewportImages()) {
+        if (needsRecreateViewportImage()) {
             context.getDevice().waitIdle();
-            createViewportImages(context);
+            createViewportImage(context);
             scene.getCamera().setAspect(ViewportWindow::width / ViewportWindow::height);
         }
 
@@ -67,66 +67,56 @@ public:
 
         SceneWindow::show(scene, &selectedObject);
         AttributeWindow::show(selectedObject);
-        ViewportWindow::show(scene, imguiDescSets[currentImageIndex], selectedObject);
+        ViewportWindow::show(scene, imguiDescSet, selectedObject);
         AssetWindow::show(context, scene);
 
         ImGui::End();
     }
 
-    void advanceImageIndex() {
-        currentImageIndex = (currentImageIndex + 1) % imageCount;
-    }
-
-    bool needsRecreateViewportImages() const {
-        vk::Extent3D extent = colorImages[currentImageIndex]->getExtent();
+    bool needsRecreateViewportImage() const {
+        vk::Extent3D extent = colorImage->getExtent();
         return extent.width != static_cast<uint32_t>(ViewportWindow::width) ||  //
                extent.height != static_cast<uint32_t>(ViewportWindow::height);
     }
 
-    void createViewportImages(const rv::Context& context) {
+    void createViewportImage(const rv::Context& context) {
         width = ViewportWindow::width;
         height = ViewportWindow::height;
 
-        for (int i = 0; i < imageCount; i++) {
-            colorImages[i] = context.createImage({
-                .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
-                         vk::ImageUsageFlagBits::eTransferDst |
-                         vk::ImageUsageFlagBits::eTransferSrc |
-                         vk::ImageUsageFlagBits::eColorAttachment,
-                .extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1},
-                .format = vk::Format::eB8G8R8A8Unorm,
-                .debugName = "ViewportRenderer::colorImage",
-            });
+        colorImage = context.createImage({
+            .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
+                     vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
+                     vk::ImageUsageFlagBits::eColorAttachment,
+            .extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1},
+            .format = vk::Format::eB8G8R8A8Unorm,
+            .debugName = "ViewportRenderer::colorImage",
+        });
 
-            // Create desc set
-            ImGui_ImplVulkan_RemoveTexture(imguiDescSets[i]);
-            imguiDescSets[i] = ImGui_ImplVulkan_AddTexture(
-                colorImages[i]->getSampler(), colorImages[i]->getView(), VK_IMAGE_LAYOUT_GENERAL);
+        // Create desc set
+        ImGui_ImplVulkan_RemoveTexture(imguiDescSet);
+        imguiDescSet = ImGui_ImplVulkan_AddTexture(colorImage->getSampler(), colorImage->getView(),
+                                                   VK_IMAGE_LAYOUT_GENERAL);
 
-            depthImages[i] = context.createImage({
-                .usage = rv::ImageUsage::DepthAttachment,
-                .extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1},
-                .format = vk::Format::eD32Sfloat,
-                .aspect = vk::ImageAspectFlagBits::eDepth,
-                .debugName = "ViewportRenderer::depthImage",
-            });
-        }
+        depthImage = context.createImage({
+            .usage = rv::ImageUsage::DepthAttachment,
+            .extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1},
+            .format = vk::Format::eD32Sfloat,
+            .aspect = vk::ImageAspectFlagBits::eDepth,
+            .debugName = "ViewportRenderer::depthImage",
+        });
 
         context.oneTimeSubmit([&](auto commandBuffer) {
-            for (int i = 0; i < imageCount; i++) {
-                commandBuffer->transitionLayout(colorImages[i], vk::ImageLayout::eGeneral);
-                commandBuffer->transitionLayout(depthImages[i],
-                                                vk::ImageLayout::eDepthAttachmentOptimal);
-            }
+            commandBuffer->transitionLayout(colorImage, vk::ImageLayout::eGeneral);
+            commandBuffer->transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
         });
     }
 
-    rv::ImageHandle getCurrentColorImage() const {
-        return colorImages[currentImageIndex];
+    rv::ImageHandle getColorImage() const {
+        return colorImage;
     }
 
-    rv::ImageHandle getCurrentDepthImage() const {
-        return depthImages[currentImageIndex];
+    rv::ImageHandle getDepthImage() const {
+        return depthImage;
     }
 
     void setUpdateTime(float time) {
@@ -138,13 +128,11 @@ public:
     }
 
     // Image
-    static constexpr int imageCount = 3;
-    int currentImageIndex = 0;
     float width = 0.0f;
     float height = 0.0f;
-    std::array<rv::ImageHandle, imageCount> colorImages;
-    std::array<rv::ImageHandle, imageCount> depthImages;
-    std::array<vk::DescriptorSet, imageCount> imguiDescSets;
+    rv::ImageHandle colorImage;
+    rv::ImageHandle depthImage;
+    vk::DescriptorSet imguiDescSet;
 
     // Editor
     Object* selectedObject = nullptr;
