@@ -39,18 +39,14 @@ public:
         rv::CPUTimer timer;
         std::filesystem::create_directories(DEV_SHADER_DIR / "spv");
 
-        // Image
         images.createImages(context, width, height);
 
-        // Scene
         scene.setContext(context);
         scene.loadFromJson(DEV_ASSET_DIR / "scenes" / "two_boxes.json");
 
-        // Renderer
         renderer.init(context, images);
         viewportRenderer.init(context);
 
-        // Editor
         editor.init(context);
         ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
 
@@ -65,7 +61,7 @@ public:
 
     void onUpdate() override {
         updateTimer.restart();
-        // Camera
+
         auto& camera = scene.getCamera();
         for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
             if (isKeyDown(key)) {
@@ -89,7 +85,7 @@ public:
             camera.processMouseScroll(ViewportWindow::mouseScroll);
         }
         frame++;
-        editor.setUpdateTime(updateTimer.elapsedInMilli());
+        editor.setCpuUpdateTime(updateTimer.elapsedInMilli());
     }
 
     void onRender(const rv::CommandBufferHandle& commandBuffer) override {
@@ -97,18 +93,18 @@ public:
         commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
 
         if (play) {
-            renderer.render(*commandBuffer,  //
-                            getCurrentColorImage(), images, scene, frame);
+            renderer.render(*commandBuffer, getCurrentColorImage(), images, scene, frame);
         } else {
-            editor.show(context, scene, renderer);
-            renderer.render(*commandBuffer,  //
-                            editor.getViewportImage(), images, scene, frame);
-            viewportRenderer.render(*commandBuffer,             //
-                                    editor.getViewportImage(),  //
-                                    images,                     //
-                                    scene);
+            editor.setGpuRenderTime(renderer.getRenderingTimeMs());
+            if (editor.show(context, scene) == EditorMessage::RecompileRequested) {
+                context.getDevice().waitIdle();
+                renderer.init(context, images);
+                ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
+            }
+            renderer.render(*commandBuffer, editor.getViewportImage(), images, scene, frame);
+            viewportRenderer.render(*commandBuffer, editor.getViewportImage(), images, scene);
         }
-        editor.setRenderTime(renderTimer.elapsedInMilli());
+        editor.setCpuRenderTime(renderTimer.elapsedInMilli());
     }
 
     int frame = 0;

@@ -5,9 +5,8 @@
 
 class AttributeWindow {
 public:
-    static int show(const Object* object) {
-        int message = Message::None;
-
+    // NOTE: object is nullable
+    static void show(const Object* object) {
         if (ImGui::Begin("Attribute")) {
             if (object) {
                 for (const auto& comp : object->getComponents() | std::views::values) {
@@ -16,6 +15,5 @@ public:
             }
             ImGui::End();
         }
-        return message;
     }
 };

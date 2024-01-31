@@ -1,6 +1,7 @@
 #pragma once
 #include "editor/AssetWindow.hpp"
 #include "editor/AttributeWindow.hpp"
+#include "editor/EditorMessage.hpp"
 #include "editor/MenuBar.hpp"
 #include "editor/SceneWindow.hpp"
 #include "editor/ViewportWindow.hpp"
@@ -21,7 +22,7 @@ public:
         IconManager::clearIcons();
     }
 
-    void show(const rv::Context& context, Scene& scene, Renderer& renderer) {
+    EditorMessage show(const rv::Context& context, Scene& scene) {
         if (needsRecreateViewportImage()) {
             context.getDevice().waitIdle();
             createViewportImage(context);
@@ -52,17 +53,18 @@ public:
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
         if (ImGui::Begin("Misc")) {
-            ImGui::Text("CPU time: %f ms", updateTime + renderTime);
-            ImGui::Text("  Update: %f ms", updateTime);
-            ImGui::Text("  Render: %f ms", renderTime);
-
-            ImGui::Text("GPU time: %f ms", renderer.getRenderingTimeMs());
-            // TODO: support
-            // if (ImGui::Button("Recompile")) {
-            //    context.getDevice().waitIdle();
-            //    renderer.init(context);
-            //    ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
-            //}
+            ImGui::Text("CPU time: %f ms", cpuUpdateTime + cpuRenderTime);
+            ImGui::Text("  Update: %f ms", cpuUpdateTime);
+            ImGui::Text("  Render: %f ms", cpuRenderTime);
+            ImGui::Text("GPU time: %f ms", gpuRenderTime);
+            if (ImGui::Button("Recompile")) {
+                // ViewportWindow::show()でImGui::Image()にDescSetを渡すと
+                // Rendererを初期化したときにDescSetが古くなって壊れる
+                // それを防ぐため早期リターンするが、ImGui::Begin()の数だけEnd()しておく
+                ImGui::End();
+                ImGui::End();
+                return EditorMessage::RecompileRequested;
+            }
             ImGui::End();
         }
 
@@ -72,6 +74,7 @@ public:
         AssetWindow::show(context, scene);
 
         ImGui::End();
+        return EditorMessage::None;
     }
 
     bool needsRecreateViewportImage() const {
@@ -107,12 +110,16 @@ public:
         return viewportImage;
     }
 
-    void setUpdateTime(float time) {
-        updateTime = time;
+    void setCpuUpdateTime(float time) {
+        cpuUpdateTime = time;
     }
 
-    void setRenderTime(float time) {
-        renderTime = time;
+    void setCpuRenderTime(float time) {
+        cpuRenderTime = time;
+    }
+
+    void setGpuRenderTime(float time) {
+        gpuRenderTime = time;
     }
 
     // Image
@@ -125,6 +132,7 @@ public:
     Object* selectedObject = nullptr;
 
     // Timer
-    float updateTime = 0.0f;
-    float renderTime = 0.0f;
+    float cpuUpdateTime = 0.0f;
+    float cpuRenderTime = 0.0f;
+    float gpuRenderTime = 0.0f;
 };

@@ -10,17 +10,6 @@
 #include "IconManager.hpp"
 #include "Scene.hpp"
 
-namespace Message {
-enum Type {
-    None = 0,
-    TransformChanged = 1 << 0,
-    MaterialChanged = 1 << 1,
-    CameraChanged = 1 << 2,
-    TextureAdded = 1 << 3,
-    RecompileRequested = 1 << 4,
-};
-}
-
 class ViewportWindow {
 public:
     static bool editTransform(const rv::Camera& camera, glm::mat4& matrix) {
@@ -123,13 +112,10 @@ public:
         ImGui::Image(auxiliaryDescSet, ImVec2(imageWidth, imageHeight));
     }
 
-    static int show(Scene& scene, vk::DescriptorSet image, Object* selectedObject) {
+    static void show(Scene& scene, vk::DescriptorSet image, Object* selectedObject) {
         // TODO: support animation
-        int message = Message::None;
         if (ImGui::Begin("Viewport")) {
-            if (processMouseInput()) {
-                message |= Message::CameraChanged;
-            }
+            processMouseInput();
 
             // Viewport
             ImVec2 windowPos = ImGui::GetCursorScreenPos();
@@ -147,21 +133,17 @@ public:
             }
 
             if (isGizmoVisible) {
-                if (showGizmo(scene, selectedObject)) {
-                    message |= Message::TransformChanged;
-                }
+                showGizmo(scene, selectedObject);
             }
 
             ImGui::End();
         }
-        return message;
     }
 
     static void setAuxiliaryImage(const rv::ImageHandle& image) {
         ImGui_ImplVulkan_RemoveTexture(auxiliaryDescSet);
         auxiliaryDescSet = ImGui_ImplVulkan_AddTexture(  //
-            image->getSampler(), image->getView(),       //
-            static_cast<VkImageLayout>(image->getLayout()));
+            image->getSampler(), image->getView(), static_cast<VkImageLayout>(image->getLayout()));
         auxiliaryAspect = static_cast<float>(image->getExtent().width) /
                           static_cast<float>(image->getExtent().height);
     }
