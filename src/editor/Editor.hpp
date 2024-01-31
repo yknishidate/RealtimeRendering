@@ -56,7 +56,7 @@ public:
             ImGui::Text("  Update: %f ms", updateTime);
             ImGui::Text("  Render: %f ms", renderTime);
 
-            ImGui::Text("GPU timer: %f ms", renderer.getRenderingTimeMs());
+            ImGui::Text("GPU time: %f ms", renderer.getRenderingTimeMs());
             if (ImGui::Button("Recompile")) {
                 context.getDevice().waitIdle();
                 renderer.init(context);

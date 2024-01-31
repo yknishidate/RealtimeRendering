@@ -127,6 +127,76 @@ private:
     rv::GPUTimerHandle timer;
 };
 
+class AntiAliasingPass {
+public:
+    void init(const rv::Context& context, const rv::ImageHandle& srcImage) {
+        std::vector<rv::ShaderHandle> shaders(2);
+        shaders[0] = context.createShader({
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "fullscreen.vert",
+                                                      DEV_SHADER_DIR / "spv/fullscreen.vert.spv"),
+            .stage = vk::ShaderStageFlagBits::eVertex,
+        });
+
+        shaders[1] = context.createShader({
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "fxaa.frag",
+                                                      DEV_SHADER_DIR / "spv/fxaa.frag.spv"),
+            .stage = vk::ShaderStageFlagBits::eFragment,
+        });
+
+        descSet = context.createDescriptorSet({
+            .shaders = shaders,
+            .images = {{"colorImage", srcImage}},
+        });
+
+        pipeline = context.createGraphicsPipeline({
+            .descSetLayout = descSet->getLayout(),
+            .vertexShader = shaders[0],
+            .fragmentShader = shaders[1],
+            .colorFormats = srcImage->getFormat(),
+        });
+
+        timer = context.createGPUTimer({});
+        initialized = true;
+    }
+
+    void render(const rv::CommandBuffer& commandBuffer,
+                const rv::ImageHandle& srcImage,
+                const rv::ImageHandle& dstImage) const {
+        assert(initialized);
+        vk::Extent3D extent = srcImage->getExtent();
+        commandBuffer.transitionLayout(srcImage, vk::ImageLayout::eShaderReadOnlyOptimal);
+        commandBuffer.transitionLayout(dstImage, vk::ImageLayout::eColorAttachmentOptimal);
+
+        commandBuffer.beginDebugLabel("AntiAliasingPass::render()");
+        commandBuffer.bindDescriptorSet(descSet, pipeline);
+        commandBuffer.bindPipeline(pipeline);
+
+        commandBuffer.setViewport(extent.width, extent.height);
+        commandBuffer.setScissor(extent.width, extent.height);
+        commandBuffer.beginTimestamp(timer);
+        commandBuffer.beginRendering(dstImage, {}, {0, 0}, {extent.width, extent.height});
+
+        commandBuffer.draw(3, 1, 0, 0);
+
+        commandBuffer.endRendering();
+        commandBuffer.endTimestamp(timer);
+        // commandBuffer.transitionLayout(srcImage, vk::ImageLayout::eReadOnlyOptimal);
+        // commandBuffer.transitionLayout(dstImage, vk::ImageLayout::eReadOnlyOptimal);
+        commandBuffer.endDebugLabel();
+    }
+
+    float getRenderingTimeMs() const {
+        assert(initialized);
+        return timer->elapsedInMilli();
+    }
+
+private:
+    bool initialized = false;
+    rv::DescriptorSetHandle descSet;
+    rv::GraphicsPipelineHandle pipeline;
+    rv::GPUTimerHandle timer;
+};
+
 class Renderer {
 public:
     void init(const rv::Context& _context) {
@@ -189,7 +259,7 @@ public:
             .fragmentShader = shaders[1],
             .vertexStride = sizeof(rv::Vertex),
             .vertexAttributes = rv::Vertex::getAttributeDescriptions(),
-            .colorFormats = vk::Format::eB8G8R8A8Unorm,
+            .colorFormats = vk::Format::eB8G8R8A8Unorm,  // TODO: getFormat()
         });
 
         shadowMapPass.init(*context, descSet, shadowMapFormat);
@@ -337,6 +407,7 @@ private:
     rv::GraphicsPipelineHandle pipeline;
     rv::GPUTimerHandle timer;
 
+    // TODO: separate standard pass
     // Standard pass
     int maxObjectCount = 1000;
     SceneData sceneUniform{};

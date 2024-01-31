@@ -116,7 +116,7 @@ public:
     Renderer renderer;
     ViewportRenderer viewportRenderer;
     Editor editor;
-    bool play = true;
+    bool play = false;
     rv::CPUTimer updateTimer;
     rv::CPUTimer renderTimer;
 };
