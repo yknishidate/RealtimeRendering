@@ -57,6 +57,9 @@ public:
         if (key == GLFW_KEY_P && action == GLFW_PRESS) {
             play = !play;
         }
+        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+            terminate();
+        }
     }
 
     void onUpdate() override {
