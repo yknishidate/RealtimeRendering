@@ -6,9 +6,78 @@
 #include <reactive/Scene/Camera.hpp>
 #include <reactive/Scene/Mesh.hpp>
 
+class Object;
+
 struct Component {
+    Component() = default;
     virtual ~Component() = default;
+
+    Component(const Component&) = delete;
+    Component(Component&&) = default;
+
+    Component& operator=(const Component&) = delete;
+    Component& operator=(Component&&) = default;
+
     virtual bool showAttributes() = 0;
+
+    Object* object;
+};
+
+class Object {
+public:
+    Object(std::string _name) : name{std::move(_name)} {}
+    ~Object() = default;
+
+    Object(const Object& other) = delete;
+    Object(Object&& other) = delete;
+
+    Object& operator=(const Object& other) = delete;
+    Object& operator=(Object&& other) = delete;
+
+    template <typename T, typename... Args>
+    T& add(Args&&... args) {
+        const std::type_info& info = typeid(T);
+        const std::type_index& index = {info};
+        if (components.contains(index)) {
+            spdlog::warn("{} is already added.", info.name());
+            return *static_cast<T*>(components.at(index).get());
+        }
+        components[index] = std::make_unique<T>(std::forward<Args>(args)...);
+        components[index]->object = this;
+        return *static_cast<T*>(components.at(index).get());
+    }
+
+    template <typename T>
+    const T* get() const {
+        const std::type_info& info = typeid(T);
+        const std::type_index& index = {info};
+        if (components.contains(index)) {
+            return static_cast<T*>(components.at(index).get());
+        }
+        return nullptr;
+    }
+
+    template <typename T>
+    T* get() {
+        const std::type_info& info = typeid(T);
+        const std::type_index& index = {info};
+        if (components.contains(index)) {
+            return static_cast<T*>(components.at(index).get());
+        }
+        return nullptr;
+    }
+
+    std::string getName() const {
+        return name;
+    }
+
+    const auto& getComponents() const {
+        return components;
+    }
+
+private:
+    std::string name;
+    std::map<std::type_index, std::unique_ptr<Component>> components;
 };
 
 struct Material {
@@ -27,10 +96,6 @@ struct Material {
 };
 
 struct Transform final : Component {
-    Transform() = default;
-    Transform(glm::vec3 _translation, glm::quat _rotation, glm::vec3 _scale)
-        : translation{_translation}, rotation{_rotation}, scale{_scale} {}
-
     glm::vec3 translation = {0.0f, 0.0f, 0.0f};
     glm::quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     glm::vec3 scale = {1.0f, 1.0f, 1.0f};
@@ -57,18 +122,18 @@ struct Transform final : Component {
         return R * S;
     }
 
-    glm::mat4 computeTransformMatrix(int frame) const {
-        if (keyFrames.empty()) {
-            return computeTransformMatrix();
-        }
-        return computeTransform(frame).computeTransformMatrix();
+    glm::mat4 computeTransformMatrix(int /*frame*/) const {
+        // if (keyFrames.empty()) {
+        return computeTransformMatrix();
+        //}
+        // return computeTransform(frame).computeTransformMatrix();
     }
 
-    glm::mat4 computeNormalMatrix(int frame) const {
-        if (keyFrames.empty()) {
-            return computeNormalMatrix();
-        }
-        return computeTransform(frame).computeNormalMatrix();
+    glm::mat4 computeNormalMatrix(int /*frame*/) const {
+        // if (keyFrames.empty()) {
+        return computeNormalMatrix();
+        //}
+        // return computeTransform(frame).computeNormalMatrix();
     }
 
     bool showAttributes() override {
@@ -92,55 +157,75 @@ struct Transform final : Component {
     }
 
 private:
-    static Transform lerp(const Transform& a, const Transform& b, float t) {
-        Transform transform;
-        transform.translation = glm::mix(a.translation, b.translation, t);
-        transform.rotation = glm::lerp(a.rotation, b.rotation, t);
-        transform.scale = glm::mix(a.scale, b.scale, t);
-        return transform;
-    }
+    // static Transform lerp(const Transform& a, const Transform& b, float t) {
+    //     Transform transform{};
+    //     transform.translation = glm::mix(a.translation, b.translation, t);
+    //     transform.rotation = glm::lerp(a.rotation, b.rotation, t);
+    //     transform.scale = glm::mix(a.scale, b.scale, t);
+    //     transform.object = a.object;
+    //     return transform;
+    // }
 
-    Transform computeTransform(int frame) const {
-        // Handle frame out of range
-        if (frame <= keyFrames.front().frame) {
-            auto& keyFrame = keyFrames.front();
-            return {keyFrame.translation, keyFrame.rotation, keyFrame.scale};
-        }
-        if (frame >= keyFrames.back().frame) {
-            auto& keyFrame = keyFrames.back();
-            return {keyFrame.translation, keyFrame.rotation, keyFrame.scale};
-        }
-        // Search frame
-        for (size_t i = 0; i < keyFrames.size(); i++) {
-            const auto& keyFrame = keyFrames[i];
-            if (keyFrame.frame == frame) {
-                return {keyFrame.translation, keyFrame.rotation, keyFrame.scale};
-            }
-            if (keyFrame.frame > frame) {
-                assert(i >= 1);
-                const KeyFrame& prev = keyFrames[i - 1];
-                const KeyFrame& next = keyFrames[i];
-                frame = prev.frame;
-                float t = static_cast<float>(frame) / static_cast<float>(next.frame - prev.frame);
-                return lerp({prev.translation, prev.rotation, prev.scale},
-                            {next.translation, next.rotation, next.scale}, t);
-            }
-        }
-        assert(false && "Failed to compute transform at frame.");
-        return {};
-    }
+    // Transform computeTransform(int frame) const {
+    //     // Handle frame out of range
+    //     if (frame <= keyFrames.front().frame) {
+    //         auto& keyFrame = keyFrames.front();
+    //         Transform trans{};
+    //         trans.translation = keyFrame.translation;
+    //         trans.rotation = keyFrame.rotation;
+    //         trans.scale = keyFrame.scale;
+    //         trans.object = object;
+    //         return trans;
+    //     }
+    //     if (frame >= keyFrames.back().frame) {
+    //         auto& keyFrame = keyFrames.back();
+    //         Transform trans{};
+    //         trans.translation = keyFrame.translation;
+    //         trans.rotation = keyFrame.rotation;
+    //         trans.scale = keyFrame.scale;
+    //         trans.object = object;
+    //         return trans;
+    //     }
+    //     // Search frame
+    //     for (size_t i = 0; i < keyFrames.size(); i++) {
+    //         const auto& keyFrame = keyFrames[i];
+    //         if (keyFrame.frame == frame) {
+    //             Transform trans{};
+    //             trans.translation = keyFrame.translation;
+    //             trans.rotation = keyFrame.rotation;
+    //             trans.scale = keyFrame.scale;
+    //             trans.object = object;
+    //             return trans;
+    //         }
+    //         if (keyFrame.frame > frame) {
+    //             assert(i >= 1);
+    //             const KeyFrame& prev = keyFrames[i - 1];
+    //             const KeyFrame& next = keyFrames[i];
+    //             frame = prev.frame;
+    //             float t = static_cast<float>(frame) / static_cast<float>(next.frame -
+    //             prev.frame);
+
+    //            Transform prevTrans{};
+    //            prevTrans.translation = prev.translation;
+    //            prevTrans.rotation = prev.rotation;
+    //            prevTrans.scale = prev.scale;
+    //            prevTrans.object = object;
+
+    //            Transform nextTrans{};
+    //            nextTrans.translation = next.translation;
+    //            nextTrans.rotation = next.rotation;
+    //            nextTrans.scale = next.scale;
+    //            nextTrans.object = object;
+
+    //            return lerp(prevTrans, nextTrans, t);
+    //        }
+    //    }
+    //    assert(false && "Failed to compute transform at frame.");
+    //    return {};
+    //}
 };
 
 struct DirectionalLight : Component {
-    glm::vec3 color = {1.0f, 1.0f, 1.0f};
-    float intensity = 1.0f;
-    float phi = 0.0f;
-    float theta = 0.0f;
-
-    bool enableShadow = true;
-    bool enableShadowCulling = false;
-    float shadowBias = 0.005f;
-
     glm::vec3 getDirection() const {
         float _phi = glm::radians(phi);
         float _theta = glm::radians(theta);
@@ -169,13 +254,18 @@ struct DirectionalLight : Component {
         }
         return changed;
     }
+
+    glm::vec3 color = {1.0f, 1.0f, 1.0f};
+    float intensity = 1.0f;
+    float phi = 0.0f;
+    float theta = 0.0f;
+
+    bool enableShadow = true;
+    bool enableShadowCulling = false;
+    float shadowBias = 0.005f;
 };
 
 struct PointLight final : Component {
-    glm::vec3 color = {1.0f, 1.0f, 1.0f};
-    float intensity = 1.0f;
-    float radius = 1.0f;
-
     bool showAttributes() override {
         bool changed = false;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
@@ -187,12 +277,13 @@ struct PointLight final : Component {
         }
         return changed;
     }
+
+    glm::vec3 color = {1.0f, 1.0f, 1.0f};
+    float intensity = 1.0f;
+    float radius = 1.0f;
 };
 
 struct AmbientLight final : Component {
-    glm::vec3 color = {1.0f, 1.0f, 1.0f};
-    float intensity = 1.0f;
-
     bool showAttributes() override {
         bool changed = false;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
@@ -203,26 +294,56 @@ struct AmbientLight final : Component {
         }
         return changed;
     }
+
+    glm::vec3 color = {1.0f, 1.0f, 1.0f};
+    float intensity = 1.0f;
 };
 
 struct Mesh final : Component {
-    rv::Mesh* mesh = nullptr;
-    Material* material = nullptr;
-    rv::AABB aabb;
+    Mesh(rv::Mesh& _mesh) : mesh{&_mesh} {}
 
-    Mesh(rv::Mesh* mesh, Material* material) : mesh{mesh}, material{material} {
-        assert(mesh && "Mesh cannot be created empty");
+    rv::AABB getLocalAABB() const {
         glm::vec3 min = mesh->vertices[0].pos;
         glm::vec3 max = mesh->vertices[0].pos;
         for (auto& vert : mesh->vertices) {
             min = glm::min(min, vert.pos);
             max = glm::max(max, vert.pos);
         }
-        aabb = rv::AABB{min, max};
+        return {min, max};
     }
 
-    rv::AABB getAABB() const {
-        return aabb;
+    rv::AABB getWorldAABB() const {
+        // WARN: frameは受け取らない
+        auto* transform = object->get<Transform>();
+
+        rv::AABB aabb = getLocalAABB();
+        if (!transform) {
+            return aabb;
+        }
+
+        // Apply scale to the extents
+        aabb.extents *= transform->scale;
+
+        // Rotate corners of the AABB and find min/max extents
+        std::vector<glm::vec3> corners = aabb.getCorners();
+
+        glm::vec3 min = glm::vec3{std::numeric_limits<float>::max()};
+        glm::vec3 max = -glm::vec3{std::numeric_limits<float>::max()};
+        for (auto& corner : corners) {
+            // Apply rotation
+            glm::vec3 rotatedCorner = transform->rotation * (corner - aabb.center);
+
+            // Update min and max extents
+            min = glm::min(min, rotatedCorner);
+            max = glm::max(max, rotatedCorner);
+        }
+
+        // Compute new AABB
+        rv::AABB worldAABB{min, max};
+
+        // Apply translation
+        worldAABB.center += transform->translation;
+        return worldAABB;
     }
 
     bool showAttributes() override {
@@ -248,103 +369,9 @@ struct Mesh final : Component {
         }
         return changed;
     }
-};
 
-class Object {
-public:
-    Object(std::string _name) : name{std::move(_name)} {}
-    ~Object() = default;
-
-    Object(const Object& other) = delete;
-    Object(Object&& other) = default;
-
-    Object& operator=(const Object& other) = delete;
-    Object& operator=(Object&& other) = default;
-
-    template <typename T, typename... Args>
-    T& add(Args&&... args) {
-        const std::type_info& info = typeid(T);
-        const std::type_index& index = {info};
-        if (components.contains(index)) {
-            spdlog::warn("{} is already added.", info.name());
-            return *static_cast<T*>(components.at(index).get());
-        }
-        components[index] = std::make_unique<T>(std::forward<Args>(args)...);
-        return *static_cast<T*>(components.at(index).get());
-    }
-
-    template <typename T>
-    const T* get() const {
-        const std::type_info& info = typeid(T);
-        const std::type_index& index = {info};
-        if (components.contains(index)) {
-            return static_cast<T*>(components.at(index).get());
-        }
-        return nullptr;
-    }
-
-    template <typename T>
-    T* get() {
-        const std::type_info& info = typeid(T);
-        const std::type_index& index = {info};
-        if (components.contains(index)) {
-            return static_cast<T*>(components.at(index).get());
-        }
-        return nullptr;
-    }
-
-    std::string getName() const {
-        return name;
-    }
-
-    // TODO:
-    // あまり Object 内に実装を入れたくない
-    // 複数の Component が連携する実装の管理方法を検討する
-    rv::AABB getAABB() const {
-        // WARN: frameは受け取らない
-        // TODO: transformは常に現在フレームの状態を持っていてほしい
-        auto* mesh = get<Mesh>();
-        auto* transform = get<Transform>();
-        if (!mesh) {
-            return {};
-        }
-
-        rv::AABB aabb = mesh->getAABB();
-        if (!transform) {
-            return aabb;
-        }
-
-        // Apply scale to the extents
-        aabb.extents *= transform->scale;
-
-        // Rotate corners of the AABB and find min/max extents
-        std::vector<glm::vec3> corners = aabb.getCorners();
-
-        glm::vec3 min = glm::vec3{std::numeric_limits<float>::max()};
-        glm::vec3 max = -glm::vec3{std::numeric_limits<float>::max()};
-        for (auto& corner : corners) {
-            // Apply rotation
-            glm::vec3 rotatedCorner = transform->rotation * (corner - aabb.center);
-
-            // Update min and max extents
-            min = glm::min(min, rotatedCorner);
-            max = glm::max(max, rotatedCorner);
-        }
-        // Compute new AABB
-        rv::AABB transformedAABB(min, max);
-
-        // Apply translation
-        transformedAABB.center += transform->translation;
-        return transformedAABB;
-    }
-
-    const auto& getComponents() const {
-        return components;
-    }
-
-private:
-    std::string name;
-    std::map<std::type_index, std::unique_ptr<Component>> components;
+    rv::Mesh* mesh = nullptr;
+    Material* material = nullptr;
 };
 
 class Texture {
@@ -442,19 +469,21 @@ public:
         for (const auto& object : json["objects"]) {
             assert(object.contains("name"));
 
-            Object _object{object["name"]};
+            // NOTE: objはcopy, moveされるとcomponentが持つポインタが壊れるため注意
+            objects.emplace_back(object["name"]);
+            Object& obj = objects.back();
 
             if (object.contains("translation")) {
-                auto& transform = _object.add<Transform>();
+                auto& transform = obj.add<Transform>();
                 transform.translation.x = object["translation"][0];
                 transform.translation.y = object["translation"][1];
                 transform.translation.z = object["translation"][2];
             }
 
             if (object.contains("rotation")) {
-                auto* transform = _object.get<Transform>();
+                auto* transform = obj.get<Transform>();
                 if (!transform) {
-                    transform = &_object.add<Transform>();
+                    transform = &obj.add<Transform>();
                 }
                 transform->rotation.x = object["rotation"][0];
                 transform->rotation.y = object["rotation"][1];
@@ -463,9 +492,9 @@ public:
             }
 
             if (object.contains("scale")) {
-                auto* transform = _object.get<Transform>();
+                auto* transform = obj.get<Transform>();
                 if (!transform) {
-                    transform = &_object.add<Transform>();
+                    transform = &obj.add<Transform>();
                 }
                 transform->scale.x = object["scale"][0];
                 transform->scale.y = object["scale"][1];
@@ -474,7 +503,7 @@ public:
 
             if (object["type"] == "Mesh") {
                 assert(object.contains("mesh"));
-                auto& mesh = _object.add<Mesh>(&meshes[object["mesh"]], nullptr);
+                auto& mesh = obj.add<Mesh>(meshes[object["mesh"]]);
 
                 if (object.contains("material")) {
                     mesh.material = &materials[object["material"]];
@@ -485,7 +514,7 @@ public:
                     continue;
                 }
 
-                auto& light = _object.add<DirectionalLight>();
+                auto& light = obj.add<DirectionalLight>();
                 if (object.contains("color")) {
                     light.color.x = object["color"][0];
                     light.color.y = object["color"][1];
@@ -506,7 +535,7 @@ public:
                     continue;
                 }
 
-                auto& light = _object.add<AmbientLight>();
+                auto& light = obj.add<AmbientLight>();
                 if (object.contains("color")) {
                     light.color.x = object["color"][0];
                     light.color.y = object["color"][1];
@@ -518,8 +547,6 @@ public:
             } else {
                 assert(false && "Not implemented");
             }
-
-            objects.push_back(std::move(_object));
         }
 
         if (json.contains("camera")) {
@@ -565,9 +592,11 @@ public:
     }
 
     rv::AABB getAABB() const {
-        rv::AABB aabb = objects.front().getAABB();
+        rv::AABB aabb{};
         for (auto& obj : objects) {
-            aabb = rv::AABB::merge(aabb, obj.getAABB());
+            if (const Mesh* mesh = obj.get<Mesh>()) {
+                aabb = rv::AABB::merge(aabb, mesh->getWorldAABB());
+            }
         }
         return aabb;
     }

@@ -138,7 +138,9 @@ public:
             }
 
             // Draw AABB
-            drawAABB(commandBuffer, object.getAABB(), viewProj);
+            if (const Mesh* mesh = object.get<Mesh>()) {
+                drawAABB(commandBuffer, mesh->getWorldAABB(), viewProj);
+            }
         }
 
         // Draw scene AABB
