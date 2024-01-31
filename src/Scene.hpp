@@ -18,12 +18,13 @@ struct Component {
     Component& operator=(const Component&) = delete;
     Component& operator=(Component&&) = default;
 
+    virtual void update(float dt) {}
     virtual bool showAttributes() = 0;
 
-    Object* object;
+    Object* object = nullptr;
 };
 
-class Object {
+class Object final {
 public:
     Object(std::string _name) : name{std::move(_name)} {}
     ~Object() = default;
@@ -33,6 +34,12 @@ public:
 
     Object& operator=(const Object& other) = delete;
     Object& operator=(Object&& other) = delete;
+
+    void update(float dt) {
+        for (auto& comp : components | std::views::values) {
+            comp->update(dt);
+        }
+    }
 
     template <typename T, typename... Args>
     T& add(Args&&... args) {
