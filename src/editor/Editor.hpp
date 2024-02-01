@@ -24,7 +24,8 @@ public:
 
     EditorMessage show(const rv::Context& context,
                        Scene& scene,
-                       const std::vector<std::pair<std::string, float>>& gpuRenderTimes) {
+                       const std::vector<std::pair<std::string, float>>& cpuTimes,
+                       const std::vector<std::pair<std::string, float>>& gpuTimes) {
         if (needsRecreateViewportImage()) {
             context.getDevice().waitIdle();
             createViewportImage(context);
@@ -55,10 +56,12 @@ public:
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
         if (ImGui::Begin("Misc")) {
-            ImGui::Text("CPU time: %f ms", cpuUpdateTime + cpuRenderTime);
-            ImGui::Text("  Update: %f ms", cpuUpdateTime);
-            ImGui::Text("  Render: %f ms", cpuRenderTime);
-            for (const auto& [label, time] : gpuRenderTimes) {
+            for (const auto& [label, time] : cpuTimes) {
+                ImGui::Text(label.c_str(), time);
+                ImGui::SameLine(150);
+                ImGui::Text("%.3f ms", time);
+            }
+            for (const auto& [label, time] : gpuTimes) {
                 ImGui::Text(label.c_str(), time);
                 ImGui::SameLine(150);
                 ImGui::Text("%.3f ms", time);
@@ -116,14 +119,6 @@ public:
         return viewportImage;
     }
 
-    void setCpuUpdateTime(float time) {
-        cpuUpdateTime = time;
-    }
-
-    void setCpuRenderTime(float time) {
-        cpuRenderTime = time;
-    }
-
     // Image
     float width = 0.0f;
     float height = 0.0f;
@@ -132,8 +127,4 @@ public:
 
     // Editor
     Object* selectedObject = nullptr;
-
-    // Timer
-    float cpuUpdateTime = 0.0f;
-    float cpuRenderTime = 0.0f;
 };

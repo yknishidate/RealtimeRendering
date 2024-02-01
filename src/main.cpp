@@ -88,7 +88,7 @@ public:
             camera.processMouseScroll(ViewportWindow::mouseScroll);
         }
         frame++;
-        editor.setCpuUpdateTime(updateTimer.elapsedInMilli());
+        cpuTimes[1].second = updateTimer.elapsedInMilli();
     }
 
     void onRender(const rv::CommandBufferHandle& commandBuffer) override {
@@ -98,7 +98,8 @@ public:
         if (play) {
             renderer.render(*commandBuffer, getCurrentColorImage(), images, scene, frame);
         } else {
-            if (editor.show(context, scene, renderer.getRenderTimes()) ==
+            cpuTimes[0].second = cpuTimes[1].second + cpuTimes[2].second;
+            if (editor.show(context, scene, cpuTimes, renderer.getRenderTimes()) ==
                 EditorMessage::RecompileRequested) {
                 context.getDevice().waitIdle();
                 renderer.init(context, images);
@@ -107,7 +108,7 @@ public:
             renderer.render(*commandBuffer, editor.getViewportImage(), images, scene, frame);
             viewportRenderer.render(*commandBuffer, editor.getViewportImage(), images, scene);
         }
-        editor.setCpuRenderTime(renderTimer.elapsedInMilli());
+        cpuTimes[2].second = renderTimer.elapsedInMilli();
     }
 
     int frame = 0;
@@ -119,6 +120,11 @@ public:
     rv::CPUTimer updateTimer;
     rv::CPUTimer renderTimer;
     RenderImages images;
+    std::vector<std::pair<std::string, float>> cpuTimes{
+        {"CPU time", 0.0f},
+        {"  Update", 0.0f},
+        {"  Render", 0.0f},
+    };
 };
 
 int main() {
