@@ -155,7 +155,6 @@ public:
 
         pipeline = context.createGraphicsPipeline({
             .descSetLayout = descSet->getLayout(),
-            .pushSize = sizeof(StandardConstants),
             .vertexShader = shaders[0],
             .fragmentShader = shaders[1],
             .colorFormats = srcImage->getFormat(),
@@ -182,10 +181,6 @@ public:
         commandBuffer.beginTimestamp(timer);
         commandBuffer.beginRendering(dstImage, {}, {0, 0}, {extent.width, extent.height});
 
-        StandardConstants constants;
-        constants.screenResolution.x = static_cast<float>(srcImage->getExtent().width);
-        constants.screenResolution.y = static_cast<float>(srcImage->getExtent().height);
-        commandBuffer.pushConstants(pipeline, &constants);
         commandBuffer.draw(3, 1, 0, 0);
 
         commandBuffer.endRendering();
@@ -292,10 +287,11 @@ public:
                 int frame) {
         assert(initialized);
 
-        if (colorImage->getExtent() != images.baseColorImage->getExtent()) {
+        vk::Extent3D extent = colorImage->getExtent();
+        if (extent != images.baseColorImage->getExtent()) {
             context->getDevice().waitIdle();
-            uint32_t width = colorImage->getExtent().width;
-            uint32_t height = colorImage->getExtent().height;
+            uint32_t width = extent.width;
+            uint32_t height = extent.height;
             images.createImages(*context, width, height);
             descSet->set("baseColorImage", images.baseColorImage);
             descSet->update();
@@ -316,6 +312,10 @@ public:
         // NOTE: Shadow map用の行列も更新するのでShadow map passより先に計算
         rv::Camera& camera = scene.getCamera();
         sceneUniform.cameraViewProj = camera.getProj() * camera.getView();
+
+        sceneUniform.screenResolution.x = static_cast<float>(extent.width);
+        sceneUniform.screenResolution.y = static_cast<float>(extent.height);
+        sceneUniform.enableFXAA = static_cast<int>(enableFXAA);
 
         Object* dirLightObj = scene.findObject<DirectionalLight>();
         const DirectionalLight* dirLight = dirLightObj->get<DirectionalLight>();
@@ -370,15 +370,12 @@ public:
         commandBuffer.bindDescriptorSet(descSet, pipeline);
         commandBuffer.bindPipeline(pipeline);
 
-        vk::Extent3D extent = colorImage->getExtent();
         commandBuffer.setViewport(extent.width, extent.height);
         commandBuffer.setScissor(extent.width, extent.height);
         commandBuffer.beginTimestamp(timer);
         commandBuffer.beginRendering(images.baseColorImage, images.depthImage, {0, 0},
                                      {extent.width, extent.height});
 
-        standardConstants.screenResolution.x = static_cast<float>(extent.width);
-        standardConstants.screenResolution.y = static_cast<float>(extent.height);
         for (int index = 0; index < objects.size(); index++) {
             auto& object = objects[index];
             Mesh* mesh = object.get<Mesh>();
@@ -424,6 +421,9 @@ public:
     rv::ImageHandle getShadowMap() const {
         return shadowMapImage;
     }
+
+    // Global options
+    inline static bool enableFXAA = true;
 
 private:
     // NOTE:

@@ -167,7 +167,7 @@ public:
     rv::Mesh singleLineMesh{};
     rv::Mesh cubeLineMesh{};
 
-    inline static bool isObjectAABBVisible = true;
-    inline static bool isSceneAABBVisible = true;
+    inline static bool isObjectAABBVisible = false;
+    inline static bool isSceneAABBVisible = false;
     inline static bool isGridVisible = true;
 };

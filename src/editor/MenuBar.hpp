@@ -1,6 +1,7 @@
 #pragma once
 #include <imgui.h>
 
+#include "Renderer.hpp"
 #include "Scene.hpp"
 #include "ViewportRenderer.hpp"
 #include "ViewportWindow.hpp"
@@ -50,8 +51,13 @@ public:
                     ImGui::Checkbox("Auxiliary image", &ViewportWindow::isAuxiliaryImageVisible);
                     ImGui::EndMenu();
                 }
+                if (ImGui::BeginMenu("Renderer")) {
+                    ImGui::Checkbox("FXAA", &Renderer::enableFXAA);
+                    ImGui::EndMenu();
+                }
                 ImGui::EndMenu();
             }
+
             ImGui::EndMenuBar();
         }
     }

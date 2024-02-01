@@ -3,16 +3,8 @@
 struct StandardConstants{
 #ifdef __cplusplus
     int objectIndex = 0;
-    int _dummy0 = 0;
-    int _dummy1 = 0;
-    int _dummy2 = 0;
-    glm::vec2 screenResolution{0.0f, 0.0f};
 #else
     int objectIndex;
-    int _dummy0;
-    int _dummy1;
-    int _dummy2;
-    vec2 screenResolution;
 #endif
 };
 
@@ -35,8 +27,10 @@ struct SceneData{
     glm::vec4 lightDirection{0.0f};
     glm::vec4 lightColorIntensity{0.0f};
     glm::vec4 ambientColorIntensity{0.0f};
+    glm::vec2 screenResolution{0.0f, 0.0f};
     int existDirectionalLight;
     int enableShadowMapping;
+    int enableFXAA = 1;
     float shadowBias = 0.005f;
 #else
     mat4 cameraViewProj;
@@ -44,8 +38,10 @@ struct SceneData{
     vec4 lightDirection;
     vec4 lightColorIntensity;
     vec4 ambientColorIntensity;
+    vec2 screenResolution;
     int existDirectionalLight;
     int enableShadowMapping;
+    int enableFXAA;
     float shadowBias;
 #endif
 };

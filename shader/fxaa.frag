@@ -13,7 +13,6 @@ layout(location = 0) out vec4 outColor;
     #define FXAA_SPAN_MAX     8.0
 #endif
 
-//optimized version for mobile, where dependent texture reads can be a bottleneck
 vec4 fxaa(sampler2D tex, vec2 fragCoord, vec2 resolution,
           vec2 v_rgbNW, vec2 v_rgbNE, 
           vec2 v_rgbSW, vec2 v_rgbSE, 
@@ -55,34 +54,34 @@ vec4 fxaa(sampler2D tex, vec2 fragCoord, vec2 resolution,
         texture(tex, fragCoord * inverseVP + dir * 0.5).xyz);
 
     float lumaB = dot(rgbB, luma);
-    if ((lumaB < lumaMin) || (lumaB > lumaMax))
+    if ((lumaB < lumaMin) || (lumaB > lumaMax)){
         color = vec4(rgbA, texColor.a);
-    else
+    } else {
         color = vec4(rgbB, texColor.a);
+    }
     return color;
 }
 
 void main(){
-    //outColor = texture(baseColorImage, vec2(gl_FragCoord.xy) / pc.screenResolution);
-    //return;
-
-    //vec4 averageColor = vec4(0.0);
-    //for(int dx = -1; dx <= 1; dx++){
-    //    for(int dy = -1; dy <= 1; dy++){
-    //        averageColor += texture(baseColorImage, ((gl_FragCoord.xy + vec2(dx, dy)) / pc.screenResolution));
-    //    }
-    //}
-    //outColor = averageColor / 9.0;
-    //return;
-
-    vec2 resolution = pc.screenResolution;
-    vec2 inverseVP = 1.0 / resolution;
-    vec2 fragCoord = gl_FragCoord.xy;
-    vec2 v_rgbNW = (fragCoord + vec2(-1.0, -1.0)) * inverseVP;
-    vec2 v_rgbNE = (fragCoord + vec2(1.0, -1.0)) * inverseVP;
-    vec2 v_rgbSW = (fragCoord + vec2(-1.0, 1.0)) * inverseVP;
-    vec2 v_rgbSE = (fragCoord + vec2(1.0, 1.0)) * inverseVP;
-    vec2 v_rgbM = vec2(fragCoord * inverseVP);
-    outColor = fxaa(baseColorImage, fragCoord, resolution,
-                    v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
+    if(scene.enableFXAA == 1){
+        vec2 resolution = scene.screenResolution;
+        vec2 inverseVP = 1.0 / resolution;
+        vec2 fragCoord = gl_FragCoord.xy;
+        vec2 v_rgbNW = (fragCoord + vec2(-1.0, -1.0)) * inverseVP;
+        vec2 v_rgbNE = (fragCoord + vec2(1.0, -1.0)) * inverseVP;
+        vec2 v_rgbSW = (fragCoord + vec2(-1.0, 1.0)) * inverseVP;
+        vec2 v_rgbSE = (fragCoord + vec2(1.0, 1.0)) * inverseVP;
+        vec2 v_rgbM = vec2(fragCoord * inverseVP);
+        outColor = fxaa(baseColorImage, fragCoord, resolution,
+                        v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
+    }else{
+        outColor = texture(baseColorImage, vec2(gl_FragCoord.xy) / scene.screenResolution);
+        //vec4 averageColor = vec4(0.0);
+        //for(int dx = -1; dx <= 1; dx++){
+        //    for(int dy = -1; dy <= 1; dy++){
+        //        averageColor += texture(baseColorImage, ((gl_FragCoord.xy + vec2(dx, dy)) / scene.screenResolution));
+        //    }
+        //}
+        //outColor = averageColor / 9.0;
+    }
 }
