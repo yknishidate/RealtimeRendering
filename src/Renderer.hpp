@@ -185,8 +185,6 @@ public:
 
         commandBuffer.endRendering();
         commandBuffer.endTimestamp(timer);
-        // commandBuffer.transitionLayout(srcImage, vk::ImageLayout::eReadOnlyOptimal);
-        // commandBuffer.transitionLayout(dstImage, vk::ImageLayout::eReadOnlyOptimal);
         commandBuffer.endDebugLabel();
     }
 
@@ -197,6 +195,97 @@ public:
 
 private:
     bool initialized = false;
+    rv::DescriptorSetHandle descSet;
+    rv::GraphicsPipelineHandle pipeline;
+    rv::GPUTimerHandle timer;
+};
+
+class ForwardPass {
+public:
+    void init(const rv::Context& context,
+              const rv::DescriptorSetHandle& _descSet,
+              vk::Format colorFormat,
+              vk::Format depthFormat) {
+        descSet = _descSet;
+
+        std::vector<rv::ShaderHandle> shaders(2);
+        shaders[0] = context.createShader({
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "standard.vert",
+                                                      DEV_SHADER_DIR / "spv/standard.vert.spv"),
+            .stage = vk::ShaderStageFlagBits::eVertex,
+        });
+
+        shaders[1] = context.createShader({
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "standard.frag",
+                                                      DEV_SHADER_DIR / "spv/standard.frag.spv"),
+            .stage = vk::ShaderStageFlagBits::eFragment,
+        });
+
+        pipeline = context.createGraphicsPipeline({
+            .descSetLayout = descSet->getLayout(),
+            .pushSize = sizeof(StandardConstants),
+            .vertexShader = shaders[0],
+            .fragmentShader = shaders[1],
+            .vertexStride = sizeof(rv::Vertex),
+            .vertexAttributes = rv::Vertex::getAttributeDescriptions(),
+            .colorFormats = colorFormat,
+            .depthFormat = depthFormat,
+        });
+
+        timer = context.createGPUTimer({});
+        initialized = true;
+    }
+
+    void render(const rv::CommandBuffer& commandBuffer,
+                const rv::ImageHandle& baseColorImage,
+                const rv::ImageHandle& depthImage,
+                std::vector<Object>& objects) {
+        vk::Extent3D extent = baseColorImage->getExtent();
+        commandBuffer.beginDebugLabel("Renderer::render()");
+        commandBuffer.bindDescriptorSet(descSet, pipeline);
+        commandBuffer.bindPipeline(pipeline);
+
+        commandBuffer.setViewport(extent.width, extent.height);
+        commandBuffer.setScissor(extent.width, extent.height);
+        commandBuffer.beginTimestamp(timer);
+        commandBuffer.beginRendering(baseColorImage, depthImage, {0, 0},
+                                     {extent.width, extent.height});
+
+        for (int index = 0; index < objects.size(); index++) {
+            auto& object = objects[index];
+            Mesh* mesh = object.get<Mesh>();
+            if (!mesh) {
+                continue;
+            }
+            if (mesh->mesh) {
+                constants.objectIndex = index;
+                commandBuffer.pushConstants(pipeline, &constants);
+                commandBuffer.drawIndexed(mesh->mesh->vertexBuffer, mesh->mesh->indexBuffer,
+                                          mesh->mesh->getIndicesCount());
+            }
+        }
+
+        commandBuffer.endRendering();
+        commandBuffer.endTimestamp(timer);
+
+        commandBuffer.imageBarrier({baseColorImage, depthImage},  //
+                                   vk::PipelineStageFlagBits::eAllGraphics,
+                                   vk::PipelineStageFlagBits::eAllGraphics,
+                                   vk::AccessFlagBits::eColorAttachmentWrite |
+                                       vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+                                   vk::AccessFlagBits::eShaderRead);
+
+        commandBuffer.endDebugLabel();
+    }
+
+    float getRenderingTimeMs() const {
+        assert(initialized);
+        return timer->elapsedInMilli();
+    }
+
+private:
+    bool initialized = false;
+    StandardConstants constants;
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;
     rv::GPUTimerHandle timer;
@@ -219,19 +308,6 @@ public:
             commandBuffer->transitionLayout(shadowMapImage, vk::ImageLayout::eReadOnlyOptimal);
         });
 
-        std::vector<rv::ShaderHandle> shaders(2);
-        shaders[0] = context->createShader({
-            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "standard.vert",
-                                                      DEV_SHADER_DIR / "spv/standard.vert.spv"),
-            .stage = vk::ShaderStageFlagBits::eVertex,
-        });
-
-        shaders[1] = context->createShader({
-            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "standard.frag",
-                                                      DEV_SHADER_DIR / "spv/standard.frag.spv"),
-            .stage = vk::ShaderStageFlagBits::eFragment,
-        });
-
         sceneUniformBuffer = context->createBuffer({
             .usage = rv::BufferUsage::Uniform,
             .memory = rv::MemoryUsage::Device,
@@ -247,9 +323,21 @@ public:
             .debugName = "Renderer::objectStorageBuffer",
         });
 
-        // NOTE: images内のイメージは作り直しが起きるのでこの段階でbindしてはいけない
+        // シェーダリフレクションのために適当なシェーダを作成する
+        // TODO: DescSetに合わせ、全てのシェーダを一か所で管理する
+        rv::ShaderHandle reflectionShaderVert = context->createShader({
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "standard.vert",
+                                                      DEV_SHADER_DIR / "spv/standard.vert.spv"),
+            .stage = vk::ShaderStageFlagBits::eVertex,
+        });
+        rv::ShaderHandle reflectionShaderFrag = context->createShader({
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "standard.frag",
+                                                      DEV_SHADER_DIR / "spv/standard.frag.spv"),
+            .stage = vk::ShaderStageFlagBits::eFragment,
+        });
+
         descSet = context->createDescriptorSet({
-            .shaders = shaders,
+            .shaders = {reflectionShaderVert, reflectionShaderFrag},
             .buffers =
                 {
                     {"SceneBuffer", sceneUniformBuffer},
@@ -262,21 +350,10 @@ public:
                 },
         });
 
-        pipeline = context->createGraphicsPipeline({
-            .descSetLayout = descSet->getLayout(),
-            .pushSize = sizeof(StandardConstants),
-            .vertexShader = shaders[0],
-            .fragmentShader = shaders[1],
-            .vertexStride = sizeof(rv::Vertex),
-            .vertexAttributes = rv::Vertex::getAttributeDescriptions(),
-            .colorFormats = images.colorFormat,
-            .depthFormat = images.depthFormat,
-        });
-
+        forwardPass.init(*context, descSet, images.colorFormat, images.depthFormat);
         shadowMapPass.init(*context, descSet, shadowMapFormat);
         antiAliasingPass.init(*context, descSet, images.baseColorImage);
 
-        timer = context->createGPUTimer({});
         initialized = true;
     }
 
@@ -365,44 +442,10 @@ public:
             sceneUniform.enableShadowMapping = 0;
         }
 
-        // Draw scene
-        commandBuffer.beginDebugLabel("Renderer::render()");
-        commandBuffer.bindDescriptorSet(descSet, pipeline);
-        commandBuffer.bindPipeline(pipeline);
+        // Forward pass
+        forwardPass.render(commandBuffer, images.baseColorImage, images.depthImage, objects);
 
-        commandBuffer.setViewport(extent.width, extent.height);
-        commandBuffer.setScissor(extent.width, extent.height);
-        commandBuffer.beginTimestamp(timer);
-        commandBuffer.beginRendering(images.baseColorImage, images.depthImage, {0, 0},
-                                     {extent.width, extent.height});
-
-        for (int index = 0; index < objects.size(); index++) {
-            auto& object = objects[index];
-            Mesh* mesh = object.get<Mesh>();
-            if (!mesh) {
-                continue;
-            }
-            if (mesh->mesh) {
-                standardConstants.objectIndex = index;
-                commandBuffer.pushConstants(pipeline, &standardConstants);
-                commandBuffer.drawIndexed(mesh->mesh->vertexBuffer, mesh->mesh->indexBuffer,
-                                          mesh->mesh->getIndicesCount());
-            }
-        }
-
-        commandBuffer.endRendering();
-        commandBuffer.endTimestamp(timer);
-
-        commandBuffer.imageBarrier({colorImage, images.depthImage},  //
-                                   vk::PipelineStageFlagBits::eAllGraphics,
-                                   vk::PipelineStageFlagBits::eAllGraphics,
-                                   vk::AccessFlagBits::eColorAttachmentWrite |
-                                       vk::AccessFlagBits::eDepthStencilAttachmentWrite,
-                                   vk::AccessFlagBits::eShaderRead);
-
-        commandBuffer.endDebugLabel();
-
-        // AA
+        // AA pass
         antiAliasingPass.render(commandBuffer, images.baseColorImage, colorImage);
 
         commandBuffer.transitionLayout(colorImage, vk::ImageLayout::eGeneral);
@@ -415,7 +458,9 @@ public:
         if (!firstFrameRendered) {
             return 0.0f;
         }
-        return timer->elapsedInMilli();
+        // TODO:
+        // return timer->elapsedInMilli();
+        return 0.0f;
     }
 
     rv::ImageHandle getShadowMap() const {
@@ -426,24 +471,13 @@ public:
     inline static bool enableFXAA = true;
 
 private:
-    // NOTE:
-    // RendererはSwapchainに直接書きこむか
-    // Viewport用の画像に書きこむか分からなくてもいいように
-    // 外部からアタッチメントを受け取る
-
-    // NOTE:
-    // 内部で利用するバッファやイメージはRendererが一元管理する
-
     bool initialized = false;
     bool firstFrameRendered = false;
     const rv::Context* context = nullptr;
-    StandardConstants standardConstants{};
-    rv::DescriptorSetHandle descSet;
-    rv::GraphicsPipelineHandle pipeline;
-    rv::GPUTimerHandle timer;
 
-    // TODO: separate standard pass
-    // Standard pass
+    rv::DescriptorSetHandle descSet;
+
+    // Buffer
     int maxObjectCount = 1000;
     SceneData sceneUniform{};
     std::vector<ObjectData> objectStorage{};
@@ -456,5 +490,9 @@ private:
     vk::Extent3D shadowMapExtent{1024, 1024, 1};
     rv::ImageHandle shadowMapImage;
 
+    // Forward pass
+    ForwardPass forwardPass;
+
+    // AA pass
     AntiAliasingPass antiAliasingPass;
 };
