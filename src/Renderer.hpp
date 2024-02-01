@@ -6,28 +6,51 @@
 
 #include "../shader/standard.glsl"
 
-class ShadowMapPass {
+class Pass {
 public:
-    void init(const rv::Context& _context,
+    void init(const rv::Context& context) {
+        timer = context.createGPUTimer({});
+        initialized = true;
+    }
+
+    float getRenderingTimeMs() {
+        assert(initialized);
+        if (isFirstRenderTimeRequest) {
+            isFirstRenderTimeRequest = false;
+            return 0.0f;
+        }
+        return timer->elapsedInMilli();
+    }
+
+protected:
+    bool initialized = false;
+    bool isFirstRenderTimeRequest = true;
+    rv::GPUTimerHandle timer;
+};
+
+class ShadowMapPass final : public Pass {
+public:
+    void init(const rv::Context& context,
               const rv::DescriptorSetHandle& _descSet,
               vk::Format shadowMapFormat) {
-        context = &_context;
+        Pass::init(context);
+
         descSet = _descSet;
 
         std::vector<rv::ShaderHandle> shaders(2);
-        shaders[0] = context->createShader({
+        shaders[0] = context.createShader({
             .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "shadow_map.vert",
                                                       DEV_SHADER_DIR / "spv/shadow_map.vert.spv"),
             .stage = vk::ShaderStageFlagBits::eVertex,
         });
 
-        shaders[1] = context->createShader({
+        shaders[1] = context.createShader({
             .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "shadow_map.frag",
                                                       DEV_SHADER_DIR / "spv/shadow_map.frag.spv"),
             .stage = vk::ShaderStageFlagBits::eFragment,
         });
 
-        pipeline = context->createGraphicsPipeline({
+        pipeline = context.createGraphicsPipeline({
             .descSetLayout = descSet->getLayout(),
             .pushSize = sizeof(StandardConstants),
             .vertexShader = shaders[0],
@@ -38,9 +61,6 @@ public:
             .depthFormat = shadowMapFormat,
             .cullMode = "dynamic",
         });
-
-        timer = context->createGPUTimer({});
-        initialized = true;
     }
 
     void render(const rv::CommandBuffer& commandBuffer,
@@ -81,11 +101,6 @@ public:
         commandBuffer.endDebugLabel();
     }
 
-    float getRenderingTimeMs() const {
-        assert(initialized);
-        return timer->elapsedInMilli();
-    }
-
     glm::mat4 getViewProj(const DirectionalLight& light, const rv::AABB& aabb) const {
         // Transform AABB to light space
         std::vector<glm::vec3> corners = aabb.getCorners();
@@ -120,19 +135,16 @@ public:
     }
 
 private:
-    bool initialized = false;
-    const rv::Context* context = nullptr;
-
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;
-    rv::GPUTimerHandle timer;
 };
 
-class AntiAliasingPass {
+class AntiAliasingPass final : public Pass {
 public:
     void init(const rv::Context& context,
               const rv::DescriptorSetHandle& _descSet,
-              const rv::ImageHandle& srcImage) {
+              vk::Format colorFormat) {
+        Pass::init(context);
         descSet = _descSet;
 
         std::vector<rv::ShaderHandle> shaders(2);
@@ -157,7 +169,7 @@ public:
             .descSetLayout = descSet->getLayout(),
             .vertexShader = shaders[0],
             .fragmentShader = shaders[1],
-            .colorFormats = srcImage->getFormat(),
+            .colorFormats = colorFormat,
         });
 
         timer = context.createGPUTimer({});
@@ -188,24 +200,19 @@ public:
         commandBuffer.endDebugLabel();
     }
 
-    float getRenderingTimeMs() const {
-        assert(initialized);
-        return timer->elapsedInMilli();
-    }
-
 private:
-    bool initialized = false;
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;
-    rv::GPUTimerHandle timer;
 };
 
-class ForwardPass {
+class ForwardPass final : public Pass {
 public:
     void init(const rv::Context& context,
               const rv::DescriptorSetHandle& _descSet,
               vk::Format colorFormat,
               vk::Format depthFormat) {
+        Pass::init(context);
+
         descSet = _descSet;
 
         std::vector<rv::ShaderHandle> shaders(2);
@@ -231,9 +238,6 @@ public:
             .colorFormats = colorFormat,
             .depthFormat = depthFormat,
         });
-
-        timer = context.createGPUTimer({});
-        initialized = true;
     }
 
     void render(const rv::CommandBuffer& commandBuffer,
@@ -278,17 +282,10 @@ public:
         commandBuffer.endDebugLabel();
     }
 
-    float getRenderingTimeMs() const {
-        assert(initialized);
-        return timer->elapsedInMilli();
-    }
-
 private:
-    bool initialized = false;
     StandardConstants constants;
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;
-    rv::GPUTimerHandle timer;
 };
 
 class Renderer {
@@ -352,7 +349,7 @@ public:
 
         forwardPass.init(*context, descSet, images.colorFormat, images.depthFormat);
         shadowMapPass.init(*context, descSet, shadowMapFormat);
-        antiAliasingPass.init(*context, descSet, images.baseColorImage);
+        antiAliasingPass.init(*context, descSet, images.colorFormat);
 
         initialized = true;
     }
@@ -453,14 +450,16 @@ public:
         firstFrameRendered = true;
     }
 
-    float getRenderingTimeMs() const {
-        assert(initialized);
-        if (!firstFrameRendered) {
-            return 0.0f;
-        }
-        // TODO:
-        // return timer->elapsedInMilli();
-        return 0.0f;
+    std::vector<std::pair<std::string, float>> getRenderTimes() {
+        float shadowTime = shadowMapPass.getRenderingTimeMs();
+        float forwardTime = forwardPass.getRenderingTimeMs();
+        float aaTime = antiAliasingPass.getRenderingTimeMs();
+        return {
+            {"GPU time", shadowTime + forwardTime + aaTime},
+            {"  Shadow map", shadowTime},
+            {"  Forward", forwardTime},
+            {"  FXAA", aaTime},
+        };
     }
 
     rv::ImageHandle getShadowMap() const {

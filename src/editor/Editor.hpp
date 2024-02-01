@@ -22,7 +22,9 @@ public:
         IconManager::clearIcons();
     }
 
-    EditorMessage show(const rv::Context& context, Scene& scene) {
+    EditorMessage show(const rv::Context& context,
+                       Scene& scene,
+                       const std::vector<std::pair<std::string, float>>& gpuRenderTimes) {
         if (needsRecreateViewportImage()) {
             context.getDevice().waitIdle();
             createViewportImage(context);
@@ -56,7 +58,11 @@ public:
             ImGui::Text("CPU time: %f ms", cpuUpdateTime + cpuRenderTime);
             ImGui::Text("  Update: %f ms", cpuUpdateTime);
             ImGui::Text("  Render: %f ms", cpuRenderTime);
-            ImGui::Text("GPU time: %f ms", gpuRenderTime);
+            for (const auto& [label, time] : gpuRenderTimes) {
+                ImGui::Text(label.c_str(), time);
+                ImGui::SameLine(150);
+                ImGui::Text("%.3f ms", time);
+            }
             if (ImGui::Button("Recompile")) {
                 // ViewportWindow::show()でImGui::Image()にDescSetを渡すと
                 // Rendererを初期化したときにDescSetが古くなって壊れる
@@ -118,10 +124,6 @@ public:
         cpuRenderTime = time;
     }
 
-    void setGpuRenderTime(float time) {
-        gpuRenderTime = time;
-    }
-
     // Image
     float width = 0.0f;
     float height = 0.0f;
@@ -134,5 +136,4 @@ public:
     // Timer
     float cpuUpdateTime = 0.0f;
     float cpuRenderTime = 0.0f;
-    float gpuRenderTime = 0.0f;
 };

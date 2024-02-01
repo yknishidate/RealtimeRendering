@@ -98,8 +98,8 @@ public:
         if (play) {
             renderer.render(*commandBuffer, getCurrentColorImage(), images, scene, frame);
         } else {
-            editor.setGpuRenderTime(renderer.getRenderingTimeMs());
-            if (editor.show(context, scene) == EditorMessage::RecompileRequested) {
+            if (editor.show(context, scene, renderer.getRenderTimes()) ==
+                EditorMessage::RecompileRequested) {
                 context.getDevice().waitIdle();
                 renderer.init(context, images);
                 ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
