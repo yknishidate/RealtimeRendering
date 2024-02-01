@@ -2,6 +2,7 @@
 #include <imgui.h>
 
 #include "Scene.hpp"
+#include "ViewportRenderer.hpp"
 #include "ViewportWindow.hpp"
 
 class MenuBar {
@@ -41,6 +42,9 @@ public:
             }
             if (ImGui::BeginMenu("Option")) {
                 if (ImGui::BeginMenu("Viewport")) {
+                    ImGui::Checkbox("Grid", &ViewportRenderer::isGridVisible);
+                    ImGui::Checkbox("Scene AABB", &ViewportRenderer::isSceneAABBVisible);
+                    ImGui::Checkbox("Object AABB", &ViewportRenderer::isObjectAABBVisible);
                     ImGui::Checkbox("Gizmo", &ViewportWindow::isGizmoVisible);
                     ImGui::Checkbox("Tool bar", &ViewportWindow::isToolBarVisible);
                     ImGui::Checkbox("Auxiliary image", &ViewportWindow::isAuxiliaryImageVisible);

@@ -123,8 +123,12 @@ public:
                                  static_cast<uint32_t>(ViewportWindow::height));
 
         // Draw grid
-        lineDrawer.draw(commandBuffer, mainGridMesh, viewProj, glm::vec3{0.4f, 0.4f, 0.4f}, 2.0f);
-        lineDrawer.draw(commandBuffer, subGridMesh, viewProj, glm::vec3{0.2f, 0.2f, 0.2f}, 1.0f);
+        if (isGridVisible) {
+            lineDrawer.draw(commandBuffer, mainGridMesh, viewProj,  //
+                            glm::vec3{0.4f, 0.4f, 0.4f}, 2.0f);
+            lineDrawer.draw(commandBuffer, subGridMesh, viewProj,  //
+                            glm::vec3{0.2f, 0.2f, 0.2f}, 1.0f);
+        }
 
         // Draw scene objects
         for (auto& object : scene.getObjects()) {
@@ -139,13 +143,17 @@ public:
             }
 
             // Draw AABB
-            if (const Mesh* mesh = object.get<Mesh>()) {
-                drawAABB(commandBuffer, mesh->getWorldAABB(), viewProj);
+            if (isObjectAABBVisible) {
+                if (const Mesh* mesh = object.get<Mesh>()) {
+                    drawAABB(commandBuffer, mesh->getWorldAABB(), viewProj);
+                }
             }
         }
 
         // Draw scene AABB
-        drawAABB(commandBuffer, scene.getAABB(), viewProj);
+        if (isSceneAABBVisible) {
+            drawAABB(commandBuffer, scene.getAABB(), viewProj);
+        }
 
         commandBuffer.endRendering();
     }
@@ -158,4 +166,8 @@ public:
     rv::Mesh subGridMesh{};
     rv::Mesh singleLineMesh{};
     rv::Mesh cubeLineMesh{};
+
+    inline static bool isObjectAABBVisible = true;
+    inline static bool isSceneAABBVisible = true;
+    inline static bool isGridVisible = true;
 };
