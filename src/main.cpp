@@ -35,7 +35,15 @@ public:
         editor.shutdown();
     }
 
+    rv::ImageHandle cubemap;
     void onStart() override {
+        // DEBUG
+
+        auto ktxFilepath = DEV_ASSET_DIR / "environments" / "papermill.ktx";
+        cubemap =
+            rv::Image::loadFromKTX(context, ktxFilepath.string(), vk::Format::eR16G16B16A16Sfloat);
+
+        // DEBUG
         rv::CPUTimer timer;
         std::filesystem::create_directories(DEV_SHADER_DIR / "spv");
 

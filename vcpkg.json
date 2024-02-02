@@ -18,6 +18,10 @@
     },
     "imguizmo",
     "tinygltf",
-    "nativefiledialog"
+    "nativefiledialog",
+    {
+      "name": "ktx",
+      "features": ["vulkan"]
+    }
   ]
 }
