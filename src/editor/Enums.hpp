@@ -11,7 +11,8 @@ enum class EditorMessage {
 enum class SceneStatus {
     None = 0,
     ObjectAdded = 1 << 0,
-    TextureAdded = 1 << 1,
+    Texture2DAdded = 1 << 1,
+    TextureCubeAdded = 1 << 1,
 };
 
 template <typename Enum>

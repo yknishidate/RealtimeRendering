@@ -1,4 +1,5 @@
 #pragma once
+#include <editor/Enums.hpp>
 #include <map>
 #include <memory>
 #include <typeindex>
@@ -479,9 +480,11 @@ public:
                 if (texture.image->getViewType() == vk::ImageViewType::e2D) {
                     textures2D.push_back(std::move(texture));
                     IconManager::addIcon(texture.name, texture.image);
+                    status |= rv::SceneStatus::Texture2DAdded;
                 } else if (texture.image->getViewType() == vk::ImageViewType::eCube) {
                     // TODO: アイコンサポート
                     texturesCube.push_back(std::move(texture));
+                    status |= rv::SceneStatus::TextureCubeAdded;
                 } else {
                     // TODO: サポート
                     assert(false);
@@ -507,6 +510,7 @@ public:
             // NOTE: objはcopy, moveされるとcomponentが持つポインタが壊れるため注意
             objects.emplace_back(object["name"]);
             Object& obj = objects.back();
+            status |= rv::SceneStatus::ObjectAdded;
 
             if (object.contains("translation")) {
                 auto& transform = obj.add<Transform>();
@@ -643,6 +647,14 @@ public:
         return aabb;
     }
 
+    rv::SceneStatus getStatus() const {
+        return status;
+    }
+
+    void resetStatus() {
+        status = rv::SceneStatus::None;
+    }
+
 private:
     const rv::Context* context = nullptr;
 
@@ -658,4 +670,6 @@ private:
     std::vector<Material> materials;
     std::vector<Texture> textures2D;
     std::vector<Texture> texturesCube;
+
+    rv::SceneStatus status = rv::SceneStatus::None;
 };

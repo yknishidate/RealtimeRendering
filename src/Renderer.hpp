@@ -100,6 +100,22 @@ public:
             scene.getCamera().setAspect(static_cast<float>(width) / static_cast<float>(height));
         }
 
+        if (scene.getStatus() == rv::SceneStatus::Texture2DAdded) {
+            std::vector<rv::ImageHandle> textures2D;
+            for (auto& tex : scene.getTextures2D()) {
+                textures2D.push_back(tex.image);
+            }
+            descSet->set("textures2D", textures2D);
+        }
+        if (scene.getStatus() == rv::SceneStatus::Texture2DAdded) {
+            std::vector<rv::ImageHandle> texturesCube;
+            for (auto& tex : scene.getTexturesCube()) {
+                texturesCube.push_back(tex.image);
+            }
+            descSet->set("texturesCube", texturesCube);
+        }
+        scene.resetStatus();
+
         commandBuffer.clearColorImage(colorImage, {0.1f, 0.1f, 0.1f, 1.0f});
         commandBuffer.clearColorImage(images.baseColorImage, {0.1f, 0.1f, 0.1f, 1.0f});
         commandBuffer.clearDepthStencilImage(images.depthImage, 1.0f, 0);
