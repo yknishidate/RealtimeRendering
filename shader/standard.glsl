@@ -22,6 +22,8 @@ struct ObjectData{
 
 struct SceneData{
 #ifdef __cplusplus
+    glm::mat4 cameraView{1.0f};
+    glm::mat4 cameraProj{1.0f};
     glm::mat4 cameraViewProj{1.0f};
     glm::mat4 shadowViewProj{1.0f};
     glm::vec4 lightDirection{0.0f};
@@ -31,8 +33,11 @@ struct SceneData{
     int existDirectionalLight;
     int enableShadowMapping;
     int enableFXAA = 1;
+    int envMapIndex = -1;
     float shadowBias = 0.005f;
 #else
+    mat4 cameraView;
+    mat4 cameraProj;
     mat4 cameraViewProj;
     mat4 shadowViewProj;
     vec4 lightDirection;
@@ -42,6 +47,7 @@ struct SceneData{
     int existDirectionalLight;
     int enableShadowMapping;
     int enableFXAA;
+    int envMapIndex;
     float shadowBias;
 #endif
 };

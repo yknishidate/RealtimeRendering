@@ -442,6 +442,10 @@ public:
         return count;
     }
 
+    void createPrimitiveMeshes() {
+        cubeMesh = rv::Mesh::createCubeMesh(*context, {});
+    }
+
     void loadFromJson(const std::filesystem::path& filepath) {
         assert(context && "Set context before load scene.");
 
@@ -621,6 +625,10 @@ public:
         return camera;
     }
 
+    rv::Mesh& getCubeMesh() {
+        return cubeMesh;
+    }
+
     std::vector<rv::Mesh>& getMeshes() {
         return meshes;
     }
@@ -666,6 +674,7 @@ private:
     std::vector<Object> objects;
     rv::Camera camera{};
 
+    rv::Mesh cubeMesh;
     std::vector<rv::Mesh> meshes;
     std::vector<Material> materials;
     std::vector<Texture> textures2D;

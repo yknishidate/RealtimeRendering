@@ -49,6 +49,7 @@ public:
         images.createImages(context, width, height);
 
         scene.setContext(context);
+        scene.createPrimitiveMeshes();
         scene.loadFromJson(DEV_ASSET_DIR / "scenes" / "two_boxes.json");
 
         renderer.init(context, images);

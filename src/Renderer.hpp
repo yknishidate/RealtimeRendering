@@ -75,64 +75,29 @@ public:
                 },
         });
 
-        forwardPass.init(*context, descSet, images.colorFormat, images.depthFormat);
-        shadowMapPass.init(*context, descSet, shadowMapFormat);
-        antiAliasingPass.init(*context, descSet, images.colorFormat);
+        try {
+            forwardPass.init(*context, descSet, images.colorFormat, images.depthFormat);
+            shadowMapPass.init(*context, descSet, shadowMapFormat);
+            antiAliasingPass.init(*context, descSet, images.colorFormat);
+            skyboxPass.init(*context, descSet, images.colorFormat);
+        } catch (const std::exception& e) {
+            spdlog::error(e.what());
+            std::abort();
+        }
 
         initialized = true;
+        firstFrameRendered = false;
     }
 
-    void render(const rv::CommandBuffer& commandBuffer,
-                const rv::ImageHandle& colorImage,
-                RenderImages& images,
-                Scene& scene,
-                int frame) {
-        assert(initialized);
-
-        vk::Extent3D extent = colorImage->getExtent();
-        if (extent != images.baseColorImage->getExtent()) {
-            context->getDevice().waitIdle();
-            uint32_t width = extent.width;
-            uint32_t height = extent.height;
-            images.createImages(*context, width, height);
-            descSet->set("baseColorImage", images.baseColorImage);
-            descSet->update();
-            scene.getCamera().setAspect(static_cast<float>(width) / static_cast<float>(height));
-        }
-
-        if (scene.getStatus() & rv::SceneStatus::Texture2DAdded) {
-            assert(!scene.getTextures2D().empty());
-            std::vector<rv::ImageHandle> textures2D;
-            for (auto& tex : scene.getTextures2D()) {
-                textures2D.push_back(tex.image);
-            }
-            descSet->set("textures2D", textures2D);
-            descSet->update();
-        }
-        if (scene.getStatus() & rv::SceneStatus::TextureCubeAdded) {
-            assert(!scene.getTexturesCube().empty());
-            std::vector<rv::ImageHandle> texturesCube;
-            for (auto& tex : scene.getTexturesCube()) {
-                texturesCube.push_back(tex.image);
-            }
-            descSet->set("texturesCube", texturesCube);
-            descSet->update();
-        }
-        scene.resetStatus();
-
-        commandBuffer.clearColorImage(colorImage, {0.1f, 0.1f, 0.1f, 1.0f});
-        commandBuffer.clearColorImage(images.baseColorImage, {0.1f, 0.1f, 0.1f, 1.0f});
-        commandBuffer.clearDepthStencilImage(images.depthImage, 1.0f, 0);
-        commandBuffer.imageBarrier({colorImage, images.baseColorImage, images.depthImage},  //
-                                   vk::PipelineStageFlagBits::eTransfer,
-                                   vk::PipelineStageFlagBits::eAllGraphics,
-                                   vk::AccessFlagBits::eTransferWrite,
-                                   vk::AccessFlagBits::eColorAttachmentWrite |
-                                       vk::AccessFlagBits::eDepthStencilAttachmentWrite);
-
+    void updateBuffers(const rv::CommandBuffer& commandBuffer,
+                       vk::Extent3D extent,
+                       Scene& scene,
+                       int frame) {
         // Update buffer
         // NOTE: Shadow map用の行列も更新するのでShadow map passより先に計算
         rv::Camera& camera = scene.getCamera();
+        sceneUniform.cameraView = camera.getView();
+        sceneUniform.cameraProj = camera.getProj();
         sceneUniform.cameraViewProj = camera.getProj() * camera.getView();
 
         sceneUniform.screenResolution.x = static_cast<float>(extent.width);
@@ -151,6 +116,7 @@ public:
         if (Object* ambLightObj = scene.findObject<AmbientLight>()) {
             auto* light = ambLightObj->get<AmbientLight>();
             sceneUniform.ambientColorIntensity.xyz = light->color * light->intensity;
+            sceneUniform.envMapIndex = light->textureIndex;
         }
 
         auto& objects = scene.getObjects();
@@ -178,7 +144,62 @@ public:
             {sceneUniformBuffer, objectStorageBuffer},  //
             vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllGraphics,
             vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead);
+    }
 
+    void render(const rv::CommandBuffer& commandBuffer,
+                const rv::ImageHandle& colorImage,
+                RenderImages& images,
+                Scene& scene,
+                int frame) {
+        assert(initialized);
+
+        vk::Extent3D extent = colorImage->getExtent();
+        if (extent != images.baseColorImage->getExtent()) {
+            context->getDevice().waitIdle();
+            uint32_t width = extent.width;
+            uint32_t height = extent.height;
+            images.createImages(*context, width, height);
+            descSet->set("baseColorImage", images.baseColorImage);
+            descSet->update();
+            scene.getCamera().setAspect(static_cast<float>(width) / static_cast<float>(height));
+        }
+
+        if (!firstFrameRendered || scene.getStatus() & rv::SceneStatus::Texture2DAdded) {
+            if (!scene.getTextures2D().empty()) {
+                std::vector<rv::ImageHandle> textures2D;
+                for (auto& tex : scene.getTextures2D()) {
+                    textures2D.push_back(tex.image);
+                }
+                descSet->set("textures2D", textures2D);
+                descSet->update();
+            }
+        }
+        if (!firstFrameRendered || scene.getStatus() & rv::SceneStatus::TextureCubeAdded) {
+            if (!scene.getTexturesCube().empty()) {
+                std::vector<rv::ImageHandle> texturesCube;
+                for (auto& tex : scene.getTexturesCube()) {
+                    texturesCube.push_back(tex.image);
+                }
+                descSet->set("texturesCube", texturesCube);
+                descSet->update();
+            }
+        }
+        scene.resetStatus();
+
+        updateBuffers(commandBuffer, extent, scene, frame);
+
+        commandBuffer.clearColorImage(colorImage, {0.1f, 0.1f, 0.1f, 1.0f});
+        commandBuffer.clearColorImage(images.baseColorImage, {0.1f, 0.1f, 0.1f, 1.0f});
+        commandBuffer.clearDepthStencilImage(images.depthImage, 1.0f, 0);
+        commandBuffer.imageBarrier({colorImage, images.baseColorImage, images.depthImage},  //
+                                   vk::PipelineStageFlagBits::eTransfer,
+                                   vk::PipelineStageFlagBits::eAllGraphics,
+                                   vk::AccessFlagBits::eTransferWrite,
+                                   vk::AccessFlagBits::eColorAttachmentWrite |
+                                       vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+
+        Object* dirLightObj = scene.findObject<DirectionalLight>();
+        const DirectionalLight* dirLight = dirLightObj->get<DirectionalLight>();
         // Shadow pass
         if (dirLightObj && dirLight->enableShadow) {
             sceneUniform.enableShadowMapping = 1;
@@ -187,7 +208,11 @@ public:
             sceneUniform.enableShadowMapping = 0;
         }
 
+        // Skybox pass
+        skyboxPass.render(commandBuffer, images.baseColorImage, scene.getCubeMesh());
+
         // Forward pass
+        auto& objects = scene.getObjects();
         forwardPass.render(commandBuffer, images.baseColorImage, images.depthImage, objects);
 
         // AA pass
@@ -246,4 +271,7 @@ private:
 
     // AA pass
     AntiAliasingPass antiAliasingPass;
+
+    // Skybox pass
+    SkyboxPass skyboxPass;
 };

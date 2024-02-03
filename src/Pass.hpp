@@ -148,22 +148,17 @@ public:
         descSet = _descSet;
 
         std::vector<rv::ShaderHandle> shaders(2);
-        try {
-            shaders[0] = context.createShader({
-                .code = rv::Compiler::compileOrReadShader(
-                    DEV_SHADER_DIR / "fullscreen.vert", DEV_SHADER_DIR / "spv/fullscreen.vert.spv"),
-                .stage = vk::ShaderStageFlagBits::eVertex,
-            });
+        shaders[0] = context.createShader({
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "fullscreen.vert",
+                                                      DEV_SHADER_DIR / "spv/fullscreen.vert.spv"),
+            .stage = vk::ShaderStageFlagBits::eVertex,
+        });
 
-            shaders[1] = context.createShader({
-                .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "fxaa.frag",
-                                                          DEV_SHADER_DIR / "spv/fxaa.frag.spv"),
-                .stage = vk::ShaderStageFlagBits::eFragment,
-            });
-        } catch (const std::exception& e) {
-            spdlog::error(e.what());
-            std::abort();
-        }
+        shaders[1] = context.createShader({
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "fxaa.frag",
+                                                      DEV_SHADER_DIR / "spv/fxaa.frag.spv"),
+            .stage = vk::ShaderStageFlagBits::eFragment,
+        });
 
         pipeline = context.createGraphicsPipeline({
             .descSetLayout = descSet->getLayout(),
@@ -284,6 +279,71 @@ public:
 
 private:
     StandardConstants constants;
+    rv::DescriptorSetHandle descSet;
+    rv::GraphicsPipelineHandle pipeline;
+};
+
+class SkyboxPass final : public Pass {
+public:
+    void init(const rv::Context& context,
+              const rv::DescriptorSetHandle& _descSet,
+              vk::Format colorFormat) {
+        Pass::init(context);
+
+        descSet = _descSet;
+
+        std::vector<rv::ShaderHandle> shaders(2);
+        shaders[0] = context.createShader({
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "skybox.vert",
+                                                      DEV_SHADER_DIR / "spv/skybox.vert.spv"),
+            .stage = vk::ShaderStageFlagBits::eVertex,
+        });
+
+        shaders[1] = context.createShader({
+            .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "skybox.frag",
+                                                      DEV_SHADER_DIR / "spv/skybox.frag.spv"),
+            .stage = vk::ShaderStageFlagBits::eFragment,
+        });
+
+        pipeline = context.createGraphicsPipeline({
+            .descSetLayout = descSet->getLayout(),
+            .vertexShader = shaders[0],
+            .fragmentShader = shaders[1],
+            .vertexStride = sizeof(rv::Vertex),
+            .vertexAttributes = rv::Vertex::getAttributeDescriptions(),
+            .colorFormats = colorFormat,
+        });
+    }
+
+    void render(const rv::CommandBuffer& commandBuffer,
+                const rv::ImageHandle& baseColorImage,
+                const rv::Mesh& cubeMesh) {
+        vk::Extent3D extent = baseColorImage->getExtent();
+        commandBuffer.beginDebugLabel("SkyboxPass::render()");
+        commandBuffer.bindDescriptorSet(descSet, pipeline);
+        commandBuffer.bindPipeline(pipeline);
+
+        commandBuffer.setViewport(extent.width, extent.height);
+        commandBuffer.setScissor(extent.width, extent.height);
+        commandBuffer.beginTimestamp(timer);
+        commandBuffer.beginRendering(baseColorImage, nullptr, {0, 0},
+                                     {extent.width, extent.height});
+
+        commandBuffer.drawIndexed(cubeMesh.vertexBuffer, cubeMesh.indexBuffer,
+                                  cubeMesh.getIndicesCount());
+
+        commandBuffer.endRendering();
+        commandBuffer.endTimestamp(timer);
+
+        commandBuffer.imageBarrier(
+            baseColorImage,  //
+            vk::PipelineStageFlagBits::eAllGraphics, vk::PipelineStageFlagBits::eAllGraphics,
+            vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
+
+        commandBuffer.endDebugLabel();
+    }
+
+private:
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;
 };
