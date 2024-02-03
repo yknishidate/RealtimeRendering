@@ -299,6 +299,7 @@ struct AmbientLight final : Component {
         if (ImGui::TreeNode("Ambient light")) {
             changed |= ImGui::ColorEdit3("Color", glm::value_ptr(color));
             changed |= ImGui::DragFloat("Intensity", &intensity, 0.001f, 0.0f, 100.0f);
+            ImGui::Text("Texture: %d", textureIndex);
             ImGui::TreePop();
         }
         return changed;
@@ -306,6 +307,7 @@ struct AmbientLight final : Component {
 
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
+    int textureIndex = -1;
 };
 
 struct Mesh final : Component {
@@ -463,6 +465,30 @@ public:
             }
         }
 
+        if (json.contains("textures")) {
+            for (auto& _texture : json["textures"]) {
+                std::filesystem::path sceneDir = filepath.parent_path();
+                std::filesystem::path texturePath =
+                    sceneDir / std::filesystem::path{std::string{_texture}};
+
+                Texture texture{};
+                texture.name = texturePath.filename().string();
+                texture.filepath = texturePath.string();
+                texture.image = rv::Image::loadFromKTX(*context, texturePath.string());
+
+                if (texture.image->getViewType() == vk::ImageViewType::e2D) {
+                    textures2D.push_back(std::move(texture));
+                    IconManager::addIcon(texture.name, texture.image);
+                } else if (texture.image->getViewType() == vk::ImageViewType::eCube) {
+                    // TODO: アイコンサポート
+                    texturesCube.push_back(std::move(texture));
+                } else {
+                    // TODO: サポート
+                    assert(false);
+                }
+            }
+        }
+
         for (const auto& material : json["materials"]) {
             if (material["type"] == "Standard") {
                 const auto& baseColor = material["baseColor"];
@@ -553,6 +579,9 @@ public:
                 if (object.contains("intensity")) {
                     light.intensity = object["intensity"];
                 }
+                if (object.contains("texture")) {
+                    light.textureIndex = object["texture"];
+                }
             } else {
                 assert(false && "Not implemented");
             }
@@ -578,25 +607,6 @@ public:
                 camera.setFovY(glm::radians(static_cast<float>(_camera["fovY"])));
             }
         }
-
-        if (json.contains("textures")) {
-            for (auto& _texture : json["textures"]) {
-                std::filesystem::path sceneDir = filepath.parent_path();
-                std::filesystem::path texturePath =
-                    sceneDir / std::filesystem::path{std::string{_texture}};
-
-                textures.push_back({});
-                Texture& texture = textures.back();
-                texture.name = texturePath.filename().string();
-                texture.filepath = texturePath.string();
-                texture.image = rv::Image::loadFromKTX(*context, texturePath.string());
-
-                // TODO: キューブマップなどのサポート
-                if (texture.image->getViewType() == vk::ImageViewType::e2D) {
-                    IconManager::addIcon(texture.name, texture.image);
-                }
-            }
-        }
     }
 
     std::vector<Object>& getObjects() {
@@ -615,8 +625,12 @@ public:
         return materials;
     }
 
-    std::vector<Texture>& getTextures() {
-        return textures;
+    std::vector<Texture>& getTextures2D() {
+        return textures2D;
+    }
+
+    std::vector<Texture>& getTexturesCube() {
+        return texturesCube;
     }
 
     rv::AABB getAABB() const {
@@ -642,5 +656,6 @@ private:
 
     std::vector<rv::Mesh> meshes;
     std::vector<Material> materials;
-    std::vector<Texture> textures;
+    std::vector<Texture> textures2D;
+    std::vector<Texture> texturesCube;
 };

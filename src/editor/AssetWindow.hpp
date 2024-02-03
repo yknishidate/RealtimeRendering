@@ -8,8 +8,9 @@
 class AssetWindow {
 public:
     static void importTexture(const rv::Context& context, Scene& scene, const char* filepath) {
+        // TODO: 2D以外のサポート
         Texture texture;
-        texture.name = "Texture " + std::to_string(scene.getTextures().size());
+        texture.name = "Texture " + std::to_string(scene.getTextures2D().size());
         texture.filepath = filepath;
         std::filesystem::path extension = std::filesystem::path{filepath}.extension();
         if (extension == ".jpg" || extension == ".png") {
@@ -19,7 +20,7 @@ public:
             spdlog::info("Load HDR image");
             texture.image = rv::Image::loadFromFileHDR(context, texture.filepath);
         }
-        scene.getTextures().push_back(texture);
+        scene.getTextures2D().push_back(texture);
         IconManager::addIcon(texture.name, texture.image);
     }
 
@@ -51,15 +52,15 @@ public:
                 IconManager::showDraggableIcon("asset_material", material.name, thumbnailSize,
                                                ImVec4(0, 0, 0, 1));
             }
-            for (auto& texture : scene.getTextures()) {
-                // TODO: キューブマップなどのサポート
-                if (texture.image->getViewType() == vk::ImageViewType::e2D) {
-                    IconManager::showDraggableIcon(texture.name, texture.name, thumbnailSize,
-                                                   ImVec4(0, 0, 0, 1));
-                } else {
-                    IconManager::showDraggableIcon("asset_texture", texture.name, thumbnailSize,
-                                                   ImVec4(0, 0, 0, 1));
-                }
+
+            for (auto& texture : scene.getTextures2D()) {
+                IconManager::showDraggableIcon(texture.name, texture.name, thumbnailSize,
+                                               ImVec4(0, 0, 0, 1));
+            }
+            for (auto& texture : scene.getTexturesCube()) {
+                // TODO: プレビューのサポート
+                IconManager::showDraggableIcon("asset_texture", texture.name, thumbnailSize,
+                                               ImVec4(0, 0, 0, 1));
             }
 
             ImGui::Columns(1);

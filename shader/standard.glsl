@@ -79,4 +79,7 @@ layout(binding = 2) uniform sampler2D shadowMap;
 
 layout(binding = 3) uniform sampler2D baseColorImage;
 
+layout(binding = 4) uniform sampler2D textures2D[];
+layout(binding = 5) uniform samplerCube texturesCube[];
+
 #endif

@@ -14,10 +14,6 @@ public:
             .debugName = "ShadowMapPass::depthImage",
         });
 
-        context->oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
-            commandBuffer->transitionLayout(shadowMapImage, vk::ImageLayout::eReadOnlyOptimal);
-        });
-
         sceneUniformBuffer = context->createBuffer({
             .usage = rv::BufferUsage::Uniform,
             .memory = rv::MemoryUsage::Device,
@@ -46,6 +42,23 @@ public:
             .stage = vk::ShaderStageFlagBits::eFragment,
         });
 
+        dummyTextures2D = context->createImage({
+            .usage = rv::ImageUsage::Sampled,
+            .format = vk::Format::eB8G8R8A8Unorm,
+            .debugName = "dummyTextures2D",
+        });
+        dummyTexturesCube = context->createImage({
+            .usage = rv::ImageUsage::Sampled,
+            .format = vk::Format::eB8G8R8A8Unorm,
+            .isCubemap = true,
+            .debugName = "dummyTextures2D",
+        });
+        context->oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
+            commandBuffer->transitionLayout(shadowMapImage, vk::ImageLayout::eReadOnlyOptimal);
+            commandBuffer->transitionLayout(dummyTextures2D, vk::ImageLayout::eReadOnlyOptimal);
+            commandBuffer->transitionLayout(dummyTexturesCube, vk::ImageLayout::eReadOnlyOptimal);
+        });
+
         descSet = context->createDescriptorSet({
             .shaders = {reflectionShaderVert, reflectionShaderFrag},
             .buffers =
@@ -57,6 +70,8 @@ public:
                 {
                     {"shadowMap", shadowMapImage},
                     {"baseColorImage", images.baseColorImage},
+                    {"textures2D", dummyTextures2D},
+                    {"texturesCube", dummyTexturesCube},
                 },
         });
 
@@ -195,6 +210,10 @@ private:
     std::vector<ObjectData> objectStorage{};
     rv::BufferHandle sceneUniformBuffer;
     rv::BufferHandle objectStorageBuffer;
+
+    // Image
+    rv::ImageHandle dummyTextures2D;
+    rv::ImageHandle dummyTexturesCube;
 
     // Shadow map pass
     ShadowMapPass shadowMapPass;
