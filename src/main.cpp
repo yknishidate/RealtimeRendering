@@ -40,8 +40,7 @@ public:
         // DEBUG
 
         auto ktxFilepath = DEV_ASSET_DIR / "environments" / "papermill.ktx";
-        cubemap =
-            rv::Image::loadFromKTX(context, ktxFilepath.string(), vk::Format::eR16G16B16A16Sfloat);
+        cubemap = rv::Image::loadFromKTX(context, ktxFilepath.string());
 
         // DEBUG
         rv::CPUTimer timer;
