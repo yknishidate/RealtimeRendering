@@ -647,7 +647,7 @@ public:
         return aabb;
     }
 
-    rv::SceneStatus getStatus() const {
+    rv::SceneStatusFlags getStatus() const {
         return status;
     }
 
@@ -671,5 +671,5 @@ private:
     std::vector<Texture> textures2D;
     std::vector<Texture> texturesCube;
 
-    rv::SceneStatus status = rv::SceneStatus::None;
+    rv::SceneStatusFlags status = rv::SceneStatus::None;
 };
