@@ -6,6 +6,8 @@
 #include <reactive/Scene/Camera.hpp>
 #include <reactive/Scene/Mesh.hpp>
 
+#include "editor/IconManager.hpp"
+
 class Object;
 
 struct Component {
@@ -574,6 +576,25 @@ public:
             }
             if (_camera.contains("fovY")) {
                 camera.setFovY(glm::radians(static_cast<float>(_camera["fovY"])));
+            }
+        }
+
+        if (json.contains("textures")) {
+            for (auto& _texture : json["textures"]) {
+                std::filesystem::path sceneDir = filepath.parent_path();
+                std::filesystem::path texturePath =
+                    sceneDir / std::filesystem::path{std::string{_texture}};
+
+                textures.push_back({});
+                Texture& texture = textures.back();
+                texture.name = texturePath.filename().string();
+                texture.filepath = texturePath.string();
+                texture.image = rv::Image::loadFromKTX(*context, texturePath.string());
+
+                // TODO: キューブマップなどのサポート
+                if (texture.image->getViewType() == vk::ImageViewType::e2D) {
+                    IconManager::addIcon(texture.name, texture.image);
+                }
             }
         }
     }

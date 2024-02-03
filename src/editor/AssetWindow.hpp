@@ -52,8 +52,14 @@ public:
                                                ImVec4(0, 0, 0, 1));
             }
             for (auto& texture : scene.getTextures()) {
-                IconManager::showDraggableIcon(texture.name, texture.name, thumbnailSize,
-                                               ImVec4(0, 0, 0, 1));
+                // TODO: キューブマップなどのサポート
+                if (texture.image->getViewType() == vk::ImageViewType::e2D) {
+                    IconManager::showDraggableIcon(texture.name, texture.name, thumbnailSize,
+                                                   ImVec4(0, 0, 0, 1));
+                } else {
+                    IconManager::showDraggableIcon("asset_texture", texture.name, thumbnailSize,
+                                                   ImVec4(0, 0, 0, 1));
+                }
             }
 
             ImGui::Columns(1);

@@ -107,5 +107,12 @@
         "distance": 10.0,
         "phi": 0.0,
         "theta": -10.0
-    }
+    },
+    "skybox": {
+        "name": "Skybox",
+        "texture": 0
+    },
+    "textures": [
+        "../environments/papermill.ktx"
+    ]
 }
