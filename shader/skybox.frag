@@ -6,6 +6,7 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
     vec3 yInverted = vec3(inPos.x, -inPos.y, inPos.z);
-    vec3 envColor = texture(texturesCube[scene.envMapIndex], yInverted).rgb;
+    // vec3 envColor = texture(texturesCube[scene.envMapIndex], yInverted).rgb;
+    vec3 envColor = textureLod(texturesCube[scene.envMapIndex], yInverted, 7.0).rgb;
     outColor = vec4(envColor, 1.0);
 }

@@ -663,6 +663,17 @@ public:
         status = rv::SceneStatus::None;
     }
 
+    void clear() {
+        objects.clear();
+        objects.reserve(maxObjectCount);
+        camera = rv::Camera{rv::Camera::Type::Orbital, 1.0f};
+        meshes.clear();
+        materials.clear();
+        textures2D.clear();
+        texturesCube.clear();
+        status = rv::SceneStatus::Cleared;
+    }
+
 private:
     const rv::Context* context = nullptr;
 

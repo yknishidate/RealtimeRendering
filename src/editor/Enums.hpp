@@ -66,6 +66,7 @@ enum class SceneStatus {
     ObjectAdded = 1 << 0,
     Texture2DAdded = 1 << 1,
     TextureCubeAdded = 1 << 2,
+    Cleared = 1 << 3,
 };
 
 using EditorMessageFlags = Flags<EditorMessage>;

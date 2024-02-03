@@ -104,9 +104,8 @@ public:
         sceneUniform.screenResolution.y = static_cast<float>(extent.height);
         sceneUniform.enableFXAA = static_cast<int>(enableFXAA);
 
-        Object* dirLightObj = scene.findObject<DirectionalLight>();
-        const DirectionalLight* dirLight = dirLightObj->get<DirectionalLight>();
-        if (dirLightObj) {
+        if (Object* dirLightObj = scene.findObject<DirectionalLight>()) {
+            DirectionalLight* dirLight = dirLightObj->get<DirectionalLight>();
             sceneUniform.existDirectionalLight = 1;
             sceneUniform.lightDirection.xyz = dirLight->getDirection();
             sceneUniform.lightColorIntensity.xyz = dirLight->color * dirLight->intensity;
@@ -164,6 +163,12 @@ public:
             scene.getCamera().setAspect(static_cast<float>(width) / static_cast<float>(height));
         }
 
+        if (scene.getStatus() & rv::SceneStatus::Cleared) {
+            descSet->set("textures2D", dummyTextures2D);
+            descSet->set("texturesCube", dummyTexturesCube);
+            descSet->update();
+        }
+
         if (!firstFrameRendered || scene.getStatus() & rv::SceneStatus::Texture2DAdded) {
             if (!scene.getTextures2D().empty()) {
                 std::vector<rv::ImageHandle> textures2D;
@@ -198,10 +203,9 @@ public:
                                    vk::AccessFlagBits::eColorAttachmentWrite |
                                        vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
-        Object* dirLightObj = scene.findObject<DirectionalLight>();
-        const DirectionalLight* dirLight = dirLightObj->get<DirectionalLight>();
         // Shadow pass
-        if (dirLightObj && dirLight->enableShadow) {
+        if (Object* dirLightObj = scene.findObject<DirectionalLight>()) {
+            DirectionalLight* dirLight = dirLightObj->get<DirectionalLight>();
             sceneUniform.enableShadowMapping = 1;
             shadowMapPass.render(commandBuffer, shadowMapImage, scene, *dirLight);
         } else {

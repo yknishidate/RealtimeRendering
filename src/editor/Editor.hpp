@@ -74,6 +74,10 @@ public:
                 ImGui::End();
                 return rv::EditorMessage::RecompileRequested;
             }
+            if (ImGui::Button("Clear scene")) {
+                context.getDevice().waitIdle();
+                scene.clear();
+            }
             ImGui::End();
         }
 
