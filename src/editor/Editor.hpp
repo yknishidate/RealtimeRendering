@@ -1,7 +1,7 @@
 #pragma once
 #include "editor/AssetWindow.hpp"
 #include "editor/AttributeWindow.hpp"
-#include "editor/EditorMessage.hpp"
+#include "editor/Enums.hpp"
 #include "editor/MenuBar.hpp"
 #include "editor/SceneWindow.hpp"
 #include "editor/ViewportWindow.hpp"
@@ -22,10 +22,10 @@ public:
         IconManager::clearIcons();
     }
 
-    EditorMessage show(const rv::Context& context,
-                       Scene& scene,
-                       const std::vector<std::pair<std::string, float>>& cpuTimes,
-                       const std::vector<std::pair<std::string, float>>& gpuTimes) {
+    rv::EditorMessage show(const rv::Context& context,
+                           Scene& scene,
+                           const std::vector<std::pair<std::string, float>>& cpuTimes,
+                           const std::vector<std::pair<std::string, float>>& gpuTimes) {
         if (needsRecreateViewportImage()) {
             context.getDevice().waitIdle();
             createViewportImage(context);
@@ -72,7 +72,7 @@ public:
                 // それを防ぐため早期リターンするが、ImGui::Begin()の数だけEnd()しておく
                 ImGui::End();
                 ImGui::End();
-                return EditorMessage::RecompileRequested;
+                return rv::EditorMessage::RecompileRequested;
             }
             ImGui::End();
         }
@@ -83,7 +83,7 @@ public:
         AssetWindow::show(context, scene);
 
         ImGui::End();
-        return EditorMessage::None;
+        return rv::EditorMessage::None;
     }
 
     bool needsRecreateViewportImage() const {

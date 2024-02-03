@@ -107,7 +107,7 @@ public:
         } else {
             cpuTimes[0].second = cpuTimes[1].second + cpuTimes[2].second;
             if (editor.show(context, scene, cpuTimes, renderer.getRenderTimes()) ==
-                EditorMessage::RecompileRequested) {
+                rv::EditorMessage::RecompileRequested) {
                 context.getDevice().waitIdle();
                 renderer.init(context, images);
                 ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
