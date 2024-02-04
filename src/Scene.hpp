@@ -352,6 +352,13 @@ public:
         nlohmann::json json;
         jsonFile >> json;
 
+        if (json.contains("gltf")) {
+            std::filesystem::path gltfPath = json["gltf"];
+            if (!gltfPath.empty()) {
+                loadFromGltf(context, filepath.parent_path() / gltfPath);
+            }
+        }
+
         if (json.contains("texturesCube")) {
             for (auto& _texture : json["texturesCube"]) {
                 std::filesystem::path sceneDir = filepath.parent_path();
