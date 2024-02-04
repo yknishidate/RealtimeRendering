@@ -309,7 +309,10 @@ public:
                 prim.firstIndex = 0;
                 prim.indexCount = static_cast<uint32_t>(prim.meshData->indices.size());
                 prim.vertexCount = static_cast<uint32_t>(prim.meshData->vertices.size());
-                prim.material = &materials[gltfModel.meshes[gltfNode.mesh].primitives[0].material];
+                int materialIndex = gltfModel.meshes[gltfNode.mesh].primitives[0].material;
+                if (materialIndex != -1) {
+                    prim.material = &materials[materialIndex];
+                }
                 mesh.primitives.push_back(prim);
 
                 Transform& trans = obj.add<Transform>();
