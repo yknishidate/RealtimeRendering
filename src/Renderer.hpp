@@ -99,6 +99,7 @@ public:
         sceneUniform.cameraView = camera.getView();
         sceneUniform.cameraProj = camera.getProj();
         sceneUniform.cameraViewProj = camera.getProj() * camera.getView();
+        sceneUniform.cameraPos.xyz = camera.getPosition();
 
         sceneUniform.screenResolution.x = static_cast<float>(extent.width);
         sceneUniform.screenResolution.y = static_cast<float>(extent.height);

@@ -13,14 +13,19 @@ vec2 poissonDisk[4] = vec2[](
     vec2( 0.34495938, 0.29387760 )
 );
 
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
 void main() {
-    outColor = objects[pc.objectIndex].baseColor;
-    return;
+    vec3 N = inNormal;
+    vec3 V = normalize(inPos - scene.cameraPos.xyz);
+    vec3 L = scene.lightDirection.xyz;
 
     vec3 directionalTerm = vec3(0.0);
     if(scene.existDirectionalLight == 1){
-        vec3 lightDir = scene.lightDirection.xyz;
-        float clampedCosTheta = max(dot(lightDir, inNormal), 0.0);
+        float clampedCosTheta = max(dot(L, N), 0.0);
         directionalTerm = clampedCosTheta * scene.lightColorIntensity.rgb;
 
         if(scene.enableShadowMapping == 1){
@@ -44,9 +49,24 @@ void main() {
         }
     }
     
-    vec3 ambientTerm = scene.ambientColorIntensity.rgb;
-
+    // Parameters
     vec3 baseColor = objects[pc.objectIndex].baseColor.rgb;
-    vec3 diffuse = baseColor * (directionalTerm + ambientTerm);
-    outColor = vec4(diffuse, 1.0);
+    float roughness = objects[pc.objectIndex].roughness;
+    float metallic = objects[pc.objectIndex].metallic;
+
+    vec3 ambientTerm = scene.ambientColorIntensity.rgb;
+    if(scene.envMapIndex != -1){
+        float lod = roughness * 10.0;
+        ambientTerm = textureLod(texturesCube[scene.envMapIndex], N, lod).xyz;
+    }
+
+    // 非金属では固定値 0.04、金属では baseColor そのものとする
+    // metallic で値をブレンドして F0 を決める
+    vec3 F0 = mix(vec3(0.04), baseColor, metallic);
+    vec3 kS = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness); 
+    vec3 kD = 1.0 - kS;
+
+    vec3 diffuse = kD * baseColor * (directionalTerm + ambientTerm);
+    vec3 specular = kS * vec3(0.0);
+    outColor = vec4(diffuse + specular, 1.0);
 }
