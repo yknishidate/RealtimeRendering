@@ -113,11 +113,11 @@ public:
             sceneUniform.shadowBias = dirLight->shadowBias;
             sceneUniform.enableShadowMapping = dirLight->enableShadow;
         } else {
+            sceneUniform.existDirectionalLight = 0;
             sceneUniform.enableShadowMapping = false;
         }
         if (Object* ambLightObj = scene.findObject<AmbientLight>()) {
             auto* light = ambLightObj->get<AmbientLight>();
-            sceneUniform.existDirectionalLight = 0;
             sceneUniform.ambientColorIntensity.xyz = light->color * light->intensity;
             sceneUniform.envMapIndex = light->textureIndex;
         }
