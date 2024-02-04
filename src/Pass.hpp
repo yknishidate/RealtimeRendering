@@ -85,10 +85,10 @@ public:
             if (Mesh* mesh = objects[i].get<Mesh>()) {
                 constants.objectIndex = static_cast<int>(i);
                 commandBuffer.pushConstants(pipeline, &constants);
-                for (auto& prim : mesh->meshData->primitives) {
-                    commandBuffer.drawIndexed(mesh->meshData->vertexBuffer,
-                                              mesh->meshData->indexBuffer, prim.indexCount,
-                                              prim.firstIndex);
+                for (auto& prim : mesh->primitives) {
+                    commandBuffer.drawIndexed(prim.meshData->vertexBuffer,
+                                              prim.meshData->indexBuffer,  //
+                                              prim.indexCount, prim.firstIndex);
                 }
             }
         }
@@ -254,14 +254,12 @@ public:
             if (!mesh) {
                 continue;
             }
-            if (mesh->meshData) {
-                constants.objectIndex = index;
-                commandBuffer.pushConstants(pipeline, &constants);
-                for (auto& prim : mesh->meshData->primitives) {
-                    commandBuffer.drawIndexed(mesh->meshData->vertexBuffer,
-                                              mesh->meshData->indexBuffer,  //
-                                              prim.indexCount, prim.firstIndex);
-                }
+            constants.objectIndex = index;
+            commandBuffer.pushConstants(pipeline, &constants);
+            for (auto& prim : mesh->primitives) {
+                commandBuffer.drawIndexed(prim.meshData->vertexBuffer,
+                                          prim.meshData->indexBuffer,  //
+                                          prim.indexCount, prim.firstIndex);
             }
         }
 

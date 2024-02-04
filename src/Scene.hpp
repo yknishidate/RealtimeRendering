@@ -304,7 +304,13 @@ public:
                 Object& obj = objects.back();
 
                 Mesh& mesh = obj.add<Mesh>();
-                mesh.meshData = &meshData[gltfNode.mesh];
+                Primitive prim;
+                prim.meshData = &meshData[gltfNode.mesh];
+                prim.firstIndex = 0;
+                prim.indexCount = static_cast<uint32_t>(prim.meshData->indices.size());
+                prim.vertexCount = static_cast<uint32_t>(prim.meshData->vertices.size());
+                prim.material = &materials[gltfModel.meshes[gltfNode.mesh].primitives[0].material];
+                mesh.primitives.push_back(prim);
 
                 Transform& trans = obj.add<Transform>();
 
@@ -411,18 +417,21 @@ public:
 
             if (object["type"] == "Mesh") {
                 assert(object.contains("mesh"));
-                // auto& mesh = obj.add<Mesh>(meshes[object["mesh"]]);
                 auto& mesh = obj.add<Mesh>();
+                Primitive prim;
                 if (object["mesh"] == "Cube") {
-                    mesh.meshData = &templateMeshData[static_cast<int>(MeshType::Cube)];
+                    prim.meshData = &templateMeshData[static_cast<int>(MeshType::Cube)];
                 } else if (object["mesh"] == "Plane") {
-                    mesh.meshData = &templateMeshData[static_cast<int>(MeshType::Plane)];
+                    prim.meshData = &templateMeshData[static_cast<int>(MeshType::Plane)];
                 }
+                prim.firstIndex = 0;
+                prim.indexCount = static_cast<uint32_t>(prim.meshData->indices.size());
+                prim.vertexCount = static_cast<uint32_t>(prim.meshData->vertices.size());
 
                 if (object.contains("material")) {
-                    // MeshにMaterialが紐づいているので、ObjectごとにMaterialが変えられない
-                    mesh.meshData->primitives[0].material = &materials[object["material"]];
+                    prim.material = &materials[object["material"]];
                 }
+                mesh.primitives.push_back(prim);
             } else if (object["type"] == "DirectionalLight") {
                 if (findObject<DirectionalLight>()) {
                     spdlog::warn("Only one directional light can exist in a scene");

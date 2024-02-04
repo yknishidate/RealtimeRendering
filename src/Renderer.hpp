@@ -130,8 +130,10 @@ public:
             if (!mesh) {
                 continue;
             }
+
             // TODO: マテリアル情報はバッファを分けてGPU側でインデックス参照する
-            if (Material* material = mesh->meshData->primitives[0].material) {
+            // TODO: materialIndexはpushConstantでもいいかも
+            if (Material* material = mesh->primitives[0].material) {
                 // clang-format off
                 objectStorage[index].baseColor = material->baseColor;
                 objectStorage[index].emissive.xyz = material->emissive;

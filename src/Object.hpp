@@ -302,10 +302,13 @@ struct AmbientLight final : Component {
     int textureCube = -1;
 };
 
+struct MeshData;
+
 struct Primitive {
     uint32_t firstIndex{};
     uint32_t indexCount{};
     uint32_t vertexCount{};
+    MeshData* meshData = nullptr;
     Material* material = nullptr;
 };
 
@@ -419,11 +422,17 @@ struct MeshData {
 
 struct Mesh final : Component {
     rv::AABB getLocalAABB() const {
-        glm::vec3 min = meshData->vertices[0].pos;
-        glm::vec3 max = meshData->vertices[0].pos;
-        for (auto& vert : meshData->vertices) {
-            min = glm::min(min, vert.pos);
-            max = glm::max(max, vert.pos);
+        glm::vec3 min = glm::vec3{FLT_MAX, FLT_MAX, FLT_MAX};
+        glm::vec3 max = glm::vec3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
+        for (auto& prim : primitives) {
+            auto& vertices = prim.meshData->vertices;
+            auto& indices = prim.meshData->indices;
+            for (uint32_t index = prim.firstIndex;  //
+                 index < prim.firstIndex + prim.indexCount; index++) {
+                auto& vert = vertices[indices[index]];
+                min = glm::min(min, vert.pos);
+                max = glm::max(max, vert.pos);
+            }
         }
         return {min, max};
     }
@@ -466,11 +475,10 @@ struct Mesh final : Component {
         bool changed = false;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNode("Mesh")) {
-            // Mesh
-            ImGui::Text(("Mesh: " + meshData->name).c_str());
-
-            // Material
-            for (auto& prim : meshData->primitives) {
+            for (auto& prim : primitives) {
+                if (auto* meshData = prim.meshData) {
+                    ImGui::Text(("Mesh data: " + meshData->name).c_str());
+                }
                 if (auto* material = prim.material) {
                     ImGui::Text(("Material: " + material->name).c_str());
                     changed |= ImGui::ColorEdit4("Base color", &prim.material->baseColor[0]);
@@ -486,7 +494,7 @@ struct Mesh final : Component {
         return changed;
     }
 
-    MeshData* meshData = nullptr;
+    std::vector<Primitive> primitives;
 };
 
 class Texture {
