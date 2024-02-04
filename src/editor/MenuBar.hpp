@@ -8,11 +8,12 @@
 
 class MenuBar {
 public:
-    static void openScene(Scene& scene) {
+    // TODO:
+    static void openScene(Scene& /*scene*/) {
         nfdchar_t* outPath = nullptr;
         nfdresult_t result = NFD_OpenDialog("json", nullptr, &outPath);
         if (result == NFD_OKAY) {
-            scene.loadFromJson(std::filesystem::path{outPath});
+            // scene.loadFromJson(std::filesystem::path{outPath});
             free(outPath);
         }
     }

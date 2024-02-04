@@ -126,7 +126,8 @@ public:
             if (!mesh) {
                 continue;
             }
-            if (Material* material = mesh->material) {
+            // TODO: マテリアル情報はバッファを分けてGPU側でインデックス参照する
+            if (Material* material = mesh->meshData->primitives[0].material) {
                 objectStorage[index].baseColor = material->baseColor;
             }
             if (transform) {

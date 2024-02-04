@@ -90,8 +90,11 @@ public:
             if (Mesh* mesh = objects[i].get<Mesh>()) {
                 constants.objectIndex = static_cast<int>(i);
                 commandBuffer.pushConstants(pipeline, &constants);
-                commandBuffer.drawIndexed(mesh->mesh->vertexBuffer, mesh->mesh->indexBuffer,
-                                          mesh->mesh->getIndicesCount());
+                for (auto& prim : mesh->meshData->primitives) {
+                    commandBuffer.drawIndexed(mesh->meshData->vertexBuffer,
+                                              mesh->meshData->indexBuffer, prim.indexCount,
+                                              prim.firstIndex);
+                }
             }
         }
 
@@ -126,11 +129,11 @@ public:
         float right = maxBounds.x * scaling;
         float bottom = minBounds.y * scaling;
         float top = maxBounds.y * scaling;
-        float near = minBounds.z * scaling;
-        float far = maxBounds.z * scaling;
+        float zNear = minBounds.z * scaling;
+        float zFar = maxBounds.z * scaling;
 
         // Create orthographic projection matrix
-        glm::mat4 proj = glm::ortho<float>(left, right, bottom, top, near, far);
+        glm::mat4 proj = glm::ortho<float>(left, right, bottom, top, zNear, zFar);
         return proj * view;
     }
 
@@ -256,11 +259,14 @@ public:
             if (!mesh) {
                 continue;
             }
-            if (mesh->mesh) {
+            if (mesh->meshData) {
                 constants.objectIndex = index;
                 commandBuffer.pushConstants(pipeline, &constants);
-                commandBuffer.drawIndexed(mesh->mesh->vertexBuffer, mesh->mesh->indexBuffer,
-                                          mesh->mesh->getIndicesCount());
+                for (auto& prim : mesh->meshData->primitives) {
+                    commandBuffer.drawIndexed(mesh->meshData->vertexBuffer,
+                                              mesh->meshData->indexBuffer, prim.indexCount,
+                                              prim.firstIndex);
+                }
             }
         }
 
@@ -317,7 +323,7 @@ public:
 
     void render(const rv::CommandBuffer& commandBuffer,
                 const rv::ImageHandle& baseColorImage,
-                const rv::Mesh& cubeMesh) {
+                const MeshData& cubeMesh) {
         vk::Extent3D extent = baseColorImage->getExtent();
         commandBuffer.beginDebugLabel("SkyboxPass::render()");
         commandBuffer.bindDescriptorSet(descSet, pipeline);
@@ -330,7 +336,8 @@ public:
                                      {extent.width, extent.height});
 
         commandBuffer.drawIndexed(cubeMesh.vertexBuffer, cubeMesh.indexBuffer,
-                                  cubeMesh.getIndicesCount());
+                                  cubeMesh.primitives[0].indexCount,
+                                  cubeMesh.primitives[0].firstIndex);
 
         commandBuffer.endRendering();
         commandBuffer.endTimestamp(timer);

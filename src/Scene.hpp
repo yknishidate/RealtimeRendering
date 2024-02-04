@@ -1,12 +1,15 @@
 #pragma once
-#include <editor/Enums.hpp>
 #include <map>
 #include <memory>
 #include <typeindex>
 
+#define TINYGLTF_IMPLEMENTATION
+#include <tiny_gltf.h>
+
 #include <reactive/Scene/Camera.hpp>
 #include <reactive/Scene/Mesh.hpp>
 
+#include "editor/Enums.hpp"
 #include "editor/IconManager.hpp"
 
 class Object;
@@ -311,13 +314,126 @@ struct AmbientLight final : Component {
     int textureIndex = -1;
 };
 
-struct Mesh final : Component {
-    Mesh(rv::Mesh& _mesh) : mesh{&_mesh} {}
+struct Primitive {
+    uint32_t firstIndex;
+    uint32_t indexCount;
+    uint32_t vertexCount;
+    Material* material = nullptr;
+};
 
+enum class MeshType {
+    Cube,
+    Plane,
+    COUNT,
+};
+
+struct MeshData {
+    rv::BufferHandle vertexBuffer;
+    rv::BufferHandle indexBuffer;
+    std::vector<rv::Vertex> vertices;
+    std::vector<uint32_t> indices;
+    std::vector<Primitive> primitives;
+    std::string name;
+
+    MeshData(const rv::Context& context, MeshType type) {
+        if (type == MeshType::Cube) {
+            // Y-up, Right-hand
+            glm::vec3 v0 = {-1, -1, -1};
+            glm::vec3 v1 = {+1, -1, -1};
+            glm::vec3 v2 = {-1, +1, -1};
+            glm::vec3 v3 = {+1, +1, -1};
+            glm::vec3 v4 = {-1, -1, +1};
+            glm::vec3 v5 = {+1, -1, +1};
+            glm::vec3 v6 = {-1, +1, +1};
+            glm::vec3 v7 = {+1, +1, +1};
+
+            glm::vec3 pX = {+1, 0, 0};
+            glm::vec3 nX = {-1, 0, 0};
+            glm::vec3 pY = {0, +1, 0};
+            glm::vec3 nY = {0, -1, 0};
+            glm::vec3 pZ = {0, 0, +1};
+            glm::vec3 nZ = {0, 0, -1};
+            //       2           3
+            //       +-----------+
+            //      /|          /|
+            //    /  |        /  |
+            //  6+---+-------+7  |
+            //   |  0+-------+---+1
+            //   |  /        |  /
+            //   |/          |/
+            //  4+-----------+5
+
+            vertices = {
+                {v0, nZ}, {v2, nZ}, {v1, nZ},  // Back
+                {v3, nZ}, {v1, nZ}, {v2, nZ},  // Back
+                {v4, pZ}, {v5, pZ}, {v6, pZ},  // Front
+                {v7, pZ}, {v6, pZ}, {v5, pZ},  // Front
+                {v6, pY}, {v7, pY}, {v2, pY},  // Top
+                {v3, pY}, {v2, pY}, {v7, pY},  // Top
+                {v0, nY}, {v1, nY}, {v4, nY},  // Bottom
+                {v5, nY}, {v4, nY}, {v1, nY},  // Bottom
+                {v5, pX}, {v1, pX}, {v7, pX},  // Right
+                {v3, pX}, {v7, pX}, {v1, pX},  // Right
+                {v0, nX}, {v4, nX}, {v2, nX},  // Left
+                {v6, nX}, {v2, nX}, {v4, nX},  // Left
+            };
+
+            for (int i = 0; i < vertices.size(); i++) {
+                indices.push_back(i);
+            }
+        } else if (type == MeshType::Plane) {
+            vertices = {
+                {glm::vec3{-1.0f, 0.0f, -1.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{0.0f, 0.0f}},
+                {glm::vec3{+1.0f, 0.0f, -1.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{1.0f, 0.0f}},
+                {glm::vec3{-1.0f, 0.0f, +1.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{0.0f, 1.0f}},
+                {glm::vec3{+1.0f, 0.0f, +1.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{1.0f, 1.0f}},
+            };
+            indices = {0, 2, 1, 3, 1, 2};
+        }
+        primitives.push_back({0, static_cast<uint32_t>(indices.size()),
+                              static_cast<uint32_t>(vertices.size()), nullptr});
+        createBuffers(context);
+    }
+
+    MeshData(const rv::Context& context,  //
+             std::vector<rv::Vertex> _vertices,
+             std::vector<uint32_t> _indices,
+             std::vector<Primitive> _primitives,
+             std::string _name)
+        : vertices{std::move(_vertices)},
+          indices{std::move(_indices)},
+          primitives{std::move(_primitives)},
+          name{std::move(_name)} {
+        createBuffers(context);
+    }
+
+    void createBuffers(const rv::Context& context) {
+        vertexBuffer = context.createBuffer({
+            .usage = rv::BufferUsage::Vertex,
+            .memory = rv::MemoryUsage::Device,
+            .size = sizeof(rv::Vertex) * vertices.size(),
+            .debugName = name + "::vertexBuffer",
+        });
+
+        indexBuffer = context.createBuffer({
+            .usage = rv::BufferUsage::Index,
+            .memory = rv::MemoryUsage::Device,
+            .size = sizeof(uint32_t) * indices.size(),
+            .debugName = name + "::indexBuffer",
+        });
+
+        context.oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
+            commandBuffer->copyBuffer(vertexBuffer, vertices.data());
+            commandBuffer->copyBuffer(indexBuffer, indices.data());
+        });
+    }
+};
+
+struct Mesh final : Component {
     rv::AABB getLocalAABB() const {
-        glm::vec3 min = mesh->vertices[0].pos;
-        glm::vec3 max = mesh->vertices[0].pos;
-        for (auto& vert : mesh->vertices) {
+        glm::vec3 min = meshData->vertices[0].pos;
+        glm::vec3 max = meshData->vertices[0].pos;
+        for (auto& vert : meshData->vertices) {
             min = glm::min(min, vert.pos);
             max = glm::max(max, vert.pos);
         }
@@ -363,27 +479,26 @@ struct Mesh final : Component {
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNode("Mesh")) {
             // Mesh
-            ImGui::Text(("Mesh: " + mesh->name).c_str());
+            ImGui::Text(("Mesh: " + meshData->name).c_str());
 
             // Material
-            if (!material) {
-                ImGui::Text("Material: Empty");
-                return false;
+            for (auto& prim : meshData->primitives) {
+                if (auto* material = prim.material) {
+                    ImGui::Text(("Material: " + material->name).c_str());
+                    changed |= ImGui::ColorEdit4("Base color", &prim.material->baseColor[0]);
+                    changed |= ImGui::ColorEdit3("Emissive", &prim.material->emissive[0]);
+                    changed |= ImGui::SliderFloat("Metallic", &prim.material->metallic, 0.0f, 1.0f);
+                    changed |=
+                        ImGui::SliderFloat("Roughness", &prim.material->roughness, 0.0f, 1.0f);
+                    changed |= ImGui::SliderFloat("IOR", &material->ior, 0.01f, 5.0f);
+                }
             }
-
-            ImGui::Text(("Material: " + material->name).c_str());
-            changed |= ImGui::ColorEdit4("Base color", &material->baseColor[0]);
-            changed |= ImGui::ColorEdit3("Emissive", &material->emissive[0]);
-            changed |= ImGui::SliderFloat("Metallic", &material->metallic, 0.0f, 1.0f);
-            changed |= ImGui::SliderFloat("Roughness", &material->roughness, 0.0f, 1.0f);
-            changed |= ImGui::SliderFloat("IOR", &material->ior, 0.01f, 5.0f);
             ImGui::TreePop();
         }
         return changed;
     }
 
-    rv::Mesh* mesh = nullptr;
-    Material* material = nullptr;
+    MeshData* meshData = nullptr;
 };
 
 class Texture {
@@ -397,10 +512,6 @@ class Scene {
 public:
     Scene() {
         objects.reserve(maxObjectCount);
-    }
-
-    void setContext(const rv::Context& _context) {
-        context = &_context;
     }
 
     // TODO: 名前被りを解決
@@ -442,33 +553,292 @@ public:
         return count;
     }
 
-    void createPrimitiveMeshes() {
-        cubeMesh = rv::Mesh::createCubeMesh(*context, {});
+    void createTemplateMeshData(const rv::Context& context) {
+        int count = static_cast<int>(MeshType::COUNT);
+        templateMeshData.reserve(count);
+        for (int type = 0; type < count; type++) {
+            templateMeshData.emplace_back(context, static_cast<MeshType>(type));
+        }
     }
 
-    void loadFromJson(const std::filesystem::path& filepath) {
-        assert(context && "Set context before load scene.");
+    void loadFromGltf(const rv::Context& context, const std::filesystem::path& filepath) {
+        tinygltf::Model model;
+        tinygltf::TinyGLTF loader;
+        std::string err;
+        std::string warn;
 
+        bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, filepath.string());
+        if (!warn.empty()) {
+            std::cerr << "Warn: " << warn.c_str() << std::endl;
+        }
+        if (!err.empty()) {
+            std::cerr << "Err: " << err.c_str() << std::endl;
+        }
+        if (!ret) {
+            throw std::runtime_error("Failed to parse glTF: " + filepath.string());
+        }
+
+        loadMaterials(model);
+        loadMeshes(context, model);
+        loadNodes(model);
+        spdlog::info("Loaded glTF file: {}", filepath.string());
+        spdlog::info("  Material: {}", materials.size());
+        spdlog::info("  Node: {}", objects.size());
+        spdlog::info("  Mesh: {}", meshData.size());
+    }
+
+    void loadMaterials(tinygltf::Model& gltfModel) {
+        for (auto& mat : gltfModel.materials) {
+            Material material;
+
+            // Base color
+            if (mat.values.contains("baseColorTexture")) {
+                material.baseColorTextureIndex = mat.values["baseColorTexture"].TextureIndex();
+            }
+            if (mat.values.contains("baseColorFactor")) {
+                material.baseColor =
+                    glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
+            }
+
+            // Metallic / Roughness
+            if (mat.values.contains("metallicRoughnessTexture")) {
+                material.metallicRoughnessTextureIndex =
+                    mat.values["metallicRoughnessTexture"].TextureIndex();
+            }
+            if (mat.values.contains("roughnessFactor")) {
+                material.roughness = static_cast<float>(mat.values["roughnessFactor"].Factor());
+            }
+            if (mat.values.contains("metallicFactor")) {
+                material.metallic = static_cast<float>(mat.values["metallicFactor"].Factor());
+            }
+
+            // Normal
+            if (mat.additionalValues.contains("normalTexture")) {
+                material.normalTextureIndex = mat.additionalValues["normalTexture"].TextureIndex();
+            }
+
+            // Emissive
+            material.emissive[0] = static_cast<float>(mat.emissiveFactor[0]);
+            material.emissive[1] = static_cast<float>(mat.emissiveFactor[1]);
+            material.emissive[2] = static_cast<float>(mat.emissiveFactor[2]);
+            if (mat.additionalValues.contains("emissiveTexture")) {
+                material.emissiveTextureIndex =
+                    mat.additionalValues["emissiveTexture"].TextureIndex();
+            }
+
+            materials.push_back(material);
+        }
+    }
+
+    void loadMeshes(const rv::Context& context, tinygltf::Model& gltfModel) {
+        for (int gltfMeshIndex = 0; gltfMeshIndex < gltfModel.meshes.size(); gltfMeshIndex++) {
+            auto& gltfMesh = gltfModel.meshes.at(gltfMeshIndex);
+
+            // Create a vector to store the vertices
+            std::vector<rv::Vertex> vertices{};
+            std::vector<uint32_t> indices{};
+
+            // TODO: all prims
+            const auto& gltfPrimitive = gltfMesh.primitives[0];
+            // for (const auto& gltfPrimitive : gltfMesh.primitives) {
+            //  WARN: Since different attributes may refer to the same data, creating a
+            //  vertex/index buffer for each attribute will result in data duplication.
+
+            // Vertex attributes
+            auto& attributes = gltfPrimitive.attributes;
+
+            assert(attributes.contains("POSITION"));
+            int positionIndex = attributes.find("POSITION")->second;
+            tinygltf::Accessor* positionAccessor = &gltfModel.accessors[positionIndex];
+            tinygltf::BufferView* positionBufferView =
+                &gltfModel.bufferViews[positionAccessor->bufferView];
+
+            tinygltf::Accessor* normalAccessor = nullptr;
+            tinygltf::BufferView* normalBufferView = nullptr;
+            if (attributes.contains("NORMAL")) {
+                int normalIndex = attributes.find("NORMAL")->second;
+                normalAccessor = &gltfModel.accessors[normalIndex];
+                normalBufferView = &gltfModel.bufferViews[normalAccessor->bufferView];
+            }
+
+            tinygltf::Accessor* texCoordAccessor = nullptr;
+            tinygltf::BufferView* texCoordBufferView = nullptr;
+            if (attributes.contains("TEXCOORD_0")) {
+                int texCoordIndex = attributes.find("TEXCOORD_0")->second;
+                texCoordAccessor = &gltfModel.accessors[texCoordIndex];
+                texCoordBufferView = &gltfModel.bufferViews[texCoordAccessor->bufferView];
+            }
+
+            // vertices.resize(vertices.size() + positionAccessor->count);
+
+            // Loop over the vertices
+            for (size_t i = 0; i < positionAccessor->count; i++) {
+                rv::Vertex vertex;
+
+                size_t positionByteOffset = positionAccessor->byteOffset +
+                                            positionBufferView->byteOffset +
+                                            i * positionBufferView->byteStride;
+                vertex.pos = *reinterpret_cast<const glm::vec3*>(
+                    &(gltfModel.buffers[positionBufferView->buffer].data[positionByteOffset]));
+
+                if (normalBufferView) {
+                    size_t normalByteOffset = normalAccessor->byteOffset +
+                                              normalBufferView->byteOffset +
+                                              i * normalBufferView->byteStride;
+                    vertex.normal = *reinterpret_cast<const glm::vec3*>(
+                        &(gltfModel.buffers[normalBufferView->buffer].data[normalByteOffset]));
+                }
+
+                if (texCoordBufferView) {
+                    size_t texCoordByteOffset = texCoordAccessor->byteOffset +
+                                                texCoordBufferView->byteOffset +
+                                                i * texCoordBufferView->byteStride;
+                    vertex.texCoord = *reinterpret_cast<const glm::vec2*>(
+                        &(gltfModel.buffers[texCoordBufferView->buffer].data[texCoordByteOffset]));
+                }
+
+                vertices.push_back(vertex);
+            }
+
+            // Get indices
+            auto& accessor = gltfModel.accessors[gltfPrimitive.indices];
+            auto& bufferView = gltfModel.bufferViews[accessor.bufferView];
+            auto& buffer = gltfModel.buffers[bufferView.buffer];
+
+            size_t indicesCount = accessor.count;
+            switch (accessor.componentType) {
+                case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+                    uint32_t* buf = new uint32_t[indicesCount];
+                    size_t size = indicesCount * sizeof(uint32_t);
+                    memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], size);
+                    for (size_t i = 0; i < indicesCount; i++) {
+                        indices.push_back(buf[i]);
+                    }
+                    break;
+                }
+                case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+                    uint16_t* buf = new uint16_t[indicesCount];
+                    size_t size = indicesCount * sizeof(uint16_t);
+                    memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], size);
+                    for (size_t i = 0; i < indicesCount; i++) {
+                        indices.push_back(buf[i]);
+                    }
+                    break;
+                }
+                case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+                    uint8_t* buf = new uint8_t[indicesCount];
+                    size_t size = indicesCount * sizeof(uint8_t);
+                    memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], size);
+                    for (size_t i = 0; i < indicesCount; i++) {
+                        indices.push_back(buf[i]);
+                    }
+                    break;
+                }
+                default:
+                    std::cerr << "Index component type " << accessor.componentType
+                              << " not supported!" << std::endl;
+                    return;
+            }
+
+            std::vector<Primitive> primitives(1);
+            if (gltfPrimitive.material != -1) {
+                primitives[0].material = &materials[gltfPrimitive.material];
+            }
+            primitives[0].firstIndex = 0;
+            primitives[0].indexCount = static_cast<uint32_t>(indices.size());
+            primitives[0].vertexCount = static_cast<uint32_t>(vertices.size());
+            meshData.emplace_back(context, vertices, indices, primitives, gltfMesh.name);
+
+            // vertexBuffers.push_back(context.createBuffer({
+            //     .usage = BufferUsage::Vertex,
+            //     .memory = MemoryUsage::Device,
+            //     .size = sizeof(Vertex) * vertices.size(),
+            //     .debugName = std::format("vertexBuffers[{}]", vertexBuffers.size()).c_str(),
+            // }));
+            // indexBuffers.push_back(context.createBuffer({
+            //     .usage = BufferUsage::Index,
+            //     .memory = MemoryUsage::Device,
+            //     .size = sizeof(uint32_t) * indices.size(),
+            //     .debugName = std::format("indexBuffers[{}]", indexBuffers.size()).c_str(),
+            // }));
+            // context.oneTimeSubmit([&](CommandBufferHandle commandBuffer) {
+            //     commandBuffer->copyBuffer(vertexBuffers.back(), vertices.data());
+            //     commandBuffer->copyBuffer(indexBuffers.back(), indices.data());
+            // });
+
+            // vertexCounts.push_back(static_cast<uint32_t>(vertices.size()));
+            // triangleCounts.push_back(static_cast<uint32_t>(indices.size() / 3));
+
+            // materialIndices.push_back(gltfPrimitive.material);
+            //}
+        }
+    }
+
+    void loadNodes(tinygltf::Model& gltfModel) {
+        for (auto& gltfNode : gltfModel.nodes) {
+            // if (gltfNode.camera != -1) {
+            //     if (!gltfNode.translation.empty()) {
+            //         cameraTranslation = glm::vec3{gltfNode.translation[0],
+            //         -gltfNode.translation[1],
+            //                                       gltfNode.translation[2]};
+            //     }
+            //     if (!gltfNode.rotation.empty()) {
+            //         cameraRotation = glm::quat{static_cast<float>(gltfNode.rotation[3]),
+            //                                    static_cast<float>(-gltfNode.rotation[0]),
+            //                                    static_cast<float>(gltfNode.rotation[1]),
+            //                                    static_cast<float>(gltfNode.rotation[2])};
+            //     }
+
+            //    tinygltf::Camera camera = gltfModel.cameras[gltfNode.camera];
+            //    cameraYFov = static_cast<float>(camera.perspective.yfov);
+            //    cameraExists = true;
+            //    nodes.push_back(Node{});
+            //    continue;
+            //}
+
+            // if (gltfNode.skin != -1) {
+            //     nodes.push_back(Node{});
+            //     continue;
+            // }
+
+            if (gltfNode.mesh != -1) {
+                objects.emplace_back(gltfNode.name);
+                Object& obj = objects.back();
+
+                Mesh& mesh = obj.add<Mesh>();
+                mesh.meshData = &meshData[gltfNode.mesh];
+
+                Transform& trans = obj.add<Transform>();
+
+                if (!gltfNode.translation.empty()) {
+                    trans.translation = glm::vec3{gltfNode.translation[0],  //
+                                                  gltfNode.translation[1],  //
+                                                  gltfNode.translation[2]};
+                }
+
+                if (!gltfNode.rotation.empty()) {
+                    trans.rotation = glm::quat{static_cast<float>(gltfNode.rotation[3]),
+                                               static_cast<float>(gltfNode.rotation[0]),
+                                               static_cast<float>(gltfNode.rotation[1]),
+                                               static_cast<float>(gltfNode.rotation[2])};
+                }
+
+                if (!gltfNode.scale.empty()) {
+                    trans.scale = glm::vec3{gltfNode.scale[0],  //
+                                            gltfNode.scale[1],  //
+                                            gltfNode.scale[2]};
+                }
+            }
+        }
+    }
+
+    void loadFromJson(const rv::Context& context, const std::filesystem::path& filepath) {
         std::ifstream jsonFile(filepath);
         if (!jsonFile.is_open()) {
             throw std::runtime_error("Failed to open scene file.");
         }
         nlohmann::json json;
         jsonFile >> json;
-
-        for (const auto& mesh : json["meshes"]) {
-            if (mesh["type"] == "Cube") {
-                meshes.push_back(rv::Mesh::createCubeMesh(*context, {}));
-            } else if (mesh["type"] == "Plane") {
-                rv::PlaneMeshCreateInfo createInfo{
-                    .width = mesh["width"],
-                    .height = mesh["height"],
-                    .widthSegments = mesh["widthSegments"],
-                    .heightSegments = mesh["heightSegments"],
-                };
-                meshes.push_back(rv::Mesh::createPlaneMesh(*context, createInfo));
-            }
-        }
 
         if (json.contains("textures")) {
             for (auto& _texture : json["textures"]) {
@@ -479,7 +849,7 @@ public:
                 Texture texture{};
                 texture.name = texturePath.filename().string();
                 texture.filepath = texturePath.string();
-                texture.image = rv::Image::loadFromKTX(*context, texturePath.string());
+                texture.image = rv::Image::loadFromKTX(context, texturePath.string());
 
                 if (texture.image->getViewType() == vk::ImageViewType::e2D) {
                     textures2D.push_back(std::move(texture));
@@ -546,10 +916,12 @@ public:
 
             if (object["type"] == "Mesh") {
                 assert(object.contains("mesh"));
-                auto& mesh = obj.add<Mesh>(meshes[object["mesh"]]);
+                // auto& mesh = obj.add<Mesh>(meshes[object["mesh"]]);
+                auto& mesh = obj.add<Mesh>();
+                mesh.meshData = &templateMeshData[object["mesh"]];
 
                 if (object.contains("material")) {
-                    mesh.material = &materials[object["material"]];
+                    mesh.meshData->primitives[0].material = &materials[object["material"]];
                 }
             } else if (object["type"] == "DirectionalLight") {
                 if (findObject<DirectionalLight>()) {
@@ -625,12 +997,12 @@ public:
         return camera;
     }
 
-    rv::Mesh& getCubeMesh() {
-        return cubeMesh;
+    MeshData& getCubeMesh() {
+        return templateMeshData[static_cast<int>(MeshType::Cube)];
     }
 
-    std::vector<rv::Mesh>& getMeshes() {
-        return meshes;
+    std::vector<MeshData>& getMeshData() {
+        return meshData;
     }
 
     std::vector<Material>& getMaterials() {
@@ -667,7 +1039,7 @@ public:
         objects.clear();
         objects.reserve(maxObjectCount);
         camera = rv::Camera{rv::Camera::Type::Orbital, 1.0f};
-        meshes.clear();
+        meshData.clear();
         materials.clear();
         textures2D.clear();
         texturesCube.clear();
@@ -675,21 +1047,19 @@ public:
     }
 
 private:
-    const rv::Context* context = nullptr;
-
     // vectorの再アロケートが起きると外部で持っている要素へのポインタが壊れるため
     // 事前に大きなサイズでメモリ確保しておく。
     // ポインタではなく別のハンドルやIDで参照させれば再アロケートも可能。
     // もしくは外部のポインタを強制的に一度nullptrにしても良いが、一般的に難しい。
     int maxObjectCount = 10000;
-    std::vector<Object> objects;
-    rv::Camera camera{};
+    std::vector<Object> objects{};
+    rv::Camera camera{rv::Camera::Type::Orbital, 1.0f};
 
-    rv::Mesh cubeMesh;
-    std::vector<rv::Mesh> meshes;
-    std::vector<Material> materials;
-    std::vector<Texture> textures2D;
-    std::vector<Texture> texturesCube;
+    std::vector<MeshData> templateMeshData{};
+    std::vector<MeshData> meshData{};
+    std::vector<Material> materials{};
+    std::vector<Texture> textures2D{};
+    std::vector<Texture> texturesCube{};
 
     rv::SceneStatusFlags status = rv::SceneStatus::None;
 };
