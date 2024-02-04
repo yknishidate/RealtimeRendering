@@ -214,7 +214,9 @@ public:
         }
 
         // Skybox pass
-        skyboxPass.render(commandBuffer, images.baseColorImage, scene.getCubeMesh());
+        if (scene.findObject<AmbientLight>()) {
+            skyboxPass.render(commandBuffer, images.baseColorImage, scene.getCubeMesh());
+        }
 
         // Forward pass
         auto& objects = scene.getObjects();
