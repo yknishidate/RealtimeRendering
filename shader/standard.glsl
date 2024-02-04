@@ -15,7 +15,7 @@ struct ObjectData{
     glm::vec4 baseColor{1.0f};
     glm::vec4 emissive{0.0f};
     float metallic{0.0f};
-    float roughness{0.0f};
+    float roughness{1.0f};
     float ior{1.5f};
     int baseColorTextureIndex{-1};
     int metallicRoughnessTextureIndex{-1};
