@@ -802,7 +802,12 @@ public:
             // }
 
             if (gltfNode.mesh != -1) {
-                objects.emplace_back(gltfNode.name);
+                std::string name = gltfNode.name;
+                if (name.empty()) {
+                    name = std::format("Object {}", objects.size());
+                }
+
+                objects.emplace_back(name);
                 Object& obj = objects.back();
 
                 Mesh& mesh = obj.add<Mesh>();
