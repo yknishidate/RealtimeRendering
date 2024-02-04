@@ -3,6 +3,9 @@
 #include <memory>
 #include <typeindex>
 
+#define TINYGLTF_IMPLEMENTATION
+#include <tiny_gltf.h>
+
 #include "Object.hpp"
 
 class Scene {

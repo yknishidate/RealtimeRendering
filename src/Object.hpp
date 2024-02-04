@@ -3,12 +3,7 @@
 #include <memory>
 #include <typeindex>
 
-#define TINYGLTF_IMPLEMENTATION
-#include <nfd.h>
-#include <tiny_gltf.h>
-
-#include <reactive/Scene/Camera.hpp>
-#include <reactive/Scene/Mesh.hpp>
+#include <reactive/reactive.hpp>
 
 #include "editor/Enums.hpp"
 #include "editor/IconManager.hpp"
