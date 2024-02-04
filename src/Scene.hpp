@@ -420,6 +420,7 @@ public:
                 }
 
                 if (object.contains("material")) {
+                    // MeshにMaterialが紐づいているので、ObjectごとにMaterialが変えられない
                     mesh.meshData->primitives[0].material = &materials[object["material"]];
                 }
             } else if (object["type"] == "DirectionalLight") {

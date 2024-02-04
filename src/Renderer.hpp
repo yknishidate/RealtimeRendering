@@ -132,7 +132,18 @@ public:
             }
             // TODO: マテリアル情報はバッファを分けてGPU側でインデックス参照する
             if (Material* material = mesh->meshData->primitives[0].material) {
+                // clang-format off
                 objectStorage[index].baseColor = material->baseColor;
+                objectStorage[index].emissive.xyz = material->emissive;
+                objectStorage[index].metallic = material->metallic;
+                objectStorage[index].roughness = material->roughness;
+                objectStorage[index].ior = material->ior;
+                objectStorage[index].baseColorTextureIndex = material->baseColorTextureIndex;
+                objectStorage[index].metallicRoughnessTextureIndex = material->metallicRoughnessTextureIndex;
+                objectStorage[index].normalTextureIndex = material->normalTextureIndex;
+                objectStorage[index].occlusionTextureIndex = material->occlusionTextureIndex;
+                objectStorage[index].emissiveTextureIndex = material->emissiveTextureIndex;
+                // clang-format on
             }
             if (transform) {
                 const auto& model = transform->computeTransformMatrix(frame);

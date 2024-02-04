@@ -14,6 +14,9 @@ vec2 poissonDisk[4] = vec2[](
 );
 
 void main() {
+    outColor = objects[pc.objectIndex].baseColor;
+    return;
+
     vec3 directionalTerm = vec3(0.0);
     if(scene.existDirectionalLight == 1){
         vec3 lightDir = scene.lightDirection.xyz;

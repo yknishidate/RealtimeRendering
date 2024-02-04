@@ -13,10 +13,28 @@ struct ObjectData{
     glm::mat4 modelMatrix{1.0f};
     glm::mat4 normalMatrix{1.0f};
     glm::vec4 baseColor{1.0f};
+    glm::vec4 emissive{0.0f};
+    float metallic{0.0f};
+    float roughness{0.0f};
+    float ior{1.5f};
+    int baseColorTextureIndex{-1};
+    int metallicRoughnessTextureIndex{-1};
+    int normalTextureIndex{-1};
+    int occlusionTextureIndex{-1};
+    int emissiveTextureIndex{-1};
 #else
     mat4 modelMatrix;
     mat4 normalMatrix;
     vec4 baseColor;
+    vec4 emissive;
+    float metallic;
+    float roughness;
+    float ior;
+    int baseColorTextureIndex;
+    int metallicRoughnessTextureIndex;
+    int normalTextureIndex;
+    int occlusionTextureIndex;
+    int emissiveTextureIndex;
 #endif
 };
 
