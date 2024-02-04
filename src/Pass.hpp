@@ -13,18 +13,13 @@ public:
         initialized = true;
     }
 
-    float getRenderingTimeMs() {
+    float getRenderingTimeMs() const {
         assert(initialized);
-        if (isFirstRenderTimeRequest) {
-            isFirstRenderTimeRequest = false;
-            return 0.0f;
-        }
         return timer->elapsedInMilli();
     }
 
 protected:
     bool initialized = false;
-    bool isFirstRenderTimeRequest = true;
     rv::GPUTimerHandle timer;
 };
 
