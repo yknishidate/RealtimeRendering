@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <memory>
+#include <ranges>
 #include <typeindex>
 
 #include <reactive/reactive.hpp>
@@ -9,6 +10,7 @@
 #include "editor/IconManager.hpp"
 
 class Object;
+class Scene;
 
 struct Component {
     Component() = default;
@@ -21,7 +23,7 @@ struct Component {
     Component& operator=(Component&&) = default;
 
     virtual void update(float dt) {}
-    virtual bool showAttributes() = 0;
+    virtual bool showAttributes(Scene& scene) = 0;
 
     Object* object = nullptr;
 };
@@ -145,7 +147,7 @@ struct Transform final : Component {
         // return computeTransform(frame).computeNormalMatrix();
     }
 
-    bool showAttributes() override {
+    bool showAttributes(Scene& scene) override {
         bool changed = false;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNode("Transform")) {
@@ -244,7 +246,7 @@ struct DirectionalLight : Component {
         return {x, y, z};
     }
 
-    bool showAttributes() override {
+    bool showAttributes(Scene& scene) override {
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         bool changed = false;
         if (ImGui::TreeNode("Directional light")) {
@@ -275,7 +277,7 @@ struct DirectionalLight : Component {
 };
 
 struct PointLight final : Component {
-    bool showAttributes() override {
+    bool showAttributes(Scene& scene) override {
         bool changed = false;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNode("Point light")) {
@@ -293,27 +295,17 @@ struct PointLight final : Component {
 };
 
 struct AmbientLight final : Component {
-    bool showAttributes() override {
-        bool changed = false;
-        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        if (ImGui::TreeNode("Ambient light")) {
-            changed |= ImGui::ColorEdit3("Color", glm::value_ptr(color));
-            changed |= ImGui::DragFloat("Intensity", &intensity, 0.001f, 0.0f, 100.0f);
-            ImGui::Text("Texture: %d", textureIndex);
-            ImGui::TreePop();
-        }
-        return changed;
-    }
+    bool showAttributes(Scene& scene) override;
 
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
-    int textureIndex = -1;
+    int textureCube = -1;
 };
 
 struct Primitive {
-    uint32_t firstIndex;
-    uint32_t indexCount;
-    uint32_t vertexCount;
+    uint32_t firstIndex{};
+    uint32_t indexCount{};
+    uint32_t vertexCount{};
     Material* material = nullptr;
 };
 
@@ -470,7 +462,7 @@ struct Mesh final : Component {
         return worldAABB;
     }
 
-    bool showAttributes() override {
+    bool showAttributes(Scene& scene) override {
         bool changed = false;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::TreeNode("Mesh")) {

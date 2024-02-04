@@ -3,8 +3,8 @@
 #include <memory>
 #include <typeindex>
 
-#define TINYGLTF_IMPLEMENTATION
 #include <tiny_gltf.h>
+#include <nlohmann/json.hpp>
 
 #include "Object.hpp"
 
@@ -343,8 +343,8 @@ public:
         nlohmann::json json;
         jsonFile >> json;
 
-        if (json.contains("textures")) {
-            for (auto& _texture : json["textures"]) {
+        if (json.contains("texturesCube")) {
+            for (auto& _texture : json["texturesCube"]) {
                 std::filesystem::path sceneDir = filepath.parent_path();
                 std::filesystem::path texturePath =
                     sceneDir / std::filesystem::path{std::string{_texture}};
@@ -354,18 +354,10 @@ public:
                 texture.filepath = texturePath.string();
                 texture.image = rv::Image::loadFromKTX(context, texturePath.string());
 
-                if (texture.image->getViewType() == vk::ImageViewType::e2D) {
-                    textures2D.push_back(std::move(texture));
-                    IconManager::addIcon(texture.name, texture.image);
-                    status |= rv::SceneStatus::Texture2DAdded;
-                } else if (texture.image->getViewType() == vk::ImageViewType::eCube) {
-                    // TODO: アイコンサポート
-                    texturesCube.push_back(std::move(texture));
-                    status |= rv::SceneStatus::TextureCubeAdded;
-                } else {
-                    // TODO: サポート
-                    assert(false);
-                }
+                // TODO: アイコンサポート
+                assert(texture.image->getViewType() == vk::ImageViewType::eCube);
+                texturesCube.push_back(std::move(texture));
+                status |= rv::SceneStatus::TextureCubeAdded;
             }
         }
 
@@ -466,8 +458,8 @@ public:
                 if (object.contains("intensity")) {
                     light.intensity = object["intensity"];
                 }
-                if (object.contains("texture")) {
-                    light.textureIndex = object["texture"];
+                if (object.contains("texturesCube")) {
+                    light.textureCube = object["texturesCube"];
                 }
             } else {
                 assert(false && "Not implemented");

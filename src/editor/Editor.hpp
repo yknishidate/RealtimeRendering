@@ -82,7 +82,7 @@ public:
         }
 
         SceneWindow::show(scene, &selectedObject);
-        AttributeWindow::show(selectedObject);
+        AttributeWindow::show(scene, selectedObject);
         ViewportWindow::show(scene, imguiDescSet, selectedObject);
         AssetWindow::show(context, scene);
 

@@ -119,7 +119,7 @@ public:
         if (Object* ambLightObj = scene.findObject<AmbientLight>()) {
             auto* light = ambLightObj->get<AmbientLight>();
             sceneUniform.ambientColorIntensity.xyz = light->color * light->intensity;
-            sceneUniform.envMapIndex = light->textureIndex;
+            sceneUniform.envMapIndex = light->textureCube;
         }
 
         auto& objects = scene.getObjects();

@@ -92,7 +92,7 @@
                 1.0
             ],
             "intensity": 0.3,
-            "texture": 0
+            "texturesCube": 0
         }
     ],
     "camera": {
@@ -102,7 +102,7 @@
         "phi": 0.0,
         "theta": -10.0
     },
-    "textures": [
+    "texturesCube": [
         "../environments/papermill.ktx"
     ]
 }
