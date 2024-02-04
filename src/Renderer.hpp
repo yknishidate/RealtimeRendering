@@ -183,6 +183,8 @@ public:
         }
 
         if (scene.getStatus() & rv::SceneStatus::Cleared) {
+            sceneUniform = SceneData{};
+            std::ranges::fill(objectStorage, ObjectData{});
             descSet->set("textures2D", dummyTextures2D);
             descSet->set("texturesCube", dummyTexturesCube);
             descSet->update();
