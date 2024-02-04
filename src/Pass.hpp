@@ -238,7 +238,7 @@ public:
                 const rv::ImageHandle& depthImage,
                 std::vector<Object>& objects) {
         vk::Extent3D extent = baseColorImage->getExtent();
-        commandBuffer.beginDebugLabel("Renderer::render()");
+        commandBuffer.beginDebugLabel("ForwardPass::render()");
         commandBuffer.bindDescriptorSet(descSet, pipeline);
         commandBuffer.bindPipeline(pipeline);
 
@@ -259,8 +259,8 @@ public:
                 commandBuffer.pushConstants(pipeline, &constants);
                 for (auto& prim : mesh->meshData->primitives) {
                     commandBuffer.drawIndexed(mesh->meshData->vertexBuffer,
-                                              mesh->meshData->indexBuffer, prim.indexCount,
-                                              prim.firstIndex);
+                                              mesh->meshData->indexBuffer,  //
+                                              prim.indexCount, prim.firstIndex);
                 }
             }
         }

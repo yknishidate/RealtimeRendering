@@ -42,8 +42,9 @@ public:
         images.createImages(context, width, height);
 
         scene.createTemplateMeshData(context);
-        scene.loadFromGltf(context, DEV_ASSET_DIR / "models" / "Box.gltf");
+        // scene.loadFromGltf(context, DEV_ASSET_DIR / "models" / "Box.gltf");
         // scene.loadFromGltf(context, DEV_ASSET_DIR / "models" / "Sphere.gltf");
+        scene.loadFromGltf(context, DEV_ASSET_DIR / "models" / "SphereWithMaterial.gltf");
         //  scene.loadFromJson(context, DEV_ASSET_DIR / "scenes" / "two_boxes.json");
 
         renderer.init(context, images);

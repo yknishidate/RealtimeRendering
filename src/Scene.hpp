@@ -562,6 +562,9 @@ public:
     }
 
     void loadFromGltf(const rv::Context& context, const std::filesystem::path& filepath) {
+        context.getDevice().waitIdle();
+        clear();
+
         tinygltf::Model model;
         tinygltf::TinyGLTF loader;
         std::string err;
@@ -675,24 +678,37 @@ public:
             for (size_t i = 0; i < positionAccessor->count; i++) {
                 rv::Vertex vertex;
 
+                // NOTE:
+                // byteStride が 0 の場合、データは密に詰まっている
+                size_t positionByteStride = positionBufferView->byteStride;
+                if (positionByteStride == 0) {
+                    positionByteStride = sizeof(glm::vec3);
+                }
+
                 size_t positionByteOffset = positionAccessor->byteOffset +
-                                            positionBufferView->byteOffset +
-                                            i * positionBufferView->byteStride;
+                                            positionBufferView->byteOffset + i * positionByteStride;
                 vertex.pos = *reinterpret_cast<const glm::vec3*>(
                     &(gltfModel.buffers[positionBufferView->buffer].data[positionByteOffset]));
 
                 if (normalBufferView) {
+                    size_t normalByteStride = normalBufferView->byteStride;
+                    if (normalByteStride == 0) {
+                        normalByteStride = sizeof(glm::vec3);
+                    }
                     size_t normalByteOffset = normalAccessor->byteOffset +
-                                              normalBufferView->byteOffset +
-                                              i * normalBufferView->byteStride;
+                                              normalBufferView->byteOffset + i * normalByteStride;
                     vertex.normal = *reinterpret_cast<const glm::vec3*>(
                         &(gltfModel.buffers[normalBufferView->buffer].data[normalByteOffset]));
                 }
 
                 if (texCoordBufferView) {
+                    size_t texCoordByteStride = texCoordBufferView->byteStride;
+                    if (texCoordByteStride == 0) {
+                        texCoordByteStride = sizeof(glm::vec2);
+                    }
                     size_t texCoordByteOffset = texCoordAccessor->byteOffset +
                                                 texCoordBufferView->byteOffset +
-                                                i * texCoordBufferView->byteStride;
+                                                i * texCoordByteStride;
                     vertex.texCoord = *reinterpret_cast<const glm::vec2*>(
                         &(gltfModel.buffers[texCoordBufferView->buffer].data[texCoordByteOffset]));
                 }
@@ -748,29 +764,6 @@ public:
             primitives[0].indexCount = static_cast<uint32_t>(indices.size());
             primitives[0].vertexCount = static_cast<uint32_t>(vertices.size());
             meshData.emplace_back(context, vertices, indices, primitives, gltfMesh.name);
-
-            // vertexBuffers.push_back(context.createBuffer({
-            //     .usage = BufferUsage::Vertex,
-            //     .memory = MemoryUsage::Device,
-            //     .size = sizeof(Vertex) * vertices.size(),
-            //     .debugName = std::format("vertexBuffers[{}]", vertexBuffers.size()).c_str(),
-            // }));
-            // indexBuffers.push_back(context.createBuffer({
-            //     .usage = BufferUsage::Index,
-            //     .memory = MemoryUsage::Device,
-            //     .size = sizeof(uint32_t) * indices.size(),
-            //     .debugName = std::format("indexBuffers[{}]", indexBuffers.size()).c_str(),
-            // }));
-            // context.oneTimeSubmit([&](CommandBufferHandle commandBuffer) {
-            //     commandBuffer->copyBuffer(vertexBuffers.back(), vertices.data());
-            //     commandBuffer->copyBuffer(indexBuffers.back(), indices.data());
-            // });
-
-            // vertexCounts.push_back(static_cast<uint32_t>(vertices.size()));
-            // triangleCounts.push_back(static_cast<uint32_t>(indices.size() / 3));
-
-            // materialIndices.push_back(gltfPrimitive.material);
-            //}
         }
     }
 
@@ -838,6 +831,11 @@ public:
     }
 
     void loadFromJson(const rv::Context& context, const std::filesystem::path& filepath) {
+        // TODO: cameraの初期化後にViewportかSwapchainのアスペクト比を取得
+        // TODO: レンダラー側のバッファのクリア
+        context.getDevice().waitIdle();
+        clear();
+
         std::ifstream jsonFile(filepath);
         if (!jsonFile.is_open()) {
             throw std::runtime_error("Failed to open scene file.");

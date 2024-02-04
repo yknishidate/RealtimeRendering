@@ -9,20 +9,25 @@
 class MenuBar {
 public:
     // TODO:
-    static void openScene(Scene& /*scene*/) {
+    static void openScene(const rv::Context& context, Scene& scene) {
         nfdchar_t* outPath = nullptr;
-        nfdresult_t result = NFD_OpenDialog("json", nullptr, &outPath);
+        nfdresult_t result = NFD_OpenDialog("json,gltf", nullptr, &outPath);
         if (result == NFD_OKAY) {
-            // scene.loadFromJson(std::filesystem::path{outPath});
+            std::filesystem::path filepath = {outPath};
+            if (filepath.extension() == ".gltf") {
+                scene.loadFromGltf(context, std::filesystem::path{outPath});
+            } else if (filepath.extension() == ".json") {
+                scene.loadFromJson(context, std::filesystem::path{outPath});
+            }
             free(outPath);
         }
     }
 
-    static void show(Scene& scene) {
+    static void show(const rv::Context& context, Scene& scene) {
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("Open..", "Ctrl+O")) {
-                    openScene(scene);
+                    openScene(context, scene);
                 }
                 if (ImGui::MenuItem("Save", "Ctrl+S")) { /* Do stuff */
                 }

@@ -50,7 +50,7 @@ public:
         ImGui::Begin("DockSpace", nullptr, windowFlags);
         ImGui::PopStyleVar(3);
 
-        MenuBar::show(scene);
+        MenuBar::show(context, scene);
 
         ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
