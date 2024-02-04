@@ -40,6 +40,11 @@ public:
                             scene.addObject("Directional light").add<DirectionalLight>();
                         }
                     }
+                    if (ImGui::MenuItem("Ambient light")) {
+                        if (!scene.findObject<AmbientLight>()) {
+                            scene.addObject("Ambient light").add<AmbientLight>();
+                        }
+                    }
                     if (ImGui::MenuItem("Point light")) {
                         scene.addObject("Point light").add<PointLight>();
                     }
