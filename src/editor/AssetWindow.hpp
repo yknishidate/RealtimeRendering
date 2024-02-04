@@ -7,26 +7,38 @@
 
 class AssetWindow {
 public:
-    static void importTexture(const rv::Context& context, Scene& scene, const char* filepath) {
-        // TODO: 2D以外のサポート
+    static void importTexture(const rv::Context& context,
+                              Scene& scene,
+                              const std::filesystem::path& filepath) {
         Texture texture;
-        texture.name = "Texture " + std::to_string(scene.getTextures2D().size());
-        texture.filepath = filepath;
-        std::filesystem::path extension = std::filesystem::path{filepath}.extension();
+        texture.name = filepath.filename().string();
+        texture.filepath = filepath.string();
+
+        std::filesystem::path extension = filepath.extension();
         if (extension == ".jpg" || extension == ".png") {
             spdlog::info("Load image");
             texture.image = rv::Image::loadFromFile(context, texture.filepath);
         } else if (extension == ".hdr") {
             spdlog::info("Load HDR image");
             texture.image = rv::Image::loadFromFileHDR(context, texture.filepath);
+        } else if (extension == ".ktx") {
+            spdlog::info("Load HDR image");
+            texture.image = rv::Image::loadFromKTX(context, texture.filepath);
         }
-        scene.getTextures2D().push_back(texture);
-        IconManager::addIcon(texture.name, texture.image);
+
+        if (texture.image->getViewType() == vk::ImageViewType::e2D) {
+            scene.addTexture2D(texture);
+            IconManager::addIcon(texture.name, texture.image);
+        } else if (texture.image->getViewType() == vk::ImageViewType::eCube) {
+            scene.addTextureCube(texture);
+        } else {
+            assert(false);
+        }
     }
 
     static void openImportDialog(const rv::Context& context, Scene& scene) {
         nfdchar_t* outPath = nullptr;
-        nfdresult_t result = NFD_OpenDialog("png,jpg,hdr", nullptr, &outPath);
+        nfdresult_t result = NFD_OpenDialog("png,jpg,hdr,ktx", nullptr, &outPath);
         if (result == NFD_OKAY) {
             importTexture(context, scene, outPath);
             free(outPath);

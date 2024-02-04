@@ -182,6 +182,7 @@ public:
                 }
                 descSet->set("textures2D", textures2D);
                 descSet->update();
+                spdlog::info("Update desc set for texture 2D");
             }
         }
         if (!firstFrameRendered || scene.getStatus() & rv::SceneStatus::TextureCubeAdded) {
@@ -192,6 +193,7 @@ public:
                 }
                 descSet->set("texturesCube", texturesCube);
                 descSet->update();
+                spdlog::info("Update desc set for texture cube");
             }
         }
         scene.resetStatus();

@@ -496,24 +496,34 @@ public:
         return camera;
     }
 
-    MeshData& getCubeMesh() {
+    const MeshData& getCubeMesh() {
         return templateMeshData[static_cast<int>(MeshType::Cube)];
     }
 
-    std::vector<MeshData>& getMeshData() {
+    const std::vector<MeshData>& getMeshData() {
         return meshData;
     }
 
-    std::vector<Material>& getMaterials() {
+    const std::vector<Material>& getMaterials() {
         return materials;
     }
 
-    std::vector<Texture>& getTextures2D() {
+    const std::vector<Texture>& getTextures2D() {
         return textures2D;
     }
 
-    std::vector<Texture>& getTexturesCube() {
+    const std::vector<Texture>& getTexturesCube() {
         return texturesCube;
+    }
+
+    void addTexture2D(const Texture& tex) {
+        textures2D.push_back(tex);
+        status |= rv::SceneStatus::Texture2DAdded;
+    }
+
+    void addTextureCube(const Texture& tex) {
+        texturesCube.push_back(tex);
+        status |= rv::SceneStatus::TextureCubeAdded;
     }
 
     rv::AABB getAABB() const {
