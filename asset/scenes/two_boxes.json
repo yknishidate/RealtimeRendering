@@ -36,7 +36,7 @@
         {
             "name": "Cube 0",
             "type": "Mesh",
-            "mesh": 0,
+            "mesh": "Cube",
             "material": 0,
             "translation": [
                 -1.5,
@@ -47,7 +47,7 @@
         {
             "name": "Cube 1",
             "type": "Mesh",
-            "mesh": 0,
+            "mesh": "Cube",
             "material": 1,
             "translation": [
                 1.5,
@@ -58,7 +58,7 @@
         {
             "name": "Plane 0",
             "type": "Mesh",
-            "mesh": 1,
+            "mesh": "Plane",
             "material": 2,
             "translation": [
                 0.0,

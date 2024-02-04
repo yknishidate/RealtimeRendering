@@ -4,6 +4,7 @@
 #include <typeindex>
 
 #define TINYGLTF_IMPLEMENTATION
+#include <nfd.h>
 #include <tiny_gltf.h>
 
 #include <reactive/Scene/Camera.hpp>
@@ -921,7 +922,11 @@ public:
                 assert(object.contains("mesh"));
                 // auto& mesh = obj.add<Mesh>(meshes[object["mesh"]]);
                 auto& mesh = obj.add<Mesh>();
-                mesh.meshData = &templateMeshData[object["mesh"]];
+                if (object["mesh"] == "Cube") {
+                    mesh.meshData = &templateMeshData[static_cast<int>(MeshType::Cube)];
+                } else if (object["mesh"] == "Plane") {
+                    mesh.meshData = &templateMeshData[static_cast<int>(MeshType::Plane)];
+                }
 
                 if (object.contains("material")) {
                     mesh.meshData->primitives[0].material = &materials[object["material"]];
