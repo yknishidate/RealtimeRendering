@@ -111,9 +111,13 @@ public:
             sceneUniform.lightColorIntensity.xyz = dirLight->color * dirLight->intensity;
             sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*dirLight, scene.getAABB());
             sceneUniform.shadowBias = dirLight->shadowBias;
+            sceneUniform.enableShadowMapping = dirLight->enableShadow;
+        } else {
+            sceneUniform.enableShadowMapping = false;
         }
         if (Object* ambLightObj = scene.findObject<AmbientLight>()) {
             auto* light = ambLightObj->get<AmbientLight>();
+            sceneUniform.existDirectionalLight = 0;
             sceneUniform.ambientColorIntensity.xyz = light->color * light->intensity;
             sceneUniform.envMapIndex = light->textureIndex;
         }
