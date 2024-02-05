@@ -86,6 +86,8 @@ struct SceneData{
 #extension  GL_EXT_nonuniform_qualifier : enable
 //#extension GL_EXT_debug_printf : enable
 
+const float PI = 3.14159265359;
+
 layout(push_constant) uniform PushConstants {
     StandardConstants pc;
 };
