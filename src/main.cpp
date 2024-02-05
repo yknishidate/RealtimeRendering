@@ -42,10 +42,8 @@ public:
 
         images.createImages(context, width, height);
 
-        scene.createTemplateMeshData(context);
-        // scene.loadFromGltf(context, DEV_ASSET_DIR / "models" / "Sphere.gltf");
-        // scene.loadFromJson(context, DEV_ASSET_DIR / "scenes" / "two_boxes.json");
-        scene.loadFromJson(context, DEV_ASSET_DIR / "scenes" / "pbr_helmet.json");
+        scene.init(context);
+        scene.loadFromJson(DEV_ASSET_DIR / "scenes" / "pbr_helmet.json");
 
         renderer.init(context, images);
         viewportRenderer.init(context);

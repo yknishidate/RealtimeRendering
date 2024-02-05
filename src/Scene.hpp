@@ -10,8 +10,16 @@
 
 class Scene {
 public:
-    Scene() {
+    void init(const rv::Context& _context) {
+        context = &_context;
+
         objects.reserve(maxObjectCount);
+
+        int count = static_cast<int>(MeshType::COUNT);
+        templateMeshData.reserve(count);
+        for (int type = 0; type < count; type++) {
+            templateMeshData.emplace_back(*context, static_cast<MeshType>(type));
+        }
     }
 
     // TODO: 名前被りを解決
@@ -53,16 +61,8 @@ public:
         return count;
     }
 
-    void createTemplateMeshData(const rv::Context& context) {
-        int count = static_cast<int>(MeshType::COUNT);
-        templateMeshData.reserve(count);
-        for (int type = 0; type < count; type++) {
-            templateMeshData.emplace_back(context, static_cast<MeshType>(type));
-        }
-    }
-
-    void loadFromGltf(const rv::Context& context, const std::filesystem::path& filepath) {
-        context.getDevice().waitIdle();
+    void loadFromGltf(const std::filesystem::path& filepath) {
+        context->getDevice().waitIdle();
         clear();
 
         tinygltf::Model model;
@@ -82,7 +82,7 @@ public:
         }
 
         loadMaterials(model);
-        loadMeshes(context, model);
+        loadMeshes(model);
         loadNodes(model);
         spdlog::info("Loaded glTF file: {}", filepath.string());
         spdlog::info("  Material: {}", materials.size());
@@ -133,7 +133,7 @@ public:
         }
     }
 
-    void loadMeshes(const rv::Context& context, tinygltf::Model& gltfModel) {
+    void loadMeshes(tinygltf::Model& gltfModel) {
         for (int gltfMeshIndex = 0; gltfMeshIndex < gltfModel.meshes.size(); gltfMeshIndex++) {
             auto& gltfMesh = gltfModel.meshes.at(gltfMeshIndex);
 
@@ -263,7 +263,7 @@ public:
             primitives[0].firstIndex = 0;
             primitives[0].indexCount = static_cast<uint32_t>(indices.size());
             primitives[0].vertexCount = static_cast<uint32_t>(vertices.size());
-            meshData.emplace_back(context, vertices, indices, primitives, gltfMesh.name);
+            meshData.emplace_back(*context, vertices, indices, primitives, gltfMesh.name);
         }
     }
 
@@ -339,10 +339,10 @@ public:
         }
     }
 
-    void loadFromJson(const rv::Context& context, const std::filesystem::path& filepath) {
+    void loadFromJson(const std::filesystem::path& filepath) {
         // TODO: cameraの初期化後にViewportかSwapchainのアスペクト比を取得
         // TODO: レンダラー側のバッファのクリア
-        context.getDevice().waitIdle();
+        context->getDevice().waitIdle();
         clear();
 
         std::ifstream jsonFile(filepath);
@@ -355,7 +355,7 @@ public:
         if (json.contains("gltf")) {
             std::filesystem::path gltfPath = json["gltf"];
             if (!gltfPath.empty()) {
-                loadFromGltf(context, filepath.parent_path() / gltfPath);
+                loadFromGltf(filepath.parent_path() / gltfPath);
             }
         }
 
@@ -368,7 +368,7 @@ public:
                 Texture texture{};
                 texture.name = texturePath.filename().string();
                 texture.filepath = texturePath.string();
-                texture.image = rv::Image::loadFromKTX(context, texturePath.string());
+                texture.image = rv::Image::loadFromKTX(*context, texturePath.string());
 
                 // TODO: アイコンサポート
                 assert(texture.image->getViewType() == vk::ImageViewType::eCube);
@@ -579,6 +579,8 @@ public:
     }
 
 private:
+    const rv::Context* context = nullptr;
+
     // vectorの再アロケートが起きると外部で持っている要素へのポインタが壊れるため
     // 事前に大きなサイズでメモリ確保しておく。
     // ポインタではなく別のハンドルやIDで参照させれば再アロケートも可能。
