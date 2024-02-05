@@ -64,6 +64,7 @@ public:
                 }
                 if (ImGui::BeginMenu("Renderer")) {
                     ImGui::Checkbox("FXAA", &Renderer::enableFXAA);
+                    ImGui::DragFloat("Exposure", &Renderer::exposure, 0.01f, 0.0f);
                     ImGui::EndMenu();
                 }
                 ImGui::EndMenu();

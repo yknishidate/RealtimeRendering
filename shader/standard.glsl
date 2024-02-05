@@ -55,6 +55,7 @@ struct SceneData{
     int irradianceTexture = -1;
     int radianceTexture = -1;
     float shadowBias = 0.005f;
+    float exposure = 1.0f;
 #else
     mat4 cameraView;
     mat4 cameraProj;
@@ -71,6 +72,7 @@ struct SceneData{
     int irradianceTexture;
     int radianceTexture;
     float shadowBias;
+    float exposure;
 #endif
 };
 

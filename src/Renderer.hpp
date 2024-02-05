@@ -109,6 +109,7 @@ public:
         sceneUniform.screenResolution.x = static_cast<float>(extent.width);
         sceneUniform.screenResolution.y = static_cast<float>(extent.height);
         sceneUniform.enableFXAA = static_cast<int>(enableFXAA);
+        sceneUniform.exposure = exposure;
 
         if (Object* dirLightObj = scene.findObject<DirectionalLight>()) {
             DirectionalLight* dirLight = dirLightObj->get<DirectionalLight>();
@@ -280,6 +281,7 @@ public:
 
     // Global options
     inline static bool enableFXAA = true;
+    inline static float exposure = 1.0f;
 
 private:
     bool initialized = false;
