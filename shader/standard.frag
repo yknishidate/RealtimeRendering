@@ -14,6 +14,11 @@ vec2 poissonDisk[4] = vec2[](
     vec2( 0.34495938, 0.29387760 )
 );
 
+vec3 fresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
@@ -57,6 +62,64 @@ vec3 computeAmbientTerm(vec3 baseColor, float roughness, float metallic, vec3 oc
     return (diffuse + specular) * occlusion;
 }
 
+// 法線 H をもつマイクロファセットの割合を返す
+float DistributionGGX(vec3 N, vec3 H, float roughness)
+{
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
+
+    return a2 / denom;
+}
+
+// NOTE: 視線方向または光源方向のいずれか一方から見たときのジオメトリ項
+float GeometrySchlickGGX(float NdotV, float roughness)
+{
+    float a = roughness + 1.0;
+    float k = (a * a) / 8.0;
+    float nom = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+    return nom / denom;
+}
+
+// NOTE:
+// 二つの値を乗算した最終的なジオメトリ項
+// cosThetaはジオメトリ項の中に含まれる
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx2 = GeometrySchlickGGX(NdotL, roughness);
+    return ggx1 * ggx2;
+}
+
+vec3 computeDirectionalTerm(vec3 baseColor, float metallic, float roughness, vec3 L, vec3 V, vec3 N)
+{
+    vec3 F0 = mix(vec3(0.04), baseColor, metallic);
+
+    vec3 H = normalize(L + V);
+    float D = DistributionGGX(N, H, roughness);
+    float G = GeometrySmith(N, V, L, roughness);
+    vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+    vec3 kS = F;
+    vec3 kD = (1.0 - kS) * (1.0 - metallic);
+    vec3 numerator = D * G * F;
+    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
+
+    vec3 specular = numerator / denominator;
+    vec3 diffuse = kD * baseColor / PI;
+
+    vec3 Li = scene.lightColorIntensity.rgb;
+    vec3 directionalTerm = (diffuse + specular) * Li * max(dot(N, L), 0.0);
+    return directionalTerm;
+}
+
 void main() {
     vec3 N = inNormal;
     vec3 V = normalize(scene.cameraPos.xyz - inPos);
@@ -95,33 +158,35 @@ void main() {
         occlusion = gammaCorrect(occlusion, 2.2);
     }
 
-    vec3 directionalTerm = vec3(0.0);
-    if(scene.existDirectionalLight == 1){
-        float clampedCosTheta = max(dot(L, N), 0.0);
-        directionalTerm = baseColor * clampedCosTheta * scene.lightColorIntensity.rgb;
-
-        if(scene.enableShadowMapping == 1){
-            float bias = scene.shadowBias * tan(acos(clampedCosTheta));
-            bias = clamp(clampedCosTheta, 0.0, scene.shadowBias * 2.0);
-            
-            #ifdef USE_PCF
-                float rate = 0.0;
-                for (int i = 0; i < 4; i++){
-                    vec3 coord = inShadowCoord.xyz / inShadowCoord.w;
-                    coord.xy += poissonDisk[i] / 1000.0;
-                    coord.z -= bias;
-                    rate += texture(shadowMap, coord).r * 0.25;
-                }
-                directionalTerm *= rate;
-            #else
-                if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - bias){
-                    directionalTerm = vec3(0.0);
-                }
-            #endif // USE_PCF
-        }
-    }
+    vec3 directionalTerm = computeDirectionalTerm(baseColor, metallic, roughness, L, V, N);
+    //vec3 directionalTerm = vec3(0.0);
+    //if(scene.existDirectionalLight == 1){
+    //    float clampedCosTheta = max(dot(L, N), 0.0);
+    //    directionalTerm = baseColor * clampedCosTheta * scene.lightColorIntensity.rgb;
+    //
+    //    if(scene.enableShadowMapping == 1){
+    //        float bias = scene.shadowBias * tan(acos(clampedCosTheta));
+    //        bias = clamp(clampedCosTheta, 0.0, scene.shadowBias * 2.0);
+    //        
+    //        #ifdef USE_PCF
+    //            float rate = 0.0;
+    //            for (int i = 0; i < 4; i++){
+    //                vec3 coord = inShadowCoord.xyz / inShadowCoord.w;
+    //                coord.xy += poissonDisk[i] / 1000.0;
+    //                coord.z -= bias;
+    //                rate += texture(shadowMap, coord).r * 0.25;
+    //            }
+    //            directionalTerm *= rate;
+    //        #else
+    //            if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - bias){
+    //                directionalTerm = vec3(0.0);
+    //            }
+    //        #endif // USE_PCF
+    //    }
+    //}
 
     vec3 ambientTerm = computeAmbientTerm(baseColor, roughness, metallic, occlusion, N, V, R);
 
+    //outColor = vec4(directionalTerm, 1.0);
     outColor = vec4(emissive + ambientTerm + directionalTerm, 1.0);
 }
