@@ -46,7 +46,7 @@ public:
         scene.loadFromJson(DEV_ASSET_DIR / "scenes" / "pbr_helmet.json");
 
         renderer.init(context, images, swapchain->getFormat());
-        viewportRenderer.init(context, swapchain->getFormat());
+        viewportRenderer.init(context, swapchain->getFormat(), images.depthFormat);
 
         editor.init(context, swapchain->getFormat());
         ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());

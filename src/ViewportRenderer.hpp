@@ -14,7 +14,9 @@ class LineDrawer {
     };
 
 public:
-    void createPipeline(const rv::Context& context, vk::Format colorFormat) {
+    void createPipeline(const rv::Context& context,
+                        vk::Format colorFormat,
+                        vk::Format depthFormat) {
         std::vector<uint32_t> vertSpvCode = rv::Compiler::compileOrReadShader(  //
             DEV_SHADER_DIR / "viewport_line.vert",                              //
             DEV_SHADER_DIR / "spv" / "viewport_line.vert.spv");
@@ -46,6 +48,7 @@ public:
             .vertexStride = sizeof(rv::Vertex),
             .vertexAttributes = rv::Vertex::getAttributeDescriptions(),
             .colorFormats = colorFormat,
+            .depthFormat = depthFormat,
             .topology = vk::PrimitiveTopology::eLineList,
             .polygonMode = vk::PolygonMode::eLine,
             .lineWidth = "dynamic",
@@ -74,10 +77,10 @@ public:
 
 class ViewportRenderer {
 public:
-    void init(const rv::Context& _context, vk::Format colorFormat) {
+    void init(const rv::Context& _context, vk::Format colorFormat, vk::Format depthFormat) {
         context = &_context;
 
-        lineDrawer.createPipeline(*context, colorFormat);
+        lineDrawer.createPipeline(*context, colorFormat, depthFormat);
 
         rv::PlaneLineMeshCreateInfo gridInfo;
         gridInfo.width = 100.0f;
