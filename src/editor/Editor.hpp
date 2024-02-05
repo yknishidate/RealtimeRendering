@@ -8,7 +8,9 @@
 
 class Editor {
 public:
-    void init(const rv::Context& context) {
+    void init(const rv::Context& context, vk::Format _colorFormat) {
+        colorFormat = _colorFormat;
+
         // Editor
         IconManager::loadIcons(context);
         ViewportWindow::width = 1920;
@@ -105,7 +107,7 @@ public:
                      vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
                      vk::ImageUsageFlagBits::eColorAttachment,
             .extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1},
-            .format = vk::Format::eB8G8R8A8Unorm,
+            .format = colorFormat,
             .debugName = "ViewportRenderer::colorImage",
         });
 
@@ -128,6 +130,7 @@ public:
     float height = 0.0f;
     rv::ImageHandle viewportImage;
     vk::DescriptorSet imguiDescSet;
+    vk::Format colorFormat;
 
     // Editor
     Object* selectedObject = nullptr;

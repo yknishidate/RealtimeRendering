@@ -45,10 +45,10 @@ public:
         scene.init(context);
         scene.loadFromJson(DEV_ASSET_DIR / "scenes" / "pbr_helmet.json");
 
-        renderer.init(context, images);
-        viewportRenderer.init(context);
+        renderer.init(context, images, swapchain->getFormat());
+        viewportRenderer.init(context, swapchain->getFormat());
 
-        editor.init(context);
+        editor.init(context, swapchain->getFormat());
         ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
 
         spdlog::info("Started: {} ms", timer.elapsedInMilli());
@@ -103,7 +103,7 @@ public:
             if (editor.show(context, scene, cpuTimes, renderer.getRenderTimes()) ==
                 rv::EditorMessage::RecompileRequested) {
                 context.getDevice().waitIdle();
-                renderer.init(context, images);
+                renderer.init(context, images, swapchain->getFormat());
                 ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
             }
             renderer.render(*commandBuffer, editor.getViewportImage(), images, scene, frame);

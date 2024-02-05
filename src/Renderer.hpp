@@ -3,7 +3,7 @@
 
 class Renderer {
 public:
-    void init(const rv::Context& _context, RenderImages& images) {
+    void init(const rv::Context& _context, RenderImages& images, vk::Format targetColorFormat) {
         context = &_context;
 
         shadowMapImage = context->createImage({
@@ -81,10 +81,10 @@ public:
         });
 
         try {
-            forwardPass.init(*context, descSet, images.colorFormat, images.depthFormat);
-            shadowMapPass.init(*context, descSet, shadowMapFormat);
-            antiAliasingPass.init(*context, descSet, images.colorFormat);
             skyboxPass.init(*context, descSet, images.colorFormat);
+            shadowMapPass.init(*context, descSet, shadowMapFormat);
+            forwardPass.init(*context, descSet, images.colorFormat, images.depthFormat);
+            antiAliasingPass.init(*context, descSet, targetColorFormat);
         } catch (const std::exception& e) {
             spdlog::error(e.what());
             std::abort();
