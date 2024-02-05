@@ -113,4 +113,8 @@ layout(binding = 4) uniform sampler2D textures2D[];
 layout(binding = 5) uniform samplerCube texturesCube[];
 layout(binding = 6) uniform sampler2D brdfLutTexture;
 
+vec3 gammaCorrect(vec3 color, float gamma){
+    return pow(color, vec3(gamma));
+}
+
 #endif

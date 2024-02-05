@@ -51,7 +51,7 @@ vec3 computeAmbientTerm(vec3 baseColor, float roughness, float metallic, vec3 oc
 
     // x: dot(N, V)
     // y: roughness
-    vec2 envBRDF  = texture(brdfLutTexture, vec2(max(dot(N, V), 0.0), 1.0 - roughness)).xy;
+    vec2 envBRDF  = texture(brdfLutTexture, vec2(max(dot(N, V), 0.0), roughness)).xy;
     vec3 specular = radiance * (F * envBRDF.x + envBRDF.y);
 
     return (diffuse + specular) * occlusion;
@@ -77,24 +77,22 @@ void main() {
     int occlusionTextureIndex = objects[pc.objectIndex].occlusionTextureIndex;
     if(baseColorTexture != -1){
         baseColor = texture(textures2D[baseColorTexture], inTexCoord).xyz;
+        baseColor = gammaCorrect(baseColor, 2.2);
     }
     if(metallicRoughnessTexture != -1){
         vec3 metallicRoughness = texture(textures2D[metallicRoughnessTexture], inTexCoord).xyz;
-        // occ
+        metallicRoughness = gammaCorrect(metallicRoughness, 2.2);
         roughness = metallicRoughness.y;
         metallic = metallicRoughness.z;
     }
     if(emissiveTextureIndex != -1){
         emissive = texture(textures2D[emissiveTextureIndex], inTexCoord).xyz;
+        emissive = gammaCorrect(emissive, 2.2);
     }
     if(occlusionTextureIndex != -1){
         occlusion = texture(textures2D[occlusionTextureIndex], inTexCoord).xyz;
+        occlusion = gammaCorrect(occlusion, 2.2);
     }
-    //outColor = vec4(baseColor, 1.0);
-    //outColor = vec4(occlusion, 1.0);
-    //outColor = vec4(vec3(metallic), 1.0);
-    //outColor = vec4(vec3(roughness), 1.0);
-    //return;
 
     vec3 directionalTerm = vec3(0.0);
     if(scene.existDirectionalLight == 1){

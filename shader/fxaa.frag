@@ -66,10 +66,6 @@ vec3 tonemap(vec3 color, float exposure){
     return 1.0 - exp(-color * exposure);
 }
 
-vec3 gammaCorrect(vec3 color, float gamma){
-    return pow(color, vec3(1.0 / gamma));
-}
-
 void main(){
     if(scene.enableFXAA == 1){
         vec2 resolution = scene.screenResolution;
@@ -82,7 +78,7 @@ void main(){
         vec2 v_rgbM = vec2(fragCoord * inverseVP);
         vec3 color = fxaa(baseColorImage, fragCoord, resolution,
                         v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM).xyz;
-        outColor = vec4(gammaCorrect(tonemap(color, 1.0), 2.2), 1.0);
+        outColor = vec4(gammaCorrect(tonemap(color, 1.0), 1.0 / 2.2), 1.0);
     }else{
         vec3 color = texture(baseColorImage, vec2(gl_FragCoord.xy) / scene.screenResolution).xyz;
         outColor = vec4(gammaCorrect(tonemap(color, 1.0), 2.2), 1.0);
