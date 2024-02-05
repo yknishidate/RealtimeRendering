@@ -22,6 +22,7 @@ void main() {
     vec3 N = inNormal;
     vec3 V = normalize(inPos - scene.cameraPos.xyz);
     vec3 L = scene.lightDirection.xyz;
+    vec3 R = reflect(-V, N);
 
     vec3 directionalTerm = vec3(0.0);
     if(scene.existDirectionalLight == 1){
@@ -49,25 +50,32 @@ void main() {
         }
     }
     
-    // Parameters
+    // Load parameters
     vec3 baseColor = objects[pc.objectIndex].baseColor.rgb;
     float roughness = objects[pc.objectIndex].roughness;
     float metallic = objects[pc.objectIndex].metallic;
 
+    // Ambient
     vec3 ambientTerm = scene.ambientColorIntensity.rgb;
     if(scene.irradianceTexture != -1){
-        // diffuse には irradiance として LoD=10.0を使用
-        // 正確には最大フィルタリングと irradiance は異なるため修正
-        ambientTerm = textureLod(texturesCube[scene.irradianceTexture], N, 10.0).xyz;
+        ambientTerm = texture(texturesCube[scene.irradianceTexture], N).xyz;
     }
+
+    // Specular IBL
+    const float MAX_REFLECTION_LOD = 9.0;
+    vec3 prefilteredColor = textureLod(texturesCube[scene.radianceTexture], R, roughness * MAX_REFLECTION_LOD).xyz;
 
     // 非金属では固定値 0.04、金属では baseColor そのものとする
     // metallic で値をブレンドして F0 を決める
     vec3 F0 = mix(vec3(0.04), baseColor, metallic);
-    vec3 kS = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness); 
+    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    vec3 kS = F;
     vec3 kD = 1.0 - kS;
+    kD *= 1.0 - metallic;
 
     vec3 diffuse = kD * baseColor * (directionalTerm + ambientTerm);
-    vec3 specular = kS * vec3(0.0);
+    vec2 envBRDF  = texture(brdfLutTexture, vec2(max(dot(N, V), 0.0), roughness)).rg;
+    vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
+
     outColor = vec4(diffuse + specular, 1.0);
 }
