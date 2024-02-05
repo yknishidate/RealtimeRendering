@@ -179,6 +179,12 @@ public:
                     mat.additionalValues["emissiveTexture"].TextureIndex();
             }
 
+            // Occlusion
+            if (mat.additionalValues.contains("occlusionTexture")) {
+                material.occlusionTextureIndex =
+                    mat.additionalValues["occlusionTexture"].TextureIndex();
+            }
+
             materials.push_back(material);
         }
     }

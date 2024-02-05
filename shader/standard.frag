@@ -19,7 +19,7 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-vec3 computeAmbientTerm(vec3 baseColor, float roughness, float metallic, 
+vec3 computeAmbientTerm(vec3 baseColor, float roughness, float metallic, vec3 occlusion,
                         vec3 N, vec3 V, vec3 R)
 {
     // 非金属では固定値 0.04、金属では baseColor そのものとする
@@ -54,7 +54,7 @@ vec3 computeAmbientTerm(vec3 baseColor, float roughness, float metallic,
     vec2 envBRDF  = texture(brdfLutTexture, vec2(max(dot(N, V), 0.0), 1.0 - roughness)).xy;
     vec3 specular = radiance * (F * envBRDF.x + envBRDF.y);
 
-    return diffuse + specular;
+    return (diffuse + specular) * occlusion;
 }
 
 void main() {
@@ -66,6 +66,7 @@ void main() {
     // Load parameters
     vec3 baseColor = objects[pc.objectIndex].baseColor.rgb;
     vec3 emissive = objects[pc.objectIndex].emissive.rgb;
+    vec3 occlusion = vec3(1.0);
     float metallic = objects[pc.objectIndex].metallic;
     float roughness = objects[pc.objectIndex].roughness;
 
@@ -73,6 +74,7 @@ void main() {
     int baseColorTexture = objects[pc.objectIndex].baseColorTextureIndex;
     int metallicRoughnessTexture = objects[pc.objectIndex].metallicRoughnessTextureIndex;
     int emissiveTextureIndex = objects[pc.objectIndex].emissiveTextureIndex;
+    int occlusionTextureIndex = objects[pc.objectIndex].occlusionTextureIndex;
     if(baseColorTexture != -1){
         baseColor = texture(textures2D[baseColorTexture], inTexCoord).xyz;
     }
@@ -85,7 +87,11 @@ void main() {
     if(emissiveTextureIndex != -1){
         emissive = texture(textures2D[emissiveTextureIndex], inTexCoord).xyz;
     }
+    if(occlusionTextureIndex != -1){
+        occlusion = texture(textures2D[occlusionTextureIndex], inTexCoord).xyz;
+    }
     //outColor = vec4(baseColor, 1.0);
+    //outColor = vec4(occlusion, 1.0);
     //outColor = vec4(vec3(metallic), 1.0);
     //outColor = vec4(vec3(roughness), 1.0);
     //return;
@@ -116,7 +122,7 @@ void main() {
         }
     }
 
-    vec3 ambientTerm = computeAmbientTerm(baseColor, roughness, metallic, N, V, R);
+    vec3 ambientTerm = computeAmbientTerm(baseColor, roughness, metallic, occlusion, N, V, R);
 
     outColor = vec4(emissive + ambientTerm + directionalTerm, 1.0);
 }
