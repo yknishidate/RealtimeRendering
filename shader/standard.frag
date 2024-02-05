@@ -71,6 +71,7 @@ void main() {
     float roughness = objects[pc.objectIndex].roughness;
 
     // Load textures
+    // NOTE: テクスチャはリニア空間になっていないのでガンマ補正が必要
     int baseColorTexture = objects[pc.objectIndex].baseColorTextureIndex;
     int metallicRoughnessTexture = objects[pc.objectIndex].metallicRoughnessTextureIndex;
     int emissiveTextureIndex = objects[pc.objectIndex].emissiveTextureIndex;
