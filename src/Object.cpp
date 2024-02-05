@@ -13,7 +13,8 @@ bool AmbientLight::showAttributes(Scene& scene) {
         for (auto& tex : scene.getTexturesCube()) {
             ss << tex.name << '\0';
         }
-        ImGui::Combo("Texture", &textureCube, ss.str().c_str());
+        ImGui::Combo("Radiance texture", &radianceTexture, ss.str().c_str());
+        ImGui::Combo("Irradiance texture", &irradianceTexture, ss.str().c_str());
         ImGui::TreePop();
     }
     return changed;

@@ -90,9 +90,10 @@ public:
         gridInfo.heightSegments = 100;
         subGridMesh = rv::Mesh::createPlaneLineMesh(*context, gridInfo);
 
+        // FIX: DeviceHostにすると確保に失敗する
         std::vector<rv::Vertex> vertices(2);
         std::vector<uint32_t> indices = {0, 1};
-        singleLineMesh = rv::Mesh{*context, rv::MemoryUsage::DeviceHost, vertices, indices,
+        singleLineMesh = rv::Mesh{*context, rv::MemoryUsage::Host, vertices, indices,
                                   "ViewportRenderer::singleLineMesh"};
 
         cubeLineMesh = rv::Mesh::createCubeLineMesh(*context, {"ViewportRenderer::cubeLineMesh"});

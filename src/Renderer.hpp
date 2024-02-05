@@ -59,6 +59,7 @@ public:
             commandBuffer->transitionLayout(dummyTexturesCube, vk::ImageLayout::eReadOnlyOptimal);
         });
 
+        // FIX: texture配列のサイズが後から変わると問題があるっぽい
         descSet = context->createDescriptorSet({
             .shaders = {reflectionShaderVert, reflectionShaderFrag},
             .buffers =
@@ -70,8 +71,8 @@ public:
                 {
                     {"shadowMap", shadowMapImage},
                     {"baseColorImage", images.baseColorImage},
-                    {"textures2D", dummyTextures2D},
-                    {"texturesCube", dummyTexturesCube},
+                    {"textures2D", 10u},
+                    {"texturesCube", 10u},
                 },
         });
 
@@ -120,7 +121,8 @@ public:
         if (Object* ambLightObj = scene.findObject<AmbientLight>()) {
             auto* light = ambLightObj->get<AmbientLight>();
             sceneUniform.ambientColorIntensity.xyz = light->color * light->intensity;
-            sceneUniform.envMapIndex = light->textureCube;
+            sceneUniform.irradianceTexture = light->irradianceTexture;
+            sceneUniform.radianceTexture = light->radianceTexture;
         }
 
         auto& objects = scene.getObjects();
@@ -171,6 +173,7 @@ public:
                 int frame) {
         assert(initialized);
 
+        bool shouldUpdate = false;
         vk::Extent3D extent = colorImage->getExtent();
         if (extent != images.baseColorImage->getExtent()) {
             context->getDevice().waitIdle();
@@ -178,7 +181,7 @@ public:
             uint32_t height = extent.height;
             images.createImages(*context, width, height);
             descSet->set("baseColorImage", images.baseColorImage);
-            descSet->update();
+            shouldUpdate = true;
             scene.getCamera().setAspect(static_cast<float>(width) / static_cast<float>(height));
         }
 
@@ -187,7 +190,7 @@ public:
             std::ranges::fill(objectStorage, ObjectData{});
             descSet->set("textures2D", dummyTextures2D);
             descSet->set("texturesCube", dummyTexturesCube);
-            descSet->update();
+            shouldUpdate = true;
         }
 
         if (!firstFrameRendered || scene.getStatus() & rv::SceneStatus::Texture2DAdded) {
@@ -197,7 +200,7 @@ public:
                     textures2D.push_back(tex.image);
                 }
                 descSet->set("textures2D", textures2D);
-                descSet->update();
+                shouldUpdate = true;
                 spdlog::info("Update desc set for texture 2D");
             }
         }
@@ -208,9 +211,12 @@ public:
                     texturesCube.push_back(tex.image);
                 }
                 descSet->set("texturesCube", texturesCube);
-                descSet->update();
+                shouldUpdate = true;
                 spdlog::info("Update desc set for texture cube");
             }
+        }
+        if (shouldUpdate) {
+            descSet->update();
         }
         scene.resetStatus();
 

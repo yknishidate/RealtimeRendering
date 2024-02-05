@@ -55,9 +55,10 @@ void main() {
     float metallic = objects[pc.objectIndex].metallic;
 
     vec3 ambientTerm = scene.ambientColorIntensity.rgb;
-    if(scene.envMapIndex != -1){
-        float lod = roughness * 10.0;
-        ambientTerm = textureLod(texturesCube[scene.envMapIndex], N, lod).xyz;
+    if(scene.irradianceTexture != -1){
+        // diffuse には irradiance として LoD=10.0を使用
+        // 正確には最大フィルタリングと irradiance は異なるため修正
+        ambientTerm = textureLod(texturesCube[scene.irradianceTexture], N, 10.0).xyz;
     }
 
     // 非金属では固定値 0.04、金属では baseColor そのものとする

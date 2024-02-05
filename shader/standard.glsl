@@ -52,7 +52,8 @@ struct SceneData{
     int existDirectionalLight;
     int enableShadowMapping;
     int enableFXAA = 1;
-    int envMapIndex = -1;
+    int irradianceTexture = -1;
+    int radianceTexture = -1;
     float shadowBias = 0.005f;
 #else
     mat4 cameraView;
@@ -67,7 +68,8 @@ struct SceneData{
     int existDirectionalLight;
     int enableShadowMapping;
     int enableFXAA;
-    int envMapIndex;
+    int irradianceTexture;
+    int radianceTexture;
     float shadowBias;
 #endif
 };

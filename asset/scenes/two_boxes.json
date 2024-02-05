@@ -92,7 +92,7 @@
                 1.0
             ],
             "intensity": 0.3,
-            "texturesCube": 0
+            "radianceTexture": 0
         }
     ],
     "camera": {

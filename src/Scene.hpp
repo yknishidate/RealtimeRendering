@@ -478,8 +478,11 @@ public:
                 if (object.contains("intensity")) {
                     light.intensity = object["intensity"];
                 }
-                if (object.contains("texturesCube")) {
-                    light.textureCube = object["texturesCube"];
+                if (object.contains("irradianceTexture")) {
+                    light.irradianceTexture = object["irradianceTexture"];
+                }
+                if (object.contains("radianceTexture")) {
+                    light.radianceTexture = object["radianceTexture"];
                 }
             } else {
                 assert(false && "Not implemented");

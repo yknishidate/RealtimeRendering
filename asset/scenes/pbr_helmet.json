@@ -10,7 +10,8 @@
                 1.0
             ],
             "intensity": 0.3,
-            "texturesCube": 0
+            "irradianceTexture": 0,
+            "radianceTexture": 1
         }
     ],
     "camera": {
@@ -21,6 +22,7 @@
         "theta": -10.0
     },
     "texturesCube": [
-        "../environments/papermill.ktx"
+        "../environments/christmas_photo_studio_07_4k_irradiance.ktx",
+        "../environments/christmas_photo_studio_07_4k_radiance.ktx"
     ]
 }
