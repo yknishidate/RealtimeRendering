@@ -3,7 +3,8 @@
 
 layout(location = 0) in vec3 inNormal;
 layout(location = 1) in vec3 inPos;
-layout(location = 2) in vec4 inShadowCoord;
+layout(location = 2) in vec2 inTexCoord;
+layout(location = 3) in vec4 inShadowCoord;
 layout(location = 0) out vec4 outColor;
 
 vec2 poissonDisk[4] = vec2[](
@@ -64,8 +65,29 @@ void main() {
     
     // Load parameters
     vec3 baseColor = objects[pc.objectIndex].baseColor.rgb;
-    float roughness = objects[pc.objectIndex].roughness;
+    vec3 emissive = objects[pc.objectIndex].emissive.rgb;
     float metallic = objects[pc.objectIndex].metallic;
+    float roughness = objects[pc.objectIndex].roughness;
+
+    // Load textures
+    int baseColorTexture = objects[pc.objectIndex].baseColorTextureIndex;
+    int metallicRoughnessTexture = objects[pc.objectIndex].metallicRoughnessTextureIndex;
+    int emissiveTextureIndex = objects[pc.objectIndex].emissiveTextureIndex;
+    if(baseColorTexture != -1){
+        baseColor = texture(textures2D[baseColorTexture], inTexCoord).xyz;
+    }
+    if(metallicRoughnessTexture != -1){
+        vec2 metallicRoughness = texture(textures2D[metallicRoughnessTexture], inTexCoord).xy;
+        metallic = metallicRoughness.x;
+        roughness = metallicRoughness.y;
+    }
+    if(emissiveTextureIndex != -1){
+        emissive = texture(textures2D[emissiveTextureIndex], inTexCoord).xyz;
+    }
+    //outColor = vec4(baseColor, 1.0);
+    //outColor = vec4(vec3(metallic), 1.0);
+    //outColor = vec4(vec3(roughness), 1.0);
+    //return;
 
     vec3 directionalTerm = vec3(0.0);
     if(scene.existDirectionalLight == 1){
@@ -95,5 +117,5 @@ void main() {
 
     vec3 ambientTerm = computeAmbientTerm(baseColor, roughness, metallic, N, V, R);
 
-    outColor = vec4(ambientTerm + directionalTerm, 1.0);
+    outColor = vec4(emissive + ambientTerm + directionalTerm, 1.0);
 }

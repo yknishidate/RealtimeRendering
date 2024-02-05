@@ -6,7 +6,8 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 0) out vec3 outNormal;
 layout(location = 1) out vec3 outPos;
-layout(location = 2) out vec4 outShadowCoord;
+layout(location = 2) out vec2 outTexCoord;
+layout(location = 3) out vec4 outShadowCoord;
 
 void main() {
     mat4 modelMatrix = objects[pc.objectIndex].modelMatrix;
@@ -21,6 +22,7 @@ void main() {
     outNormal = normalize(normalMatrix * inNormal);
     
     outPos = inPosition;
+    outTexCoord = inTexCoord;
 
     vec4 shadowCoord = shadowViewProj * worldPos;
     shadowCoord.x = shadowCoord.x * +0.5 + 0.5;

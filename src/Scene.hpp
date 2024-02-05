@@ -81,13 +81,63 @@ public:
             throw std::runtime_error("Failed to parse glTF: " + filepath.string());
         }
 
+        loadTextures(model);
         loadMaterials(model);
         loadMeshes(model);
         loadNodes(model);
         spdlog::info("Loaded glTF file: {}", filepath.string());
+        spdlog::info("  Texture: {}", textures2D.size());
         spdlog::info("  Material: {}", materials.size());
         spdlog::info("  Node: {}", objects.size());
         spdlog::info("  Mesh: {}", meshData.size());
+    }
+
+    void loadTextures(tinygltf::Model& gltfModel) {
+        for (size_t i = 0; i < gltfModel.textures.size(); ++i) {
+            const tinygltf::Texture& texture = gltfModel.textures[i];
+            spdlog::info("Texture: {}", texture.name);
+
+            // texture.source はイメージのインデックスを指します
+            if (texture.source >= 0) {
+                const tinygltf::Image& image = gltfModel.images[texture.source];
+                spdlog::info("  Image: \"{}\" {} {} {}", image.name, image.width, image.height,
+                             image.component);
+
+                textures2D.push_back({});
+                Texture& tex = textures2D.back();
+                tex.name = image.name;
+                if (tex.name.empty()) {
+                    tex.name = std::format("Image {}", textures2D.size());
+                }
+
+                tex.image = context->createImage({
+                    .usage = rv::ImageUsage::Sampled,
+                    .extent = {static_cast<uint32_t>(image.width),
+                               static_cast<uint32_t>(image.height), 1},
+                    .format = vk::Format::eR8G8B8A8Unorm,
+                    .debugName = tex.name,
+                });
+
+                rv::BufferHandle buffer = context->createBuffer({
+                    .usage = rv::BufferUsage::Staging,
+                    .memory = rv::MemoryUsage::Host,
+                    .size = image.image.size(),
+                    .debugName = "Scene::loadTextures::buffer",
+                });
+
+                buffer->copy(image.image.data());
+
+                context->oneTimeSubmit([&](auto commandBuffer) {
+                    commandBuffer->transitionLayout(tex.image,
+                                                    vk::ImageLayout::eTransferDstOptimal);
+                    commandBuffer->copyBufferToImage(buffer, tex.image);
+                    commandBuffer->transitionLayout(tex.image,
+                                                    vk::ImageLayout::eShaderReadOnlyOptimal);
+                });
+
+                IconManager::addIcon(tex.name, tex.image);
+            }
+        }
     }
 
     void loadMaterials(tinygltf::Model& gltfModel) {
