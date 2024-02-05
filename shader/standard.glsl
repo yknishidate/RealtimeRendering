@@ -109,5 +109,6 @@ layout(binding = 3) uniform sampler2D baseColorImage;
 
 layout(binding = 4) uniform sampler2D textures2D[];
 layout(binding = 5) uniform samplerCube texturesCube[];
+layout(binding = 6) uniform sampler2D brdfLutTexture;
 
 #endif

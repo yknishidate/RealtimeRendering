@@ -42,6 +42,9 @@ public:
             .stage = vk::ShaderStageFlagBits::eFragment,
         });
 
+        brdfLutTexture =
+            rv::Image::loadFromFile(*context, DEV_ASSET_DIR / "environments" / "tex_brdflut.png");
+
         dummyTextures2D = context->createImage({
             .usage = rv::ImageUsage::Sampled,
             .format = vk::Format::eB8G8R8A8Unorm,
@@ -73,6 +76,7 @@ public:
                     {"baseColorImage", images.baseColorImage},
                     {"textures2D", 10u},
                     {"texturesCube", 10u},
+                    {"brdfLutTexture", brdfLutTexture},
                 },
         });
 
@@ -292,6 +296,7 @@ private:
     rv::BufferHandle objectStorageBuffer;
 
     // Image
+    rv::ImageHandle brdfLutTexture;
     rv::ImageHandle dummyTextures2D;
     rv::ImageHandle dummyTexturesCube;
 
