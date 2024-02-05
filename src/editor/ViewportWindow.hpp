@@ -34,7 +34,7 @@ public:
                 changed = true;
             }
         }
-        if (!ImGuizmo::IsUsing()) {
+        if (ImGui::IsWindowHovered() && !ImGuizmo::IsUsing()) {
             mouseScroll = ImGui::GetIO().MouseWheel;
             if (mouseScroll != 0.0f) {
                 changed = true;
