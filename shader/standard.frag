@@ -77,9 +77,10 @@ void main() {
         baseColor = texture(textures2D[baseColorTexture], inTexCoord).xyz;
     }
     if(metallicRoughnessTexture != -1){
-        vec2 metallicRoughness = texture(textures2D[metallicRoughnessTexture], inTexCoord).xy;
-        metallic = metallicRoughness.x;
+        vec3 metallicRoughness = texture(textures2D[metallicRoughnessTexture], inTexCoord).xyz;
+        // occ
         roughness = metallicRoughness.y;
+        metallic = metallicRoughness.z;
     }
     if(emissiveTextureIndex != -1){
         emissive = texture(textures2D[emissiveTextureIndex], inTexCoord).xyz;
