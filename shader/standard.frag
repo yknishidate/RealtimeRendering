@@ -26,8 +26,7 @@ vec3 computeAmbientTerm(vec3 baseColor, float roughness, float metallic,
     vec3 F0 = mix(vec3(0.04), baseColor, metallic);
     vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
     vec3 kS = F;
-    vec3 kD = 1.0 - kS;
-    kD *= 1.0 - metallic; // TODO: metallic が二重で影響してしまうが...？
+    vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
     // -------------------- Diffuse --------------------
     // kd * (c/π) * ∫ Li (n・wi) dwi
@@ -45,15 +44,15 @@ vec3 computeAmbientTerm(vec3 baseColor, float roughness, float metallic,
     // -------------------- Specular --------------------
     vec3 radiance = scene.ambientColorIntensity.rgb;
     if(scene.radianceTexture != -1){
-        // Specular IBL
         const float MAX_REFLECTION_LOD = 9.0;
         radiance = textureLod(texturesCube[scene.radianceTexture], R, roughness * MAX_REFLECTION_LOD).xyz;
     }
 
-    vec2 envBRDF  = texture(brdfLutTexture, vec2(max(dot(N, V), 0.0), roughness)).rg;
+    // x: dot(N, V)
+    // y: roughness
+    vec2 envBRDF  = texture(brdfLutTexture, vec2(max(dot(N, V), 0.0), 1.0 - roughness)).xy;
     vec3 specular = radiance * (F * envBRDF.x + envBRDF.y);
 
-    //return diffuse;
     return diffuse + specular;
 }
 
@@ -62,11 +61,16 @@ void main() {
     vec3 V = normalize(scene.cameraPos.xyz - inPos);
     vec3 L = scene.lightDirection.xyz;
     vec3 R = reflect(-V, N);
+    
+    // Load parameters
+    vec3 baseColor = objects[pc.objectIndex].baseColor.rgb;
+    float roughness = objects[pc.objectIndex].roughness;
+    float metallic = objects[pc.objectIndex].metallic;
 
     vec3 directionalTerm = vec3(0.0);
     if(scene.existDirectionalLight == 1){
         float clampedCosTheta = max(dot(L, N), 0.0);
-        directionalTerm = clampedCosTheta * scene.lightColorIntensity.rgb;
+        directionalTerm = baseColor * clampedCosTheta * scene.lightColorIntensity.rgb;
 
         if(scene.enableShadowMapping == 1){
             float bias = scene.shadowBias * tan(acos(clampedCosTheta));
@@ -88,11 +92,6 @@ void main() {
             #endif // USE_PCF
         }
     }
-    
-    // Load parameters
-    vec3 baseColor = objects[pc.objectIndex].baseColor.rgb;
-    float roughness = objects[pc.objectIndex].roughness;
-    float metallic = objects[pc.objectIndex].metallic;
 
     vec3 ambientTerm = computeAmbientTerm(baseColor, roughness, metallic, N, V, R);
 
