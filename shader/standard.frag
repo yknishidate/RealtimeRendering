@@ -177,6 +177,7 @@ void main() {
     vec3 V = normalize(scene.cameraPos.xyz - inPos);
     vec3 L = scene.lightDirection.xyz;
     vec3 R = reflect(-V, N);
+    vec3 H = normalize(L + V);
     
     // Load material
     vec3 baseColor, emissive, occlusion;
@@ -187,7 +188,7 @@ void main() {
     // F0: 非金属では固定値 0.04、金属では baseColor そのものとする
     //     metallic で値をブレンドして F0 を決める
     vec3 F0 = mix(vec3(0.04), baseColor, metallic);
-    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    vec3 F = fresnelSchlickRoughness(max(dot(V, H), 0.0), F0, roughness);
     vec3 kS = F;
     vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
