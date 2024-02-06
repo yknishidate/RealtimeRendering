@@ -120,18 +120,14 @@ vec3 computeDirectionalTerm(vec3 baseColor, float metallic, float roughness, vec
     return directionalTerm;
 }
 
-void main() {
-    vec3 N = inNormal;
-    vec3 V = normalize(scene.cameraPos.xyz - inPos);
-    vec3 L = scene.lightDirection.xyz;
-    vec3 R = reflect(-V, N);
-    
+void loadMaterial(out vec3 baseColor, out vec3 emissive, out vec3 occlusion, out float metallic, out float roughness)
+{
     // Load parameters
-    vec3 baseColor = objects[pc.objectIndex].baseColor.rgb;
-    vec3 emissive = objects[pc.objectIndex].emissive.rgb;
-    vec3 occlusion = vec3(1.0);
-    float metallic = objects[pc.objectIndex].metallic;
-    float roughness = objects[pc.objectIndex].roughness;
+    baseColor = objects[pc.objectIndex].baseColor.rgb;
+    emissive = objects[pc.objectIndex].emissive.rgb;
+    occlusion = vec3(1.0);
+    metallic = objects[pc.objectIndex].metallic;
+    roughness = objects[pc.objectIndex].roughness;
 
     // Load textures
     // NOTE: テクスチャはリニア空間になっていないのでガンマ補正が必要
@@ -157,31 +153,53 @@ void main() {
         occlusion = texture(textures2D[occlusionTextureIndex], inTexCoord).xyz;
         occlusion = gammaCorrect(occlusion, 2.2);
     }
+}
 
-    vec3 directionalTerm = computeDirectionalTerm(baseColor, metallic, roughness, L, V, N);
-    if(scene.existDirectionalLight == 1 && scene.enableShadowMapping == 1){
-        float clampedCosTheta = max(dot(L, N), 0.0);
-        float bias = scene.shadowBias * tan(acos(clampedCosTheta));
-        bias = clamp(bias, 0.0, scene.shadowBias * 2.0);
-        
-        #ifdef USE_PCF
-            float visibility = 0.0;
-            for (int i = 0; i < 4; i++){
-                vec3 coord = inShadowCoord.xyz / inShadowCoord.w;
-                coord.xy += poissonDisk[i] / 1000.0;
-                coord.z -= bias;
-                visibility += texture(shadowMap, coord).r * 0.25;
-            }
-            directionalTerm *= visibility;
-        #else
-            if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - bias){
-                directionalTerm = vec3(0.0);
-            }
-        #endif // USE_PCF
+float computeDirectionalVisibility(vec3 N, vec3 L)
+{
+    if(scene.existDirectionalLight == 0 || scene.enableShadowMapping == 0){
+        return 1.0;
     }
 
-    vec3 ambientTerm = computeAmbientTerm(baseColor, roughness, metallic, occlusion, N, V, R);
+    float NdotL = max(dot(N, L), 0.0);
+    float bias = scene.shadowBias * tan(acos(NdotL));
+    bias = clamp(bias, 0.0, scene.shadowBias * 2.0);
+        
+    #ifdef USE_PCF
+        float visibility = 0.0;
+        for (int i = 0; i < 4; i++){
+            vec3 coord = inShadowCoord.xyz / inShadowCoord.w;
+            coord.xy += poissonDisk[i] / 1000.0;
+            coord.z -= bias;
+            visibility += texture(shadowMap, coord).r * 0.25;
+        }
+        return visibility;
+    #else
+        if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - bias){
+            return 0.0;
+        }
+    #endif // USE_PCF
+}
 
-    //outColor = vec4(directionalTerm, 1.0);
+void main() {
+    vec3 N = inNormal;
+    vec3 V = normalize(scene.cameraPos.xyz - inPos);
+    vec3 L = scene.lightDirection.xyz;
+    vec3 R = reflect(-V, N);
+    
+    // Load material
+    vec3 baseColor, emissive, occlusion;
+    float metallic, roughness;
+    loadMaterial(baseColor, emissive, occlusion, metallic, roughness);
+
+    // Directional light
+    vec3 directionalTerm = computeDirectionalTerm(baseColor, metallic, roughness, L, V, N);
+    float visibility = computeDirectionalVisibility(N, L);
+    directionalTerm *= visibility;
+
+    // Ambient light
+    vec3 ambientTerm = computeAmbientTerm(baseColor, roughness, metallic, occlusion, N, V, R);
+    
+    // Final color
     outColor = vec4(emissive + ambientTerm + directionalTerm, 1.0);
 }
