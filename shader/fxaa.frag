@@ -81,7 +81,7 @@ void main(){
         outColor = vec4(gammaCorrect(tonemap(color, scene.exposure), 1.0 / 2.2), 1.0);
     }else{
         vec3 color = texture(baseColorImage, vec2(gl_FragCoord.xy) / scene.screenResolution).xyz;
-        outColor = vec4(gammaCorrect(tonemap(color, scene.exposure), 2.2), 1.0);
+        outColor = vec4(gammaCorrect(tonemap(color, scene.exposure), 1.0 / 2.2), 1.0);
         //vec4 averageColor = vec4(0.0);
         //for(int dx = -1; dx <= 1; dx++){
         //    for(int dy = -1; dy <= 1; dy++){
