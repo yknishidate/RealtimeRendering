@@ -23,7 +23,8 @@ public:
         }
     }
 
-    static void show(Scene& scene) {
+    static rv::EditorMessage show(Scene& scene) {
+        rv::EditorMessage message = rv::EditorMessage::None;
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("Open..", "Ctrl+O")) {
@@ -53,6 +54,16 @@ public:
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Option")) {
+                if (ImGui::BeginMenu("Window")) {
+                    if (ImGui::Combo("Size", &windowSizeIndex,
+                                     "-\0"
+                                     "1280x720\0"
+                                     "1920x1080\0"
+                                     "2560x1440\0")) {
+                        message = rv::EditorMessage::WindowResizeRequested;
+                    }
+                    ImGui::EndMenu();
+                }
                 if (ImGui::BeginMenu("Viewport")) {
                     ImGui::Checkbox("Grid", &ViewportRenderer::isGridVisible);
                     ImGui::Checkbox("Scene AABB", &ViewportRenderer::isSceneAABBVisible);
@@ -72,5 +83,23 @@ public:
 
             ImGui::EndMenuBar();
         }
+        return message;
     }
+
+    static uint32_t getWindowWidth() {
+        return windowSizes[windowSizeIndex].first;
+    }
+
+    static uint32_t getWindowHeight() {
+        return windowSizes[windowSizeIndex].second;
+    }
+
+    inline static std::vector<std::pair<uint32_t, uint32_t>> windowSizes = {
+        {0, 0},
+        {1280, 720},
+        {1920, 1080},
+        {2560, 1440},
+    };
+
+    inline static int windowSizeIndex = 0;
 };

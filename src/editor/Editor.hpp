@@ -24,10 +24,11 @@ public:
         IconManager::clearIcons();
     }
 
-    rv::EditorMessage show(const rv::Context& context,
-                           Scene& scene,
-                           const std::vector<std::pair<std::string, float>>& cpuTimes,
-                           const std::vector<std::pair<std::string, float>>& gpuTimes) {
+    rv::EditorMessageFlags show(const rv::Context& context,
+                                Scene& scene,
+                                const std::vector<std::pair<std::string, float>>& cpuTimes,
+                                const std::vector<std::pair<std::string, float>>& gpuTimes) {
+        rv::EditorMessageFlags message = rv::EditorMessage::None;
         if (needsRecreateViewportImage()) {
             context.getDevice().waitIdle();
             createViewportImage(context);
@@ -52,7 +53,7 @@ public:
         ImGui::Begin("DockSpace", nullptr, windowFlags);
         ImGui::PopStyleVar(3);
 
-        MenuBar::show(scene);
+        message |= MenuBar::show(scene);
 
         ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
@@ -89,7 +90,7 @@ public:
         AssetWindow::show(context, scene);
 
         ImGui::End();
-        return rv::EditorMessage::None;
+        return message;
     }
 
     bool needsRecreateViewportImage() const {

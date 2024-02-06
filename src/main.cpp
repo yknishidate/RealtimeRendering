@@ -19,7 +19,7 @@ public:
               .height = 1440,
               .title = "Main app",
               .vsync = false,
-              .layers = {rv::Layer::Validation, rv::Layer::FPSMonitor},
+              .layers = {/*rv::Layer::Validation, */ rv::Layer::FPSMonitor},
               .extensions = {rv::Extension::RayTracing},
               .style = rv::UIStyle::Gray,
           }) {}
@@ -100,12 +100,21 @@ public:
             renderer.render(*commandBuffer, getCurrentColorImage(), images, scene, frame);
         } else {
             cpuTimes[0].second = cpuTimes[1].second + cpuTimes[2].second;
-            if (editor.show(context, scene, cpuTimes, renderer.getRenderTimes()) ==
-                rv::EditorMessage::RecompileRequested) {
+            auto message = editor.show(context, scene, cpuTimes, renderer.getRenderTimes());
+            if (message & rv::EditorMessage::RecompileRequested) {
                 context.getDevice().waitIdle();
                 renderer.init(context, images, swapchain->getFormat());
                 ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
             }
+            if (message & rv::EditorMessage::WindowResizeRequested) {
+                context.getDevice().waitIdle();
+                uint32_t _width = MenuBar::getWindowWidth();
+                uint32_t _height = MenuBar::getWindowHeight();
+                if (_width != 0 && _height != 0) {
+                    setWindowSize(_width, _height);
+                }
+            }
+
             renderer.render(*commandBuffer, editor.getViewportImage(), images, scene, frame);
             viewportRenderer.render(*commandBuffer, editor.getViewportImage(), images, scene);
         }

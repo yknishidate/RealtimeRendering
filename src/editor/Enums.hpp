@@ -59,6 +59,7 @@ public:
 enum class EditorMessage {
     None = 0,
     RecompileRequested = 1 << 0,
+    WindowResizeRequested = 1 << 1,
 };
 
 enum class SceneStatus {
