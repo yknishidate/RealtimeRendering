@@ -47,6 +47,10 @@ void loadMaterial(out vec3 baseColor, out vec3 emissive, out vec3 occlusion, out
         occlusion = texture(textures2D[occlusionTextureIndex], inTexCoord).xyz;
         occlusion = gammaCorrect(occlusion, 2.2);
     }
+
+    // Roughness は 0.0 だと問題が起きるため最小値を設定
+    // Sampler が ClampToEdge 以外だと 1.0 でも問題が起きるため設定に注意
+    roughness = max(roughness, 0.01);
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
@@ -87,7 +91,6 @@ vec3 computeAmbientTerm(vec3 baseColor, float roughness, vec3 occlusion,
     // y: roughness
     vec2 envBRDF  = texture(brdfLutTexture, vec2(max(dot(N, V), 0.0), roughness)).xy;
     vec3 specular = radiance * (F * envBRDF.x + envBRDF.y);
-
     return (diffuse + specular) * occlusion;
 }
 
