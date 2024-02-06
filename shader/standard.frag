@@ -159,31 +159,26 @@ void main() {
     }
 
     vec3 directionalTerm = computeDirectionalTerm(baseColor, metallic, roughness, L, V, N);
-    //vec3 directionalTerm = vec3(0.0);
-    //if(scene.existDirectionalLight == 1){
-    //    float clampedCosTheta = max(dot(L, N), 0.0);
-    //    directionalTerm = baseColor * clampedCosTheta * scene.lightColorIntensity.rgb;
-    //
-    //    if(scene.enableShadowMapping == 1){
-    //        float bias = scene.shadowBias * tan(acos(clampedCosTheta));
-    //        bias = clamp(clampedCosTheta, 0.0, scene.shadowBias * 2.0);
-    //        
-    //        #ifdef USE_PCF
-    //            float rate = 0.0;
-    //            for (int i = 0; i < 4; i++){
-    //                vec3 coord = inShadowCoord.xyz / inShadowCoord.w;
-    //                coord.xy += poissonDisk[i] / 1000.0;
-    //                coord.z -= bias;
-    //                rate += texture(shadowMap, coord).r * 0.25;
-    //            }
-    //            directionalTerm *= rate;
-    //        #else
-    //            if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - bias){
-    //                directionalTerm = vec3(0.0);
-    //            }
-    //        #endif // USE_PCF
-    //    }
-    //}
+    if(scene.existDirectionalLight == 1 && scene.enableShadowMapping == 1){
+        float clampedCosTheta = max(dot(L, N), 0.0);
+        float bias = scene.shadowBias * tan(acos(clampedCosTheta));
+        bias = clamp(bias, 0.0, scene.shadowBias * 2.0);
+        
+        #ifdef USE_PCF
+            float visibility = 0.0;
+            for (int i = 0; i < 4; i++){
+                vec3 coord = inShadowCoord.xyz / inShadowCoord.w;
+                coord.xy += poissonDisk[i] / 1000.0;
+                coord.z -= bias;
+                visibility += texture(shadowMap, coord).r * 0.25;
+            }
+            directionalTerm *= visibility;
+        #else
+            if(texture(shadowMap, inShadowCoord.xy).r < inShadowCoord.z - bias){
+                directionalTerm = vec3(0.0);
+            }
+        #endif // USE_PCF
+    }
 
     vec3 ambientTerm = computeAmbientTerm(baseColor, roughness, metallic, occlusion, N, V, R);
 
