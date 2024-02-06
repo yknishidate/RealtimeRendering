@@ -267,11 +267,13 @@ public:
 
     std::vector<std::pair<std::string, float>> getRenderTimes() {
         float shadowTime = shadowMapPass.getRenderingTimeMs();
+        float skyTime = skyboxPass.getRenderingTimeMs();
         float forwardTime = forwardPass.getRenderingTimeMs();
         float aaTime = antiAliasingPass.getRenderingTimeMs();
         return {
-            {"GPU time", shadowTime + forwardTime + aaTime},
+            {"GPU time", shadowTime + skyTime + forwardTime + aaTime},
             {"  Shadow map", shadowTime},
+            {"  Skybox", skyTime},
             {"  Forward", forwardTime},
             {"  FXAA", aaTime},
         };
