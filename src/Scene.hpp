@@ -163,6 +163,10 @@ public:
             }
             if (mat.values.contains("metallicFactor")) {
                 material.metallic = static_cast<float>(mat.values["metallicFactor"].Factor());
+            } else {
+                // glTF では metallicFactor が含まれない場合、デフォルトで 1 となる
+                // struct 側ではデフォルトで 0 にしておきたいためここで処理
+                material.metallic = 1.0f;
             }
 
             // Normal

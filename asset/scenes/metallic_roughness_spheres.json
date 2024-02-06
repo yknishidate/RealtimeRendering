@@ -1,0 +1,42 @@
+{
+    "gltf": "../models/metallic_roughness_spheres/metallic_roughness_spheres.gltf",
+    "objects": [
+        {
+            "name": "Directional light",
+            "type": "DirectionalLight",
+            "color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "intensity": 1.0,
+            "phi": 20.0,
+            "theta": 35.0
+        },
+        {
+            "name": "Ambient light",
+            "type": "AmbientLight",
+            "color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "intensity": 0.3,
+            "irradianceTexture": 0,
+            "radianceTexture": 1
+        }
+    ],
+    "camera": {
+        "type": "Orbital",
+        "fovY": 30.0,
+        "distance": 10.0,
+        "phi": 0.0,
+        "theta": -10.0
+    },
+    "texturesCube": [
+        "../environments/christmas_photo_studio_07_4k_irradiance.ktx",
+        "../environments/christmas_photo_studio_07_4k_radiance.ktx",
+        "../environments/papermill_irradiance.ktx",
+        "../environments/papermill_radiance.ktx"
+    ]
+}
