@@ -8,11 +8,46 @@ layout(location = 3) in vec4 inShadowCoord;
 layout(location = 0) out vec4 outColor;
 
 vec2 poissonDisk[4] = vec2[](
-    vec2( -0.94201624, -0.39906216 ),
-    vec2( 0.94558609, -0.76890725 ),
+    vec2( -0.94201624,  -0.39906216 ),
+    vec2(  0.94558609,  -0.76890725 ),
     vec2( -0.094184101, -0.92938870 ),
-    vec2( 0.34495938, 0.29387760 )
+    vec2(  0.34495938,   0.29387760 )
 );
+
+void loadMaterial(out vec3 baseColor, out vec3 emissive, out vec3 occlusion, out float metallic, out float roughness)
+{
+    // Load parameters
+    baseColor = objects[pc.objectIndex].baseColor.rgb;
+    emissive = objects[pc.objectIndex].emissive.rgb;
+    occlusion = vec3(1.0);
+    metallic = objects[pc.objectIndex].metallic;
+    roughness = objects[pc.objectIndex].roughness;
+
+    // Load textures
+    // NOTE: テクスチャはリニア空間になっていないのでガンマ補正が必要
+    int baseColorTexture = objects[pc.objectIndex].baseColorTextureIndex;
+    int metallicRoughnessTexture = objects[pc.objectIndex].metallicRoughnessTextureIndex;
+    int emissiveTextureIndex = objects[pc.objectIndex].emissiveTextureIndex;
+    int occlusionTextureIndex = objects[pc.objectIndex].occlusionTextureIndex;
+    if(baseColorTexture != -1){
+        baseColor = texture(textures2D[baseColorTexture], inTexCoord).xyz;
+        baseColor = gammaCorrect(baseColor, 2.2);
+    }
+    if(metallicRoughnessTexture != -1){
+        vec3 metallicRoughness = texture(textures2D[metallicRoughnessTexture], inTexCoord).xyz;
+        metallicRoughness = gammaCorrect(metallicRoughness, 2.2);
+        roughness = metallicRoughness.y;
+        metallic = metallicRoughness.z;
+    }
+    if(emissiveTextureIndex != -1){
+        emissive = texture(textures2D[emissiveTextureIndex], inTexCoord).xyz;
+        emissive = gammaCorrect(emissive, 2.2);
+    }
+    if(occlusionTextureIndex != -1){
+        occlusion = texture(textures2D[occlusionTextureIndex], inTexCoord).xyz;
+        occlusion = gammaCorrect(occlusion, 2.2);
+    }
+}
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
@@ -24,16 +59,10 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-vec3 computeAmbientTerm(vec3 baseColor, float roughness, float metallic, vec3 occlusion,
+vec3 computeAmbientTerm(vec3 baseColor, float roughness, vec3 occlusion,
+                        vec3 F, vec3 kD,
                         vec3 N, vec3 V, vec3 R)
 {
-    // 非金属では固定値 0.04、金属では baseColor そのものとする
-    // metallic で値をブレンドして F0 を決める
-    vec3 F0 = mix(vec3(0.04), baseColor, metallic);
-    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
-    vec3 kS = F;
-    vec3 kD = (1.0 - kS) * (1.0 - metallic);
-
     // -------------------- Diffuse --------------------
     // kd * (c/π) * ∫ Li (n・wi) dwi
     vec3 irradiance = vec3(0.0);
@@ -98,17 +127,14 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     return ggx1 * ggx2;
 }
 
-vec3 computeDirectionalTerm(vec3 baseColor, float metallic, float roughness, vec3 L, vec3 V, vec3 N)
+vec3 computeDirectionalTerm(vec3 baseColor, float roughness,
+                            vec3 F, vec3 kD, 
+                            vec3 L, vec3 V, vec3 N)
 {
-    vec3 F0 = mix(vec3(0.04), baseColor, metallic);
-
     vec3 H = normalize(L + V);
     float D = DistributionGGX(N, H, roughness);
     float G = GeometrySmith(N, V, L, roughness);
-    vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
-    vec3 kS = F;
-    vec3 kD = (1.0 - kS) * (1.0 - metallic);
     vec3 numerator = D * G * F;
     float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
 
@@ -118,41 +144,6 @@ vec3 computeDirectionalTerm(vec3 baseColor, float metallic, float roughness, vec
     vec3 Li = scene.lightColorIntensity.rgb;
     vec3 directionalTerm = (diffuse + specular) * Li * max(dot(N, L), 0.0);
     return directionalTerm;
-}
-
-void loadMaterial(out vec3 baseColor, out vec3 emissive, out vec3 occlusion, out float metallic, out float roughness)
-{
-    // Load parameters
-    baseColor = objects[pc.objectIndex].baseColor.rgb;
-    emissive = objects[pc.objectIndex].emissive.rgb;
-    occlusion = vec3(1.0);
-    metallic = objects[pc.objectIndex].metallic;
-    roughness = objects[pc.objectIndex].roughness;
-
-    // Load textures
-    // NOTE: テクスチャはリニア空間になっていないのでガンマ補正が必要
-    int baseColorTexture = objects[pc.objectIndex].baseColorTextureIndex;
-    int metallicRoughnessTexture = objects[pc.objectIndex].metallicRoughnessTextureIndex;
-    int emissiveTextureIndex = objects[pc.objectIndex].emissiveTextureIndex;
-    int occlusionTextureIndex = objects[pc.objectIndex].occlusionTextureIndex;
-    if(baseColorTexture != -1){
-        baseColor = texture(textures2D[baseColorTexture], inTexCoord).xyz;
-        baseColor = gammaCorrect(baseColor, 2.2);
-    }
-    if(metallicRoughnessTexture != -1){
-        vec3 metallicRoughness = texture(textures2D[metallicRoughnessTexture], inTexCoord).xyz;
-        metallicRoughness = gammaCorrect(metallicRoughness, 2.2);
-        roughness = metallicRoughness.y;
-        metallic = metallicRoughness.z;
-    }
-    if(emissiveTextureIndex != -1){
-        emissive = texture(textures2D[emissiveTextureIndex], inTexCoord).xyz;
-        emissive = gammaCorrect(emissive, 2.2);
-    }
-    if(occlusionTextureIndex != -1){
-        occlusion = texture(textures2D[occlusionTextureIndex], inTexCoord).xyz;
-        occlusion = gammaCorrect(occlusion, 2.2);
-    }
 }
 
 float computeDirectionalVisibility(vec3 N, vec3 L)
@@ -191,14 +182,22 @@ void main() {
     vec3 baseColor, emissive, occlusion;
     float metallic, roughness;
     loadMaterial(baseColor, emissive, occlusion, metallic, roughness);
+    
+    // Common values
+    // F0: 非金属では固定値 0.04、金属では baseColor そのものとする
+    //     metallic で値をブレンドして F0 を決める
+    vec3 F0 = mix(vec3(0.04), baseColor, metallic);
+    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    vec3 kS = F;
+    vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
     // Directional light
-    vec3 directionalTerm = computeDirectionalTerm(baseColor, metallic, roughness, L, V, N);
+    vec3 directionalTerm = computeDirectionalTerm(baseColor, roughness, F, kD, L, V, N);
     float visibility = computeDirectionalVisibility(N, L);
     directionalTerm *= visibility;
 
     // Ambient light
-    vec3 ambientTerm = computeAmbientTerm(baseColor, roughness, metallic, occlusion, N, V, R);
+    vec3 ambientTerm = computeAmbientTerm(baseColor, roughness, occlusion, F, kD, N, V, R);
     
     // Final color
     outColor = vec4(emissive + ambientTerm + directionalTerm, 1.0);
