@@ -173,7 +173,7 @@ float computeDirectionalVisibility(vec3 N, vec3 L)
 }
 
 void main() {
-    vec3 N = inNormal;
+    vec3 N = normalize(inNormal);
     vec3 V = normalize(scene.cameraPos.xyz - inPos);
     vec3 L = scene.lightDirection.xyz;
     vec3 R = reflect(-V, N);

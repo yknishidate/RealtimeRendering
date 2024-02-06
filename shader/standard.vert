@@ -21,7 +21,7 @@ void main() {
     
     outNormal = normalize(normalMatrix * inNormal);
     
-    outPos = inPosition;
+    outPos = worldPos.xyz;
     outTexCoord = inTexCoord;
 
     vec4 shadowCoord = shadowViewProj * worldPos;
