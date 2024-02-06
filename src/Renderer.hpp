@@ -62,7 +62,6 @@ public:
             commandBuffer->transitionLayout(dummyTexturesCube, vk::ImageLayout::eReadOnlyOptimal);
         });
 
-        // FIX: texture配列のサイズが後から変わると問題があるっぽい
         descSet = context->createDescriptorSet({
             .shaders = {reflectionShaderVert, reflectionShaderFrag},
             .buffers =
@@ -79,6 +78,9 @@ public:
                     {"brdfLutTexture", brdfLutTexture},
                 },
         });
+        descSet->set("textures2D", dummyTextures2D);
+        descSet->set("texturesCube", dummyTexturesCube);
+        descSet->update();
 
         try {
             skyboxPass.init(*context, descSet, images.colorFormat);
