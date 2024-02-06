@@ -24,11 +24,11 @@ public:
         IconManager::clearIcons();
     }
 
-    rv::EditorMessageFlags show(const rv::Context& context,
+    EditorMessageFlags show(const rv::Context& context,
                                 Scene& scene,
                                 const std::vector<std::pair<std::string, float>>& cpuTimes,
                                 const std::vector<std::pair<std::string, float>>& gpuTimes) {
-        rv::EditorMessageFlags message = rv::EditorMessage::None;
+        EditorMessageFlags message = EditorMessage::None;
         if (needsRecreateViewportImage()) {
             context.getDevice().waitIdle();
             createViewportImage(context);
@@ -54,6 +54,9 @@ public:
         ImGui::PopStyleVar(3);
 
         message |= MenuBar::show(scene);
+        if (message & EditorMessage::SceneOpened) {
+            scene.getCamera().setAspect(ViewportWindow::width / ViewportWindow::height);
+        }
 
         ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
@@ -75,7 +78,7 @@ public:
                 // それを防ぐため早期リターンするが、ImGui::Begin()の数だけEnd()しておく
                 ImGui::End();
                 ImGui::End();
-                return rv::EditorMessage::RecompileRequested;
+                return EditorMessage::RecompileRequested;
             }
             if (ImGui::Button("Clear scene")) {
                 context.getDevice().waitIdle();
@@ -129,9 +132,9 @@ public:
     // Image
     float width = 0.0f;
     float height = 0.0f;
-    rv::ImageHandle viewportImage;
-    vk::DescriptorSet imguiDescSet;
-    vk::Format colorFormat;
+    rv::ImageHandle viewportImage{};
+    vk::DescriptorSet imguiDescSet{};
+    vk::Format colorFormat{};
 
     // Editor
     Object* selectedObject = nullptr;

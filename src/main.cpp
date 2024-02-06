@@ -101,12 +101,12 @@ public:
         } else {
             cpuTimes[0].second = cpuTimes[1].second + cpuTimes[2].second;
             auto message = editor.show(context, scene, cpuTimes, renderer.getRenderTimes());
-            if (message & rv::EditorMessage::RecompileRequested) {
+            if (message & EditorMessage::RecompileRequested) {
                 context.getDevice().waitIdle();
                 renderer.init(context, images, swapchain->getFormat());
                 ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
             }
-            if (message & rv::EditorMessage::WindowResizeRequested) {
+            if (message & EditorMessage::WindowResizeRequested) {
                 context.getDevice().waitIdle();
                 uint32_t _width = MenuBar::getWindowWidth();
                 uint32_t _height = MenuBar::getWindowHeight();

@@ -438,7 +438,7 @@ public:
                 // TODO: アイコンサポート
                 assert(texture.image->getViewType() == vk::ImageViewType::eCube);
                 texturesCube.push_back(std::move(texture));
-                status |= rv::SceneStatus::TextureCubeAdded;
+                status |= SceneStatus::TextureCubeAdded;
             }
         }
 
@@ -460,7 +460,7 @@ public:
             // NOTE: objはcopy, moveされるとcomponentが持つポインタが壊れるため注意
             objects.emplace_back(object["name"]);
             Object& obj = objects.back();
-            status |= rv::SceneStatus::ObjectAdded;
+            status |= SceneStatus::ObjectAdded;
 
             if (object.contains("translation")) {
                 auto& transform = obj.add<Transform>();
@@ -606,12 +606,12 @@ public:
 
     void addTexture2D(const Texture& tex) {
         textures2D.push_back(tex);
-        status |= rv::SceneStatus::Texture2DAdded;
+        status |= SceneStatus::Texture2DAdded;
     }
 
     void addTextureCube(const Texture& tex) {
         texturesCube.push_back(tex);
-        status |= rv::SceneStatus::TextureCubeAdded;
+        status |= SceneStatus::TextureCubeAdded;
     }
 
     rv::AABB getAABB() const {
@@ -624,12 +624,12 @@ public:
         return aabb;
     }
 
-    rv::SceneStatusFlags getStatus() const {
+    SceneStatusFlags getStatus() const {
         return status;
     }
 
     void resetStatus() {
-        status = rv::SceneStatus::None;
+        status = SceneStatus::None;
     }
 
     void clear() {
@@ -640,7 +640,7 @@ public:
         materials.clear();
         textures2D.clear();
         texturesCube.clear();
-        status = rv::SceneStatus::Cleared;
+        status = SceneStatus::Cleared;
     }
 
 private:
@@ -660,5 +660,5 @@ private:
     std::vector<Texture> textures2D{};
     std::vector<Texture> texturesCube{};
 
-    rv::SceneStatusFlags status = rv::SceneStatus::None;
+    SceneStatusFlags status = SceneStatus::None;
 };

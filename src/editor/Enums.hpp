@@ -2,8 +2,6 @@
 
 #include <type_traits>
 
-namespace rv {
-
 template <typename Enum>
 class Flags {
 public:
@@ -60,6 +58,7 @@ enum class EditorMessage {
     None = 0,
     RecompileRequested = 1 << 0,
     WindowResizeRequested = 1 << 1,
+    SceneOpened = 1 << 2,
 };
 
 enum class SceneStatus {
@@ -72,5 +71,3 @@ enum class SceneStatus {
 
 using EditorMessageFlags = Flags<EditorMessage>;
 using SceneStatusFlags = Flags<SceneStatus>;
-
-}  // namespace rv

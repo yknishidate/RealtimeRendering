@@ -192,7 +192,7 @@ public:
             scene.getCamera().setAspect(static_cast<float>(width) / static_cast<float>(height));
         }
 
-        if (scene.getStatus() & rv::SceneStatus::Cleared) {
+        if (scene.getStatus() & SceneStatus::Cleared) {
             sceneUniform = SceneData{};
             std::ranges::fill(objectStorage, ObjectData{});
             descSet->set("textures2D", dummyTextures2D);
@@ -200,7 +200,7 @@ public:
             shouldUpdate = true;
         }
 
-        if (!firstFrameRendered || scene.getStatus() & rv::SceneStatus::Texture2DAdded) {
+        if (!firstFrameRendered || scene.getStatus() & SceneStatus::Texture2DAdded) {
             if (!scene.getTextures2D().empty()) {
                 std::vector<rv::ImageHandle> textures2D;
                 for (auto& tex : scene.getTextures2D()) {
@@ -211,7 +211,7 @@ public:
                 spdlog::info("Update desc set for texture 2D");
             }
         }
-        if (!firstFrameRendered || scene.getStatus() & rv::SceneStatus::TextureCubeAdded) {
+        if (!firstFrameRendered || scene.getStatus() & SceneStatus::TextureCubeAdded) {
             if (!scene.getTexturesCube().empty()) {
                 std::vector<rv::ImageHandle> texturesCube;
                 for (auto& tex : scene.getTexturesCube()) {

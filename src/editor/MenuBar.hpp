@@ -9,7 +9,7 @@
 class MenuBar {
 public:
     // TODO:
-    static void openScene(Scene& scene) {
+    static EditorMessage openScene(Scene& scene) {
         nfdchar_t* outPath = nullptr;
         nfdresult_t result = NFD_OpenDialog("json,gltf,glb", nullptr, &outPath);
         if (result == NFD_OKAY) {
@@ -20,15 +20,17 @@ public:
                 scene.loadFromJson(std::filesystem::path{outPath});
             }
             free(outPath);
+            return EditorMessage::SceneOpened;
         }
+        return EditorMessage::None;
     }
 
-    static rv::EditorMessage show(Scene& scene) {
-        rv::EditorMessage message = rv::EditorMessage::None;
+    static EditorMessage show(Scene& scene) {
+        EditorMessage message = EditorMessage::None;
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("Open..", "Ctrl+O")) {
-                    openScene(scene);
+                    message = openScene(scene);
                 }
                 if (ImGui::MenuItem("Save", "Ctrl+S")) { /* Do stuff */
                 }
@@ -60,7 +62,7 @@ public:
                                      "1280x720\0"
                                      "1920x1080\0"
                                      "2560x1440\0")) {
-                        message = rv::EditorMessage::WindowResizeRequested;
+                        message = EditorMessage::WindowResizeRequested;
                     }
                     ImGui::EndMenu();
                 }
