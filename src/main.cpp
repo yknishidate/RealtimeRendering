@@ -19,7 +19,7 @@ public:
               .height = 1440,
               .title = "Main app",
               .vsync = false,
-              .layers = {/*rv::Layer::Validation, */ rv::Layer::FPSMonitor},
+              .layers = {rv::Layer::Validation, rv::Layer::FPSMonitor},
               .extensions = {rv::Extension::RayTracing},
               .style = rv::UIStyle::Gray,
           }) {}

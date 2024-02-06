@@ -11,10 +11,10 @@ public:
     // TODO:
     static void openScene(Scene& scene) {
         nfdchar_t* outPath = nullptr;
-        nfdresult_t result = NFD_OpenDialog("json,gltf", nullptr, &outPath);
+        nfdresult_t result = NFD_OpenDialog("json,gltf,glb", nullptr, &outPath);
         if (result == NFD_OKAY) {
             std::filesystem::path filepath = {outPath};
-            if (filepath.extension() == ".gltf") {
+            if (filepath.extension() == ".gltf" || filepath.extension() == ".glb") {
                 scene.loadFromGltf(std::filesystem::path{outPath});
             } else if (filepath.extension() == ".json") {
                 scene.loadFromJson(std::filesystem::path{outPath});

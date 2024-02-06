@@ -69,8 +69,13 @@ public:
         tinygltf::TinyGLTF loader;
         std::string err;
         std::string warn;
-
-        bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, filepath.string());
+        auto extension = filepath.extension();
+        bool ret = false;
+        if (extension == ".gltf") {
+            ret = loader.LoadASCIIFromFile(&model, &err, &warn, filepath.string());
+        } else if (extension == ".glb") {
+            ret = loader.LoadBinaryFromFile(&model, &err, &warn, filepath.string());
+        }
         if (!warn.empty()) {
             std::cerr << "Warn: " << warn.c_str() << std::endl;
         }
