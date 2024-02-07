@@ -1,3 +1,4 @@
+#define TINYGLTF_IMPLEMENTATION
 #include "Scene.hpp"
 
 void Scene::init(const rv::Context& _context) {

@@ -1,11 +1,5 @@
 #pragma once
-#include <map>
-#include <memory>
-#include <typeindex>
-
 #include <tiny_gltf.h>
-#include <nlohmann/json.hpp>
-
 #include "Object.hpp"
 
 class Scene {

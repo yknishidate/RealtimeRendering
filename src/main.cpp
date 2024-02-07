@@ -1,9 +1,4 @@
-#define TINYGLTF_IMPLEMENTATION
-
-#include <future>
 #include <reactive/App.hpp>
-
-#include <nlohmann/json.hpp>
 
 #include "RenderImages.hpp"
 #include "Renderer.hpp"
