@@ -69,6 +69,13 @@ public:
             editor.beginCpuUpdate();
         }
 
+        if (pendingRecompile) {
+            context.getDevice().waitIdle();
+            renderer.init(context, images, swapchain->getFormat());
+            ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
+            pendingRecompile = false;
+        }
+
         auto& camera = scene.getCamera();
         for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
             if (isKeyDown(key)) {
@@ -102,11 +109,9 @@ public:
         if (play) {
             renderer.render(*commandBuffer, getCurrentColorImage(), images, scene, frame);
         } else {
-            auto message = editor.show(context, scene, renderer.getRenderTimes());
+            auto message = editor.show(context, scene, renderer);
             if (message & EditorMessage::RecompileRequested) {
-                context.getDevice().waitIdle();
-                renderer.init(context, images, swapchain->getFormat());
-                ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
+                pendingRecompile = true;
             }
             if (message & EditorMessage::WindowResizeRequested) {
                 context.getDevice().waitIdle();
@@ -133,6 +138,8 @@ public:
     Editor editor;
     bool play = false;
     RenderImages images;
+
+    bool pendingRecompile = false;
 };
 
 int main() {
