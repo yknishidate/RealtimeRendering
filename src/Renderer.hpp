@@ -1,5 +1,6 @@
 #pragma once
 #include "Pass.hpp"
+#include "RenderImages.hpp"
 
 class Renderer {
 public:

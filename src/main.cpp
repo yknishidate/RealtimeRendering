@@ -1,5 +1,3 @@
-#include <reactive/App.hpp>
-
 #include "RenderImages.hpp"
 #include "Renderer.hpp"
 #include "Scene.hpp"

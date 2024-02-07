@@ -1,11 +1,10 @@
 #pragma once
 #include <glm/gtx/matrix_decompose.hpp>
 
-#include "reactive/reactive.hpp"
+#include <reactive/reactive.hpp>
 
 #include "RenderImages.hpp"
 #include "Scene.hpp"
-#include "editor/ViewportWindow.hpp"
 
 class LineDrawer {
     struct PushConstants {
@@ -121,10 +120,8 @@ public:
         const rv::Camera& camera = scene.getCamera();
         glm::mat4 viewProj = camera.getProj() * camera.getView();
 
-        commandBuffer.setViewport(static_cast<uint32_t>(ViewportWindow::width),
-                                  static_cast<uint32_t>(ViewportWindow::height));
-        commandBuffer.setScissor(static_cast<uint32_t>(ViewportWindow::width),
-                                 static_cast<uint32_t>(ViewportWindow::height));
+        commandBuffer.setViewport(extent.width, extent.height);
+        commandBuffer.setScissor(extent.width, extent.height);
 
         // Draw grid
         if (isGridVisible) {

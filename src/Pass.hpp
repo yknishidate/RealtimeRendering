@@ -1,7 +1,6 @@
 #pragma once
 #include <reactive/reactive.hpp>
 
-#include "RenderImages.hpp"
 #include "Scene.hpp"
 
 #include "../shader/standard.glsl"
