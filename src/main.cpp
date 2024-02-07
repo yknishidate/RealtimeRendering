@@ -11,7 +11,6 @@
 #include "ViewportRenderer.hpp"
 #include "editor/Editor.hpp"
 
-// TODO: モードによってクラス変える
 class MainApp final : public rv::App {
 public:
     MainApp()
@@ -21,17 +20,8 @@ public:
               .title = "Main app",
               .vsync = false,
               .layers = {rv::Layer::Validation, rv::Layer::FPSMonitor},
-              .extensions = {rv::Extension::RayTracing},
               .style = rv::UIStyle::Gray,
           }) {}
-
-    virtual ~MainApp() = default;
-
-    MainApp(const MainApp&) = delete;
-    MainApp& operator=(const MainApp&) = delete;
-
-    MainApp(MainApp&&) = delete;
-    MainApp& operator=(MainApp&&) = delete;
 
     void onShutdown() override {
         editor.shutdown();
@@ -100,15 +90,12 @@ public:
     }
 
     void onRender(const rv::CommandBufferHandle& commandBuffer) override {
-        if (!play) {
-            editor.beginCpuRender();
-        }
-
-        commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
-
         if (play) {
+            commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
             renderer.render(*commandBuffer, getCurrentColorImage(), images, scene, frame);
         } else {
+            editor.beginCpuRender();
+            commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
             auto message = editor.show(context, scene, renderer);
             if (message & EditorMessage::RecompileRequested) {
                 pendingRecompile = true;
@@ -124,21 +111,17 @@ public:
 
             renderer.render(*commandBuffer, editor.getViewportImage(), images, scene, frame);
             viewportRenderer.render(*commandBuffer, editor.getViewportImage(), images, scene);
-        }
-
-        if (!play) {
             editor.endCpuRender();
         }
     }
 
-    int frame = 0;
     Scene scene;
+    RenderImages images;
     Renderer renderer;
     ViewportRenderer viewportRenderer;
     Editor editor;
+    int frame = 0;
     bool play = false;
-    RenderImages images;
-
     bool pendingRecompile = false;
 };
 
