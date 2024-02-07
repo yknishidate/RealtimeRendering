@@ -40,9 +40,55 @@ public:
         cpuRenderTime = renderTimer.elapsedInMilli();
     }
 
-    EditorMessageFlags show(const rv::Context& context,
-                            Scene& scene,
-                            const std::vector<std::pair<std::string, float>>& gpuTimes) {
+    EditorMessageFlags showMiscWindow(const rv::Context& context,
+                                      Scene& scene,
+                                      Renderer& renderer) {
+        EditorMessageFlags message = EditorMessage::None;
+        if (ImGui::Begin("Misc")) {
+            ImGui::Text("CPU time");
+            ImGui::SameLine(150);
+            ImGui::Text("%.3f ms", cpuUpdateTime + cpuRenderTime);
+            ImGui::Text("  Update");
+            ImGui::SameLine(150);
+            ImGui::Text("%.3f ms", cpuUpdateTime);
+            ImGui::Text("  Render");
+            ImGui::SameLine(150);
+            ImGui::Text("%.3f ms", cpuRenderTime);
+
+            float shadowTime = renderer.getPassTimeShadow();
+            float skyTime = renderer.getPassTimeSkybox();
+            float forwardTime = renderer.getPassTimeForward();
+            float aaTime = renderer.getPassTimeAA();
+
+            ImGui::Text("GPU time");
+            ImGui::SameLine(150);
+            ImGui::Text("%.3f ms", shadowTime + skyTime + forwardTime + aaTime);
+            ImGui::Text("  Shadow map");
+            ImGui::SameLine(150);
+            ImGui::Text("%.3f ms", shadowTime);
+            ImGui::Text("  Skybox");
+            ImGui::SameLine(150);
+            ImGui::Text("%.3f ms", skyTime);
+            ImGui::Text("  Forward");
+            ImGui::SameLine(150);
+            ImGui::Text("%.3f ms", forwardTime);
+            ImGui::Text("  FXAA");
+            ImGui::SameLine(150);
+            ImGui::Text("%.3f ms", aaTime);
+
+            if (ImGui::Button("Recompile")) {
+                message = EditorMessage::RecompileRequested;
+            }
+            if (ImGui::Button("Clear scene")) {
+                context.getDevice().waitIdle();
+                scene.clear();
+            }
+            ImGui::End();
+        }
+        return message;
+    }
+
+    EditorMessageFlags show(const rv::Context& context, Scene& scene, Renderer& renderer) {
         EditorMessageFlags message = EditorMessage::None;
         if (needsRecreateViewportImage()) {
             context.getDevice().waitIdle();
@@ -76,36 +122,7 @@ public:
         ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
-        if (ImGui::Begin("Misc")) {
-            ImGui::Text("CPU time");
-            ImGui::SameLine(150);
-            ImGui::Text("%.3f ms", cpuUpdateTime + cpuRenderTime);
-            ImGui::Text("  Update");
-            ImGui::SameLine(150);
-            ImGui::Text("%.3f ms", cpuUpdateTime);
-            ImGui::Text("  Render");
-            ImGui::SameLine(150);
-            ImGui::Text("%.3f ms", cpuRenderTime);
-
-            for (const auto& [label, time] : gpuTimes) {
-                ImGui::Text(label.c_str());
-                ImGui::SameLine(150);
-                ImGui::Text("%.3f ms", time);
-            }
-            if (ImGui::Button("Recompile")) {
-                // ViewportWindow::show()でImGui::Image()にDescSetを渡すと
-                // Rendererを初期化したときにDescSetが古くなって壊れる
-                // それを防ぐため早期リターンするが、ImGui::Begin()の数だけEnd()しておく
-                ImGui::End();
-                ImGui::End();
-                return EditorMessage::RecompileRequested;
-            }
-            if (ImGui::Button("Clear scene")) {
-                context.getDevice().waitIdle();
-                scene.clear();
-            }
-            ImGui::End();
-        }
+        message |= showMiscWindow(context, scene, renderer);
 
         SceneWindow::show(scene, &selectedObject);
         AttributeWindow::show(scene, selectedObject);
