@@ -73,19 +73,13 @@ public:
             }
         }
 
-        // TODO: 入力を抽象化する
         if (play) {
-            static glm::vec2 lastCursorPos{0.0f};
-            glm::vec2 cursorPos = getCursorPos();
-            glm::vec2 cursorOffset = cursorPos - lastCursorPos;
-            lastCursorPos = cursorPos;
-            if (isMouseButtonDown(GLFW_MOUSE_BUTTON_1)) {
-                camera.processDragDelta(glm::vec2{cursorOffset.x, -cursorOffset.y} * 0.5f);
-            }
-            camera.processMouseScroll(getMouseWheel().y);
-            resetMouseWheel();
+            glm::vec2 _mouseDrag = getMouseDrag();
+            camera.processDragDelta(glm::vec2{_mouseDrag.x, -_mouseDrag.y} * 0.5f);
+            camera.processMouseScroll(getMouseScroll());
         } else {
-            camera.processDragDelta(ViewportWindow::dragDelta * 0.5f);
+            glm::vec2 _mouseDrag = ViewportWindow::dragDelta;
+            camera.processDragDelta(glm::vec2{_mouseDrag.x, -_mouseDrag.y} * 0.5f);
             camera.processMouseScroll(ViewportWindow::mouseScroll);
         }
         frame++;

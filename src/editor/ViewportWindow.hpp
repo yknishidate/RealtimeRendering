@@ -28,8 +28,8 @@ public:
     static bool processMouseInput() {
         bool changed = false;
         if (ImGui::IsWindowFocused() && !ImGuizmo::IsUsing()) {
-            dragDelta.x = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left).x;
-            dragDelta.y = -ImGui::GetMouseDragDelta(ImGuiMouseButton_Left).y;
+            dragDelta.x = ImGui::GetMouseDragDelta().x;
+            dragDelta.y = ImGui::GetMouseDragDelta().y;
             if (dragDelta.x != 0.0f || dragDelta.y != 0.0f) {
                 changed = true;
             }
