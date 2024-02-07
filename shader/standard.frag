@@ -69,14 +69,15 @@ vec3 computeAmbientTerm(vec3 baseColor, float roughness, vec3 occlusion,
 {
     // -------------------- Diffuse --------------------
     // kd * (c/π) * ∫ Li (n・wi) dwi
+    float intensity = scene.ambientColorIntensity.w;
     vec3 irradiance = vec3(0.0);
     if(scene.irradianceTexture != -1){
         // Irradiance に kD, c 以外の係数は含まれている
-        irradiance = texture(texturesCube[scene.irradianceTexture], N).xyz;
+        irradiance = texture(texturesCube[scene.irradianceTexture], N).xyz * intensity;
     }else{
         // Solid color の場合、半球で積分すると値が π 倍になる
         // その後、π で割られるためキャンセルされる
-        irradiance = scene.ambientColorIntensity.rgb;
+        irradiance = scene.ambientColorIntensity.rgb * intensity;
     }
     vec3 diffuse = kD * baseColor * irradiance;
 
@@ -86,6 +87,7 @@ vec3 computeAmbientTerm(vec3 baseColor, float roughness, vec3 occlusion,
         const float MAX_REFLECTION_LOD = 9.0;
         radiance = textureLod(texturesCube[scene.radianceTexture], R, roughness * MAX_REFLECTION_LOD).xyz;
     }
+    radiance *= intensity;
 
     // x: dot(N, V)
     // y: roughness
@@ -144,7 +146,7 @@ vec3 computeDirectionalTerm(vec3 baseColor, float roughness,
     vec3 specular = numerator / denominator;
     vec3 diffuse = kD * baseColor / PI;
 
-    vec3 Li = scene.lightColorIntensity.rgb;
+    vec3 Li = scene.lightColorIntensity.xyz * scene.lightColorIntensity.w;
     vec3 directionalTerm = (diffuse + specular) * Li * max(dot(N, L), 0.0);
     return directionalTerm;
 }

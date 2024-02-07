@@ -45,8 +45,8 @@ struct SceneData{
     glm::mat4 cameraViewProj{1.0f};
     glm::mat4 shadowViewProj{1.0f};
     glm::vec4 lightDirection{0.0f};
-    glm::vec4 lightColorIntensity{0.0f};
-    glm::vec4 ambientColorIntensity{0.0f};
+    glm::vec4 lightColorIntensity{0.0f}; // vec4(color, intensity)
+    glm::vec4 ambientColorIntensity{0.0f}; // vec4(color, intensity)
     glm::vec4 cameraPos{0.0f};
     glm::vec2 screenResolution{0.0f, 0.0f};
     int existDirectionalLight;

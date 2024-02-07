@@ -123,7 +123,8 @@ public:
             DirectionalLight* dirLight = dirLightObj->get<DirectionalLight>();
             sceneUniform.existDirectionalLight = 1;
             sceneUniform.lightDirection.xyz = dirLight->getDirection();
-            sceneUniform.lightColorIntensity.xyz = dirLight->color * dirLight->intensity;
+            sceneUniform.lightColorIntensity.xyz = dirLight->color;
+            sceneUniform.lightColorIntensity.w = dirLight->intensity;
             sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*dirLight, scene.getAABB());
             sceneUniform.shadowBias = dirLight->shadowBias;
             sceneUniform.enableShadowMapping = dirLight->enableShadow;
@@ -133,7 +134,8 @@ public:
         }
         if (Object* ambLightObj = scene.findObject<AmbientLight>()) {
             auto* light = ambLightObj->get<AmbientLight>();
-            sceneUniform.ambientColorIntensity.xyz = light->color * light->intensity;
+            sceneUniform.ambientColorIntensity.xyz = light->color;
+            sceneUniform.ambientColorIntensity.w = light->intensity;
             sceneUniform.irradianceTexture = light->irradianceTexture;
             sceneUniform.radianceTexture = light->radianceTexture;
         }
