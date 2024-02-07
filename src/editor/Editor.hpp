@@ -24,9 +24,24 @@ public:
         IconManager::clearIcons();
     }
 
+    void beginCpuUpdate() {
+        updateTimer.restart();
+    }
+
+    void endCpuUpdate() {
+        cpuUpdateTime = updateTimer.elapsedInMilli();
+    }
+
+    void beginCpuRender() {
+        renderTimer.restart();
+    }
+
+    void endCpuRender() {
+        cpuRenderTime = renderTimer.elapsedInMilli();
+    }
+
     EditorMessageFlags show(const rv::Context& context,
                             Scene& scene,
-                            const std::vector<std::pair<std::string, float>>& cpuTimes,
                             const std::vector<std::pair<std::string, float>>& gpuTimes) {
         EditorMessageFlags message = EditorMessage::None;
         if (needsRecreateViewportImage()) {
@@ -62,13 +77,18 @@ public:
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
         if (ImGui::Begin("Misc")) {
-            for (const auto& [label, time] : cpuTimes) {
-                ImGui::Text(label.c_str(), time);
-                ImGui::SameLine(150);
-                ImGui::Text("%.3f ms", time);
-            }
+            ImGui::Text("CPU time");
+            ImGui::SameLine(150);
+            ImGui::Text("%.3f ms", cpuUpdateTime + cpuRenderTime);
+            ImGui::Text("  Update");
+            ImGui::SameLine(150);
+            ImGui::Text("%.3f ms", cpuUpdateTime);
+            ImGui::Text("  Render");
+            ImGui::SameLine(150);
+            ImGui::Text("%.3f ms", cpuRenderTime);
+
             for (const auto& [label, time] : gpuTimes) {
-                ImGui::Text(label.c_str(), time);
+                ImGui::Text(label.c_str());
                 ImGui::SameLine(150);
                 ImGui::Text("%.3f ms", time);
             }
@@ -140,4 +160,9 @@ public:
 
     // Editor
     Object* selectedObject = nullptr;
+
+    rv::CPUTimer updateTimer;
+    rv::CPUTimer renderTimer;
+    float cpuUpdateTime = 0.0f;
+    float cpuRenderTime = 0.0f;
 };

@@ -11,6 +11,7 @@
 #include "ViewportRenderer.hpp"
 #include "editor/Editor.hpp"
 
+// TODO: モードによってクラス変える
 class MainApp final : public rv::App {
 public:
     MainApp()
@@ -64,7 +65,9 @@ public:
     }
 
     void onUpdate() override {
-        updateTimer.restart();
+        if (!play) {
+            editor.beginCpuUpdate();
+        }
 
         auto& camera = scene.getCamera();
         for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
@@ -83,18 +86,23 @@ public:
             camera.processMouseScroll(ViewportWindow::mouseScroll);
         }
         frame++;
-        cpuTimes[1].second = updateTimer.elapsedInMilli();
+
+        if (!play) {
+            editor.endCpuUpdate();
+        }
     }
 
     void onRender(const rv::CommandBufferHandle& commandBuffer) override {
-        renderTimer.restart();
+        if (!play) {
+            editor.beginCpuRender();
+        }
+
         commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
 
         if (play) {
             renderer.render(*commandBuffer, getCurrentColorImage(), images, scene, frame);
         } else {
-            cpuTimes[0].second = cpuTimes[1].second + cpuTimes[2].second;
-            auto message = editor.show(context, scene, cpuTimes, renderer.getRenderTimes());
+            auto message = editor.show(context, scene, renderer.getRenderTimes());
             if (message & EditorMessage::RecompileRequested) {
                 context.getDevice().waitIdle();
                 renderer.init(context, images, swapchain->getFormat());
@@ -112,7 +120,10 @@ public:
             renderer.render(*commandBuffer, editor.getViewportImage(), images, scene, frame);
             viewportRenderer.render(*commandBuffer, editor.getViewportImage(), images, scene);
         }
-        cpuTimes[2].second = renderTimer.elapsedInMilli();
+
+        if (!play) {
+            editor.endCpuRender();
+        }
     }
 
     int frame = 0;
@@ -121,14 +132,7 @@ public:
     ViewportRenderer viewportRenderer;
     Editor editor;
     bool play = false;
-    rv::CPUTimer updateTimer;
-    rv::CPUTimer renderTimer;
     RenderImages images;
-    std::vector<std::pair<std::string, float>> cpuTimes{
-        {"CPU time", 0.0f},
-        {"  Update", 0.0f},
-        {"  Render", 0.0f},
-    };
 };
 
 int main() {
