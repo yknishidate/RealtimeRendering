@@ -40,6 +40,11 @@ public:
         return Flags(e1.value ^ e2.value);
     }
 
+    Flags& operator|=(const Flags& other) {
+        value |= other.value;
+        return *this;
+    }
+
     Flags operator&(Enum e) const {
         return Flags(static_cast<Enum>(value & static_cast<underlying_type>(e)));
     }
