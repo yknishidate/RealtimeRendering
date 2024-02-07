@@ -122,6 +122,8 @@ public:
                     .format = vk::Format::eR8G8B8A8Unorm,
                     .debugName = tex.name,
                 });
+                tex.image->createImageView();
+                tex.image->createSampler();
 
                 rv::BufferHandle buffer = context->createBuffer({
                     .usage = rv::BufferUsage::Staging,

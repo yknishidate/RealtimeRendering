@@ -10,9 +10,10 @@ public:
             .usage = rv::ImageUsage::DepthAttachment | vk::ImageUsageFlagBits::eSampled,
             .extent = shadowMapExtent,
             .format = shadowMapFormat,
-            .aspect = vk::ImageAspectFlagBits::eDepth,
             .debugName = "ShadowMapPass::depthImage",
         });
+        shadowMapImage->createImageView(vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth);
+        shadowMapImage->createSampler();
 
         sceneUniformBuffer = context->createBuffer({
             .usage = rv::BufferUsage::Uniform,
@@ -43,7 +44,8 @@ public:
         });
 
         brdfLutTexture =
-            rv::Image::loadFromFile(*context, DEV_ASSET_DIR / "environments" / "tex_brdflut.png");
+            rv::Image::loadFromFile(*context, DEV_ASSET_DIR / "environments" / "tex_brdflut.png", 1,
+                                    vk::Filter::eLinear, vk::SamplerAddressMode::eClampToEdge);
 
         dummyTextures2D = context->createImage({
             .usage = rv::ImageUsage::Sampled,
@@ -53,9 +55,13 @@ public:
         dummyTexturesCube = context->createImage({
             .usage = rv::ImageUsage::Sampled,
             .format = vk::Format::eB8G8R8A8Unorm,
-            .isCubemap = true,
             .debugName = "dummyTextures2D",
         });
+        dummyTextures2D->createImageView();
+        dummyTextures2D->createSampler();
+        dummyTexturesCube->createImageView();
+        dummyTexturesCube->createSampler();
+
         context->oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
             commandBuffer->transitionLayout(shadowMapImage, vk::ImageLayout::eReadOnlyOptimal);
             commandBuffer->transitionLayout(dummyTextures2D, vk::ImageLayout::eReadOnlyOptimal);
@@ -242,8 +248,12 @@ public:
         // Shadow pass
         if (Object* dirLightObj = scene.findObject<DirectionalLight>()) {
             DirectionalLight* dirLight = dirLightObj->get<DirectionalLight>();
-            sceneUniform.enableShadowMapping = 1;
-            shadowMapPass.render(commandBuffer, shadowMapImage, scene, *dirLight);
+            if (dirLight->enableShadow) {
+                sceneUniform.enableShadowMapping = 1;
+                shadowMapPass.render(commandBuffer, shadowMapImage, scene, *dirLight);
+            } else {
+                sceneUniform.enableShadowMapping = 0;
+            }
         } else {
             sceneUniform.enableShadowMapping = 0;
         }

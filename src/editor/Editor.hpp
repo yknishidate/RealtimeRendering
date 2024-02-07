@@ -25,9 +25,9 @@ public:
     }
 
     EditorMessageFlags show(const rv::Context& context,
-                                Scene& scene,
-                                const std::vector<std::pair<std::string, float>>& cpuTimes,
-                                const std::vector<std::pair<std::string, float>>& gpuTimes) {
+                            Scene& scene,
+                            const std::vector<std::pair<std::string, float>>& cpuTimes,
+                            const std::vector<std::pair<std::string, float>>& gpuTimes) {
         EditorMessageFlags message = EditorMessage::None;
         if (needsRecreateViewportImage()) {
             context.getDevice().waitIdle();
@@ -114,6 +114,8 @@ public:
             .format = colorFormat,
             .debugName = "ViewportRenderer::colorImage",
         });
+        viewportImage->createImageView();
+        viewportImage->createSampler();
 
         // Create desc set
         ImGui_ImplVulkan_RemoveTexture(imguiDescSet);

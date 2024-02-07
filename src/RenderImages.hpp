@@ -17,14 +17,17 @@ struct RenderImages {
             .format = colorFormat,
             .debugName = "ViewportRenderer::colorImage",
         });
+        baseColorImage->createImageView();
+        baseColorImage->createSampler();
 
         depthImage = context.createImage({
             .usage = rv::ImageUsage::DepthAttachment,
             .extent = {width, height, 1},
             .format = depthFormat,
-            .aspect = vk::ImageAspectFlagBits::eDepth,
             .debugName = "ViewportRenderer::depthImage",
         });
+        depthImage->createImageView(vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth);
+        depthImage->createSampler();
 
         context.oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
             commandBuffer->transitionLayout(baseColorImage, vk::ImageLayout::eGeneral);
