@@ -102,10 +102,7 @@ public:
         firstFrameRendered = false;
     }
 
-    void updateBuffers(const rv::CommandBuffer& commandBuffer,
-                       vk::Extent3D extent,
-                       Scene& scene,
-                       int frame) {
+    void updateBuffers(const rv::CommandBuffer& commandBuffer, vk::Extent3D extent, Scene& scene) {
         // Update buffer
         // NOTE: Shadow map用の行列も更新するのでShadow map passより先に計算
         rv::Camera& camera = scene.getCamera();
@@ -166,9 +163,9 @@ public:
                 // clang-format on
             }
             if (transform) {
-                const auto& model = transform->computeTransformMatrix(frame);
+                const auto& model = transform->computeTransformMatrix();
                 objectStorage[index].modelMatrix = model;
-                objectStorage[index].normalMatrix = transform->computeNormalMatrix(frame);
+                objectStorage[index].normalMatrix = transform->computeNormalMatrix();
             }
         }
 
@@ -184,8 +181,7 @@ public:
     void render(const rv::CommandBuffer& commandBuffer,
                 const rv::ImageHandle& colorImage,
                 RenderImages& images,
-                Scene& scene,
-                int frame) {
+                Scene& scene) {
         assert(initialized);
 
         bool shouldUpdate = false;
@@ -235,7 +231,7 @@ public:
         }
         scene.resetStatus();
 
-        updateBuffers(commandBuffer, extent, scene, frame);
+        updateBuffers(commandBuffer, extent, scene);
 
         commandBuffer.clearColorImage(colorImage, {0.1f, 0.1f, 0.1f, 1.0f});
         commandBuffer.clearColorImage(images.baseColorImage, {0.1f, 0.1f, 0.1f, 1.0f});

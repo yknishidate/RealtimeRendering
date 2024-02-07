@@ -92,7 +92,7 @@ public:
     void onRender(const rv::CommandBufferHandle& commandBuffer) override {
         if (play) {
             commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
-            renderer.render(*commandBuffer, getCurrentColorImage(), images, scene, frame);
+            renderer.render(*commandBuffer, getCurrentColorImage(), images, scene);
         } else {
             editor.beginCpuRender();
             commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
@@ -109,7 +109,7 @@ public:
                 }
             }
 
-            renderer.render(*commandBuffer, editor.getViewportImage(), images, scene, frame);
+            renderer.render(*commandBuffer, editor.getViewportImage(), images, scene);
             viewportRenderer.render(*commandBuffer, editor.getViewportImage(), images, scene);
             editor.endCpuRender();
         }
