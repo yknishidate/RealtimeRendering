@@ -213,6 +213,7 @@ rv::AABB Mesh::getWorldAABB() const {
     }
 
     // Apply scale to the extents
+    aabb.center *= transform->scale;
     aabb.extents *= transform->scale;
 
     // Rotate corners of the AABB and find min/max extents
@@ -230,7 +231,7 @@ rv::AABB Mesh::getWorldAABB() const {
     }
 
     // Compute new AABB
-    rv::AABB worldAABB{min, max};
+    rv::AABB worldAABB{aabb.center + min, aabb.center + max};
 
     // Apply translation
     worldAABB.center += transform->translation;
