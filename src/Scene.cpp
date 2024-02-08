@@ -13,11 +13,16 @@ void Scene::init(const rv::Context& _context) {
     }
 }
 
-Object& Scene::addObject(std::string name) {
-    // TODO: 名前被りを解決
+Object& Scene::addObject(const std::string& name) {
     assert(objects.size() < maxObjectCount);
 
-    objects.emplace_back(std::move(name));
+    int index = 0;
+    std::string newName = name;
+    while (findObject(newName)) {
+        newName = name + std::format(" {}", index++);
+    }
+
+    objects.emplace_back(std::move(newName));
     return objects.back();
 }
 

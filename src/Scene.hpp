@@ -6,7 +6,7 @@ class Scene {
 public:
     void init(const rv::Context& _context);
 
-    Object& addObject(std::string name);
+    Object& addObject(const std::string& name);
 
     template <typename T>
     Object* findObject() {
@@ -27,6 +27,8 @@ public:
         }
         return nullptr;
     }
+
+    const Object* findObject(const std::string& name) const;
 
     template <typename T>
     uint32_t countObjects() const {
@@ -137,3 +139,12 @@ private:
 
     SceneStatusFlags status = SceneStatus::None;
 };
+
+inline const Object* Scene::findObject(const std::string& name) const {
+    for (auto& obj : objects) {
+        if (obj.getName() == name) {
+            return &obj;
+        }
+    }
+    return nullptr;
+}
