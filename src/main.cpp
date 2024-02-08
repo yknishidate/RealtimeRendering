@@ -59,6 +59,10 @@ public:
             pendingRecompile = false;
         }
 
+        if (isKeyDown(GLFW_KEY_LEFT_CONTROL) && isKeyDown(GLFW_KEY_O)) {
+            MenuBar::openScene(scene);
+        }
+
         auto& camera = scene.getCamera();
         for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
             if (isKeyDown(key)) {
