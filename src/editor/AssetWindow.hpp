@@ -55,10 +55,10 @@ public:
             int columnCount = std::max(static_cast<int>(panelWidth / cellSize), 1);
             ImGui::Columns(columnCount, 0, false);
 
-            for (auto& mesh : scene.getMeshData()) {
-                IconManager::showDraggableIcon("asset_mesh", mesh.name, thumbnailSize,
-                                               ImVec4(0, 0, 0, 1));
-            }
+            // for (auto& mesh : scene.getMeshData()) {
+            //     IconManager::showDraggableIcon("asset_mesh", mesh.name, thumbnailSize,
+            //                                    ImVec4(0, 0, 0, 1));
+            // }
 
             for (auto& material : scene.getMaterials()) {
                 IconManager::showDraggableIcon("asset_material", material.name, thumbnailSize,

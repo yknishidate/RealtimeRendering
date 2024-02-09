@@ -47,7 +47,7 @@ public:
 
     void loadMaterials(tinygltf::Model& gltfModel);
 
-    void loadMeshes(tinygltf::Model& gltfModel);
+    void loadMesh(tinygltf::Model& gltfModel, tinygltf::Primitive& gltfPrimitive, Mesh& mesh);
 
     void loadNodes(tinygltf::Model& gltfModel);
 
@@ -65,7 +65,7 @@ public:
         return templateMeshData[static_cast<int>(MeshType::Cube)];
     }
 
-    const std::vector<MeshData>& getMeshData() {
+    const MeshData& getMeshData() {
         return meshData;
     }
 
@@ -113,7 +113,7 @@ public:
         objects.clear();
         objects.reserve(maxObjectCount);
         camera = rv::Camera{rv::Camera::Type::Orbital, 1.0f};
-        meshData.clear();
+        meshData = MeshData{};
         materials.clear();
         textures2D.clear();
         texturesCube.clear();
@@ -132,7 +132,11 @@ private:
     rv::Camera camera{rv::Camera::Type::Orbital, 1.0f};
 
     std::vector<MeshData> templateMeshData{};
-    std::vector<MeshData> meshData{};
+    // std::vector<MeshData> meshData{};
+
+    // 全ての頂点とインデックス
+    MeshData meshData;
+
     std::vector<Material> materials{};
     std::vector<Texture> textures2D{};
     std::vector<Texture> texturesCube{};

@@ -149,20 +149,6 @@ MeshData::MeshData(const rv::Context& context, MeshType type) {
         };
         indices = {0, 2, 1, 3, 1, 2};
     }
-    primitives.push_back({0, static_cast<uint32_t>(indices.size()),
-                          static_cast<uint32_t>(vertices.size()), nullptr});
-    createBuffers(context);
-}
-
-MeshData::MeshData(const rv::Context& context,
-                   std::vector<rv::Vertex> _vertices,
-                   std::vector<uint32_t> _indices,
-                   std::vector<Primitive> _primitives,
-                   std::string _name)
-    : vertices{std::move(_vertices)},
-      indices{std::move(_indices)},
-      primitives{std::move(_primitives)},
-      name{std::move(_name)} {
     createBuffers(context);
 }
 
@@ -190,15 +176,13 @@ void MeshData::createBuffers(const rv::Context& context) {
 rv::AABB Mesh::getLocalAABB() const {
     glm::vec3 min = glm::vec3{FLT_MAX, FLT_MAX, FLT_MAX};
     glm::vec3 max = glm::vec3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
-    for (auto& prim : primitives) {
-        auto& vertices = prim.meshData->vertices;
-        auto& indices = prim.meshData->indices;
-        for (uint32_t index = prim.firstIndex;  //
-             index < prim.firstIndex + prim.indexCount; index++) {
-            auto& vert = vertices[indices[index]];
-            min = glm::min(min, vert.pos);
-            max = glm::max(max, vert.pos);
-        }
+    auto& vertices = meshData->vertices;
+    auto& indices = meshData->indices;
+    for (uint32_t index = firstIndex;  //
+         index < firstIndex + indexCount; index++) {
+        auto& vert = vertices[indices[index]];
+        min = glm::min(min, vert.pos);
+        max = glm::max(max, vert.pos);
     }
     return {min, max};
 }
@@ -242,19 +226,13 @@ bool Mesh::showAttributes(Scene& scene) {
     bool changed = false;
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::TreeNode("Mesh")) {
-        for (auto& prim : primitives) {
-            if (auto* meshData = prim.meshData) {
-                ImGui::Text(("Mesh data: " + meshData->name).c_str());
-            }
-            if (auto* material = prim.material) {
-                ImGui::Text(("Material: " + material->name).c_str());
-                changed |= ImGui::ColorEdit4("Base color", &prim.material->baseColor[0]);
-                changed |= ImGui::ColorEdit3("Emissive", &prim.material->emissive[0]);
-                changed |= ImGui::SliderFloat("Metallic", &prim.material->metallic, 0.0f, 1.0f);
-                changed |= ImGui::SliderFloat("Roughness", &prim.material->roughness, 0.0f, 1.0f);
-                changed |= ImGui::SliderFloat("IOR", &material->ior, 0.01f, 5.0f);
-            }
-        }
+        ImGui::Text(("Mesh data: " + meshData->name).c_str());
+        ImGui::Text(("Material: " + material->name).c_str());
+        changed |= ImGui::ColorEdit4("Base color", &material->baseColor[0]);
+        changed |= ImGui::ColorEdit3("Emissive", &material->emissive[0]);
+        changed |= ImGui::SliderFloat("Metallic", &material->metallic, 0.0f, 1.0f);
+        changed |= ImGui::SliderFloat("Roughness", &material->roughness, 0.0f, 1.0f);
+        changed |= ImGui::SliderFloat("IOR", &material->ior, 0.01f, 5.0f);
         ImGui::TreePop();
     }
     return changed;

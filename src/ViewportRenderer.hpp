@@ -67,7 +67,9 @@ public:
         pushConstants.color = color;
         commandBuffer.setLineWidth(lineWidth);
         commandBuffer.pushConstants(pipeline, &pushConstants);
-        commandBuffer.drawIndexed(mesh.vertexBuffer, mesh.indexBuffer, mesh.getIndicesCount());
+        commandBuffer.bindVertexBuffer(mesh.vertexBuffer);
+        commandBuffer.bindIndexBuffer(mesh.indexBuffer);
+        commandBuffer.drawIndexed(mesh.getIndicesCount());
     }
 
     rv::GraphicsPipelineHandle pipeline;

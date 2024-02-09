@@ -60,11 +60,10 @@ void ShadowMapPass::render(const rv::CommandBuffer& commandBuffer,
         if (Mesh* mesh = objects[i].get<Mesh>()) {
             constants.objectIndex = static_cast<int>(i);
             commandBuffer.pushConstants(pipeline, &constants);
-            for (auto& prim : mesh->primitives) {
-                commandBuffer.drawIndexed(prim.meshData->vertexBuffer,
-                                          prim.meshData->indexBuffer,  //
-                                          prim.indexCount, prim.firstIndex);
-            }
+
+            commandBuffer.bindVertexBuffer(mesh->meshData->vertexBuffer);
+            commandBuffer.bindIndexBuffer(mesh->meshData->indexBuffer);
+            commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, mesh->vertexOffset, 0);
         }
     }
 
@@ -216,11 +215,9 @@ void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
         }
         constants.objectIndex = index;
         commandBuffer.pushConstants(pipeline, &constants);
-        for (auto& prim : mesh->primitives) {
-            commandBuffer.drawIndexed(prim.meshData->vertexBuffer,
-                                      prim.meshData->indexBuffer,  //
-                                      prim.indexCount, prim.firstIndex);
-        }
+        commandBuffer.bindVertexBuffer(mesh->meshData->vertexBuffer);
+        commandBuffer.bindIndexBuffer(mesh->meshData->indexBuffer);
+        commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, mesh->vertexOffset, 0);
     }
 
     commandBuffer.endRendering();
@@ -279,8 +276,9 @@ void SkyboxPass::render(const rv::CommandBuffer& commandBuffer,
     commandBuffer.beginTimestamp(timer);
     commandBuffer.beginRendering(baseColorImage, nullptr, {0, 0}, {extent.width, extent.height});
 
-    commandBuffer.drawIndexed(cubeMesh.vertexBuffer, cubeMesh.indexBuffer,
-                              cubeMesh.primitives[0].indexCount, cubeMesh.primitives[0].firstIndex);
+    commandBuffer.bindVertexBuffer(cubeMesh.vertexBuffer);
+    commandBuffer.bindIndexBuffer(cubeMesh.indexBuffer);
+    commandBuffer.drawIndexed(static_cast<uint32_t>(cubeMesh.indices.size()));
 
     commandBuffer.endRendering();
     commandBuffer.endTimestamp(timer);

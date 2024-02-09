@@ -161,14 +161,6 @@ struct AmbientLight final : Component {
 
 struct MeshData;
 
-struct Primitive {
-    uint32_t firstIndex{};
-    uint32_t indexCount{};
-    uint32_t vertexCount{};
-    MeshData* meshData = nullptr;
-    Material* material = nullptr;
-};
-
 enum class MeshType {
     Cube,
     Plane,
@@ -180,16 +172,11 @@ struct MeshData {
     rv::BufferHandle indexBuffer;
     std::vector<rv::Vertex> vertices;
     std::vector<uint32_t> indices;
-    std::vector<Primitive> primitives;
     std::string name;
 
-    MeshData(const rv::Context& context, MeshType type);
+    MeshData() = default;
 
-    MeshData(const rv::Context& context,  //
-             std::vector<rv::Vertex> _vertices,
-             std::vector<uint32_t> _indices,
-             std::vector<Primitive> _primitives,
-             std::string _name);
+    MeshData(const rv::Context& context, MeshType type);
 
     void createBuffers(const rv::Context& context);
 };
@@ -201,7 +188,12 @@ struct Mesh final : Component {
 
     bool showAttributes(Scene& scene) override;
 
-    std::vector<Primitive> primitives;
+    uint32_t firstIndex{};
+    uint32_t indexCount{};
+    uint32_t vertexOffset{};
+    uint32_t vertexCount{};
+    MeshData* meshData = nullptr;
+    Material* material = nullptr;
 };
 
 class Texture {

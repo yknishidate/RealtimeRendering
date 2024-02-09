@@ -149,7 +149,7 @@ void Renderer::updateBuffers(const rv::CommandBuffer& commandBuffer,
 
         // TODO: マテリアル情報はバッファを分けてGPU側でインデックス参照する
         // TODO: materialIndexはpushConstantでもいいかも
-        if (Material* material = mesh->primitives[0].material) {
+        if (Material* material = mesh->material) {
             // clang-format off
             objectStorage[index].baseColor = material->baseColor;
             objectStorage[index].emissive.xyz = material->emissive;

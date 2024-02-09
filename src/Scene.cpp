@@ -53,13 +53,11 @@ void Scene::loadFromGltf(const std::filesystem::path& filepath) {
 
     loadTextures(model);
     loadMaterials(model);
-    loadMeshes(model);
     loadNodes(model);
     spdlog::info("Loaded glTF file: {}", filepath.string());
     spdlog::info("  Texture: {}", textures2D.size());
     spdlog::info("  Material: {}", materials.size());
     spdlog::info("  Node: {}", objects.size());
-    spdlog::info("  Mesh: {}", meshData.size());
 }
 
 void Scene::loadTextures(tinygltf::Model& gltfModel) {
@@ -161,140 +159,131 @@ void Scene::loadMaterials(tinygltf::Model& gltfModel) {
     }
 }
 
-void Scene::loadMeshes(tinygltf::Model& gltfModel) {
-    for (int gltfMeshIndex = 0; gltfMeshIndex < gltfModel.meshes.size(); gltfMeshIndex++) {
-        auto& gltfMesh = gltfModel.meshes.at(gltfMeshIndex);
+void Scene::loadMesh(tinygltf::Model& gltfModel, tinygltf::Primitive& gltfPrimitive, Mesh& mesh) {
+    // WARN: Since different attributes may refer to the same data, creating a
+    // vertex/index buffer for each attribute will result in data duplication.
+    auto& vertices = meshData.vertices;
+    auto& indices = meshData.indices;
 
-        // Create a vector to store the vertices
-        std::vector<rv::Vertex> vertices{};
-        std::vector<uint32_t> indices{};
+    size_t vertexOffset = vertices.size();
+    size_t indexOffset = indices.size();
 
-        // TODO: all prims
-        const auto& gltfPrimitive = gltfMesh.primitives[0];
-        // for (const auto& gltfPrimitive : gltfMesh.primitives) {
-        //  WARN: Since different attributes may refer to the same data, creating a
-        //  vertex/index buffer for each attribute will result in data duplication.
+    // Vertex attributes
+    auto& attributes = gltfPrimitive.attributes;
 
-        // Vertex attributes
-        auto& attributes = gltfPrimitive.attributes;
+    assert(attributes.contains("POSITION"));
+    int positionIndex = attributes.find("POSITION")->second;
+    tinygltf::Accessor* positionAccessor = &gltfModel.accessors[positionIndex];
+    tinygltf::BufferView* positionBufferView = &gltfModel.bufferViews[positionAccessor->bufferView];
 
-        assert(attributes.contains("POSITION"));
-        int positionIndex = attributes.find("POSITION")->second;
-        tinygltf::Accessor* positionAccessor = &gltfModel.accessors[positionIndex];
-        tinygltf::BufferView* positionBufferView =
-            &gltfModel.bufferViews[positionAccessor->bufferView];
-
-        tinygltf::Accessor* normalAccessor = nullptr;
-        tinygltf::BufferView* normalBufferView = nullptr;
-        if (attributes.contains("NORMAL")) {
-            int normalIndex = attributes.find("NORMAL")->second;
-            normalAccessor = &gltfModel.accessors[normalIndex];
-            normalBufferView = &gltfModel.bufferViews[normalAccessor->bufferView];
-        }
-
-        tinygltf::Accessor* texCoordAccessor = nullptr;
-        tinygltf::BufferView* texCoordBufferView = nullptr;
-        if (attributes.contains("TEXCOORD_0")) {
-            int texCoordIndex = attributes.find("TEXCOORD_0")->second;
-            texCoordAccessor = &gltfModel.accessors[texCoordIndex];
-            texCoordBufferView = &gltfModel.bufferViews[texCoordAccessor->bufferView];
-        }
-
-        // vertices.resize(vertices.size() + positionAccessor->count);
-
-        // Loop over the vertices
-        for (size_t i = 0; i < positionAccessor->count; i++) {
-            rv::Vertex vertex;
-
-            // NOTE:
-            // byteStride が 0 の場合、データは密に詰まっている
-            size_t positionByteStride = positionBufferView->byteStride;
-            if (positionByteStride == 0) {
-                positionByteStride = sizeof(glm::vec3);
-            }
-
-            size_t positionByteOffset = positionAccessor->byteOffset +
-                                        positionBufferView->byteOffset + i * positionByteStride;
-            vertex.pos = *reinterpret_cast<const glm::vec3*>(
-                &(gltfModel.buffers[positionBufferView->buffer].data[positionByteOffset]));
-
-            if (normalBufferView) {
-                size_t normalByteStride = normalBufferView->byteStride;
-                if (normalByteStride == 0) {
-                    normalByteStride = sizeof(glm::vec3);
-                }
-                size_t normalByteOffset = normalAccessor->byteOffset +
-                                          normalBufferView->byteOffset + i * normalByteStride;
-                vertex.normal = *reinterpret_cast<const glm::vec3*>(
-                    &(gltfModel.buffers[normalBufferView->buffer].data[normalByteOffset]));
-            }
-
-            if (texCoordBufferView) {
-                size_t texCoordByteStride = texCoordBufferView->byteStride;
-                if (texCoordByteStride == 0) {
-                    texCoordByteStride = sizeof(glm::vec2);
-                }
-                size_t texCoordByteOffset = texCoordAccessor->byteOffset +
-                                            texCoordBufferView->byteOffset + i * texCoordByteStride;
-                vertex.texCoord = *reinterpret_cast<const glm::vec2*>(
-                    &(gltfModel.buffers[texCoordBufferView->buffer].data[texCoordByteOffset]));
-
-                // 1.0 を超えている場合は 0.0 ~ 1.0 に収まるように mod をとる
-                vertex.texCoord = glm::mod(vertex.texCoord, glm::vec2{1.0f});
-            }
-
-            vertices.push_back(vertex);
-        }
-
-        // Get indices
-        auto& accessor = gltfModel.accessors[gltfPrimitive.indices];
-        auto& bufferView = gltfModel.bufferViews[accessor.bufferView];
-        auto& buffer = gltfModel.buffers[bufferView.buffer];
-
-        size_t indicesCount = accessor.count;
-        switch (accessor.componentType) {
-            case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
-                uint32_t* buf = new uint32_t[indicesCount];
-                size_t size = indicesCount * sizeof(uint32_t);
-                memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], size);
-                for (size_t i = 0; i < indicesCount; i++) {
-                    indices.push_back(buf[i]);
-                }
-                break;
-            }
-            case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
-                uint16_t* buf = new uint16_t[indicesCount];
-                size_t size = indicesCount * sizeof(uint16_t);
-                memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], size);
-                for (size_t i = 0; i < indicesCount; i++) {
-                    indices.push_back(buf[i]);
-                }
-                break;
-            }
-            case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
-                uint8_t* buf = new uint8_t[indicesCount];
-                size_t size = indicesCount * sizeof(uint8_t);
-                memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], size);
-                for (size_t i = 0; i < indicesCount; i++) {
-                    indices.push_back(buf[i]);
-                }
-                break;
-            }
-            default:
-                std::cerr << "Index component type " << accessor.componentType << " not supported!"
-                          << std::endl;
-                return;
-        }
-
-        std::vector<Primitive> primitives(1);
-        if (gltfPrimitive.material != -1) {
-            primitives[0].material = &materials[gltfPrimitive.material];
-        }
-        primitives[0].firstIndex = 0;
-        primitives[0].indexCount = static_cast<uint32_t>(indices.size());
-        primitives[0].vertexCount = static_cast<uint32_t>(vertices.size());
-        meshData.emplace_back(*context, vertices, indices, primitives, gltfMesh.name);
+    tinygltf::Accessor* normalAccessor = nullptr;
+    tinygltf::BufferView* normalBufferView = nullptr;
+    if (attributes.contains("NORMAL")) {
+        int normalIndex = attributes.find("NORMAL")->second;
+        normalAccessor = &gltfModel.accessors[normalIndex];
+        normalBufferView = &gltfModel.bufferViews[normalAccessor->bufferView];
     }
+
+    tinygltf::Accessor* texCoordAccessor = nullptr;
+    tinygltf::BufferView* texCoordBufferView = nullptr;
+    if (attributes.contains("TEXCOORD_0")) {
+        int texCoordIndex = attributes.find("TEXCOORD_0")->second;
+        texCoordAccessor = &gltfModel.accessors[texCoordIndex];
+        texCoordBufferView = &gltfModel.bufferViews[texCoordAccessor->bufferView];
+    }
+
+    // Loop over the vertices
+    for (size_t i = 0; i < positionAccessor->count; i++) {
+        rv::Vertex vertex;
+
+        // NOTE:
+        // byteStride が 0 の場合、データは密に詰まっている
+        size_t positionByteStride = positionBufferView->byteStride;
+        if (positionByteStride == 0) {
+            positionByteStride = sizeof(glm::vec3);
+        }
+
+        size_t positionByteOffset =
+            positionAccessor->byteOffset + positionBufferView->byteOffset + i * positionByteStride;
+        vertex.pos = *reinterpret_cast<const glm::vec3*>(
+            &(gltfModel.buffers[positionBufferView->buffer].data[positionByteOffset]));
+
+        if (normalBufferView) {
+            size_t normalByteStride = normalBufferView->byteStride;
+            if (normalByteStride == 0) {
+                normalByteStride = sizeof(glm::vec3);
+            }
+            size_t normalByteOffset =
+                normalAccessor->byteOffset + normalBufferView->byteOffset + i * normalByteStride;
+            vertex.normal = *reinterpret_cast<const glm::vec3*>(
+                &(gltfModel.buffers[normalBufferView->buffer].data[normalByteOffset]));
+        }
+
+        if (texCoordBufferView) {
+            size_t texCoordByteStride = texCoordBufferView->byteStride;
+            if (texCoordByteStride == 0) {
+                texCoordByteStride = sizeof(glm::vec2);
+            }
+            size_t texCoordByteOffset = texCoordAccessor->byteOffset +
+                                        texCoordBufferView->byteOffset + i * texCoordByteStride;
+            vertex.texCoord = *reinterpret_cast<const glm::vec2*>(
+                &(gltfModel.buffers[texCoordBufferView->buffer].data[texCoordByteOffset]));
+
+            // 1.0 を超えている場合は 0.0 ~ 1.0 に収まるように mod をとる
+            vertex.texCoord = glm::mod(vertex.texCoord, glm::vec2{1.0f});
+        }
+
+        vertices.push_back(vertex);
+    }
+
+    // Get indices
+    auto& accessor = gltfModel.accessors[gltfPrimitive.indices];
+    auto& bufferView = gltfModel.bufferViews[accessor.bufferView];
+    auto& buffer = gltfModel.buffers[bufferView.buffer];
+
+    size_t indicesCount = accessor.count;
+    switch (accessor.componentType) {
+        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+            uint32_t* buf = new uint32_t[indicesCount];
+            size_t size = indicesCount * sizeof(uint32_t);
+            memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], size);
+            for (size_t i = 0; i < indicesCount; i++) {
+                indices.push_back(buf[i]);
+            }
+            break;
+        }
+        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+            uint16_t* buf = new uint16_t[indicesCount];
+            size_t size = indicesCount * sizeof(uint16_t);
+            memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], size);
+            for (size_t i = 0; i < indicesCount; i++) {
+                indices.push_back(buf[i]);
+            }
+            break;
+        }
+        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+            uint8_t* buf = new uint8_t[indicesCount];
+            size_t size = indicesCount * sizeof(uint8_t);
+            memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], size);
+            for (size_t i = 0; i < indicesCount; i++) {
+                indices.push_back(buf[i]);
+            }
+            break;
+        }
+        default:
+            std::cerr << "Index component type " << accessor.componentType << " not supported!"
+                      << std::endl;
+            return;
+    }
+
+    mesh.meshData = &meshData;
+    if (gltfPrimitive.material != -1) {
+        mesh.material = &materials[gltfPrimitive.material];
+    }
+    mesh.firstIndex = static_cast<uint32_t>(indexOffset);
+    mesh.vertexOffset = static_cast<uint32_t>(vertexOffset);
+    mesh.indexCount = static_cast<uint32_t>(indices.size() - indexOffset);
+    mesh.vertexCount = static_cast<uint32_t>(vertices.size() - vertexOffset);
 }
 
 void Scene::loadNodes(tinygltf::Model& gltfModel) {
@@ -325,48 +314,47 @@ void Scene::loadNodes(tinygltf::Model& gltfModel) {
         // }
 
         if (gltfNode.mesh != -1) {
-            std::string name = gltfNode.name;
-            if (name.empty()) {
-                name = std::format("Object {}", objects.size());
-            }
+            for (int gltfMeshIndex = 0; gltfMeshIndex < gltfModel.meshes.size(); gltfMeshIndex++) {
+                auto& gltfMesh = gltfModel.meshes.at(gltfMeshIndex);
 
-            objects.emplace_back(name);
-            Object& obj = objects.back();
+                for (auto& gltfPrimitive : gltfMesh.primitives) {
+                    std::string name = gltfMesh.name;
+                    if (name.empty()) {
+                        name = std::format("Object {}", objects.size());
+                    }
 
-            Mesh& mesh = obj.add<Mesh>();
-            Primitive prim;
-            prim.meshData = &meshData[gltfNode.mesh];
-            prim.firstIndex = 0;
-            prim.indexCount = static_cast<uint32_t>(prim.meshData->indices.size());
-            prim.vertexCount = static_cast<uint32_t>(prim.meshData->vertices.size());
-            int materialIndex = gltfModel.meshes[gltfNode.mesh].primitives[0].material;
-            if (materialIndex != -1) {
-                prim.material = &materials[materialIndex];
-            }
-            mesh.primitives.push_back(prim);
+                    objects.emplace_back(name);
+                    Object& obj = objects.back();
 
-            Transform& trans = obj.add<Transform>();
+                    // Mesh
+                    Mesh& mesh = obj.add<Mesh>();
+                    loadMesh(gltfModel, gltfPrimitive, mesh);
 
-            if (!gltfNode.translation.empty()) {
-                trans.translation = glm::vec3{gltfNode.translation[0],  //
-                                              gltfNode.translation[1],  //
-                                              gltfNode.translation[2]};
-            }
+                    // Transform
+                    Transform& trans = obj.add<Transform>();
+                    if (!gltfNode.translation.empty()) {
+                        trans.translation = glm::vec3{gltfNode.translation[0],  //
+                                                      gltfNode.translation[1],  //
+                                                      gltfNode.translation[2]};
+                    }
 
-            if (!gltfNode.rotation.empty()) {
-                trans.rotation = glm::quat{static_cast<float>(gltfNode.rotation[3]),
-                                           static_cast<float>(gltfNode.rotation[0]),
-                                           static_cast<float>(gltfNode.rotation[1]),
-                                           static_cast<float>(gltfNode.rotation[2])};
-            }
+                    if (!gltfNode.rotation.empty()) {
+                        trans.rotation = glm::quat{static_cast<float>(gltfNode.rotation[3]),
+                                                   static_cast<float>(gltfNode.rotation[0]),
+                                                   static_cast<float>(gltfNode.rotation[1]),
+                                                   static_cast<float>(gltfNode.rotation[2])};
+                    }
 
-            if (!gltfNode.scale.empty()) {
-                trans.scale = glm::vec3{gltfNode.scale[0],  //
-                                        gltfNode.scale[1],  //
-                                        gltfNode.scale[2]};
+                    if (!gltfNode.scale.empty()) {
+                        trans.scale = glm::vec3{gltfNode.scale[0],  //
+                                                gltfNode.scale[1],  //
+                                                gltfNode.scale[2]};
+                    }
+                }
             }
         }
     }
+    meshData.createBuffers(*context);
 }
 
 void Scene::loadFromJson(const std::filesystem::path& filepath) {
@@ -458,20 +446,19 @@ void Scene::loadFromJson(const std::filesystem::path& filepath) {
         if (object["type"] == "Mesh") {
             assert(object.contains("mesh"));
             auto& mesh = obj.add<Mesh>();
-            Primitive prim;
+
             if (object["mesh"] == "Cube") {
-                prim.meshData = &templateMeshData[static_cast<int>(MeshType::Cube)];
+                mesh.meshData = &templateMeshData[static_cast<int>(MeshType::Cube)];
             } else if (object["mesh"] == "Plane") {
-                prim.meshData = &templateMeshData[static_cast<int>(MeshType::Plane)];
+                mesh.meshData = &templateMeshData[static_cast<int>(MeshType::Plane)];
             }
-            prim.firstIndex = 0;
-            prim.indexCount = static_cast<uint32_t>(prim.meshData->indices.size());
-            prim.vertexCount = static_cast<uint32_t>(prim.meshData->vertices.size());
+            mesh.firstIndex = 0;
+            mesh.indexCount = static_cast<uint32_t>(mesh.meshData->indices.size());
+            mesh.vertexCount = static_cast<uint32_t>(mesh.meshData->vertices.size());
 
             if (object.contains("material")) {
-                prim.material = &materials[object["material"]];
+                mesh.material = &materials[object["material"]];
             }
-            mesh.primitives.push_back(prim);
         } else if (object["type"] == "DirectionalLight") {
             if (findObject<DirectionalLight>()) {
                 spdlog::warn("Only one directional light can exist in a scene");
