@@ -196,7 +196,7 @@ void Scene::loadMesh(tinygltf::Model& gltfModel, tinygltf::Primitive& gltfPrimit
 
     // Loop over the vertices
     for (size_t i = 0; i < positionAccessor->count; i++) {
-        rv::Vertex vertex;
+        VertexPNUT vertex{};
 
         // NOTE:
         // byteStride が 0 の場合、データは密に詰まっている
@@ -207,7 +207,7 @@ void Scene::loadMesh(tinygltf::Model& gltfModel, tinygltf::Primitive& gltfPrimit
 
         size_t positionByteOffset =
             positionAccessor->byteOffset + positionBufferView->byteOffset + i * positionByteStride;
-        vertex.pos = *reinterpret_cast<const glm::vec3*>(
+        vertex.position = *reinterpret_cast<const glm::vec3*>(
             &(gltfModel.buffers[positionBufferView->buffer].data[positionByteOffset]));
 
         if (normalBufferView) {

@@ -12,6 +12,44 @@
 class Object;
 class Scene;
 
+struct VertexP {
+    glm::vec3 position;
+
+    static auto getAttributeDescriptions() -> std::vector<rv::VertexAttributeDescription> {
+        return {
+            {offsetof(VertexP, position), vk::Format::eR32G32B32Sfloat},
+        };
+    }
+};
+
+struct VertexPN {
+    glm::vec3 position;
+    glm::vec3 normal;
+
+    static auto getAttributeDescriptions() -> std::vector<rv::VertexAttributeDescription> {
+        return {
+            {offsetof(VertexPN, position), vk::Format::eR32G32B32Sfloat},
+            {offsetof(VertexPN, normal), vk::Format::eR32G32B32Sfloat},
+        };
+    }
+};
+
+struct VertexPNUT {
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 texCoord;
+    glm::vec4 tangent;
+
+    static auto getAttributeDescriptions() -> std::vector<rv::VertexAttributeDescription> {
+        return {
+            {offsetof(VertexPNUT, position), vk::Format::eR32G32B32Sfloat},
+            {offsetof(VertexPNUT, normal), vk::Format::eR32G32B32Sfloat},
+            {offsetof(VertexPNUT, texCoord), vk::Format::eR32G32Sfloat},
+            {offsetof(VertexPNUT, tangent), vk::Format::eR32G32B32A32Sfloat},
+        };
+    }
+};
+
 struct Component {
     Component() = default;
     virtual ~Component() = default;
@@ -159,8 +197,6 @@ struct AmbientLight final : Component {
     int radianceTexture = -1;
 };
 
-struct MeshData;
-
 enum class MeshType {
     Cube,
     Plane,
@@ -170,7 +206,7 @@ enum class MeshType {
 struct MeshData {
     rv::BufferHandle vertexBuffer;
     rv::BufferHandle indexBuffer;
-    std::vector<rv::Vertex> vertices;
+    std::vector<VertexPNUT> vertices;
     std::vector<uint32_t> indices;
     std::string name;
 

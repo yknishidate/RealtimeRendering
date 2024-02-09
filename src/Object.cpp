@@ -156,7 +156,7 @@ void MeshData::createBuffers(const rv::Context& context) {
     vertexBuffer = context.createBuffer({
         .usage = rv::BufferUsage::Vertex,
         .memory = rv::MemoryUsage::Device,
-        .size = sizeof(rv::Vertex) * vertices.size(),
+        .size = sizeof(VertexPNUT) * vertices.size(),
         .debugName = name + "::vertexBuffer",
     });
 
@@ -181,8 +181,8 @@ void Mesh::computeLocalAABB() {
     for (uint32_t index = firstIndex;  //
          index < firstIndex + indexCount; index++) {
         auto& vert = vertices[vertexOffset + indices[index]];
-        min = glm::min(min, vert.pos);
-        max = glm::max(max, vert.pos);
+        min = glm::min(min, vert.position);
+        max = glm::max(max, vert.position);
     }
     aabb = {min, max};
 }
