@@ -80,6 +80,23 @@ public:
             camera.processDragDelta(glm::vec2{_mouseDrag.x, -_mouseDrag.y} * 0.5f);
             camera.processMouseScroll(ViewportWindow::mouseScroll);
         }
+
+        // Editor
+        if (!play) {
+            auto message = editor.show(context, scene, renderer);
+            if (message & EditorMessage::RecompileRequested) {
+                pendingRecompile = true;
+            }
+            if (message & EditorMessage::WindowResizeRequested) {
+                context.getDevice().waitIdle();
+                uint32_t _width = MenuBar::getWindowWidth();
+                uint32_t _height = MenuBar::getWindowHeight();
+                if (_width != 0 && _height != 0) {
+                    setWindowSize(_width, _height);
+                }
+            }
+        }
+
         frame++;
 
         if (!play) {
@@ -94,19 +111,6 @@ public:
         } else {
             editor.beginCpuRender();
             commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
-            auto message = editor.show(context, scene, renderer);
-            if (message & EditorMessage::RecompileRequested) {
-                pendingRecompile = true;
-            }
-            if (message & EditorMessage::WindowResizeRequested) {
-                context.getDevice().waitIdle();
-                uint32_t _width = MenuBar::getWindowWidth();
-                uint32_t _height = MenuBar::getWindowHeight();
-                if (_width != 0 && _height != 0) {
-                    setWindowSize(_width, _height);
-                }
-            }
-
             renderer.render(*commandBuffer, editor.getViewportImage(), images, scene);
             viewportRenderer.render(*commandBuffer, editor.getViewportImage(), images, scene);
             editor.endCpuRender();
