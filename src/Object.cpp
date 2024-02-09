@@ -173,7 +173,7 @@ void MeshData::createBuffers(const rv::Context& context) {
     });
 }
 
-rv::AABB Mesh::getLocalAABB() const {
+void Mesh::computeLocalAABB() {
     glm::vec3 min = glm::vec3{FLT_MAX, FLT_MAX, FLT_MAX};
     glm::vec3 max = glm::vec3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
     auto& vertices = meshData->vertices;
@@ -184,30 +184,30 @@ rv::AABB Mesh::getLocalAABB() const {
         min = glm::min(min, vert.pos);
         max = glm::max(max, vert.pos);
     }
-    return {min, max};
+    aabb = {min, max};
 }
 
 rv::AABB Mesh::getWorldAABB() const {
     // WARN: frameは受け取らない
     auto* transform = object->get<Transform>();
 
-    rv::AABB aabb = getLocalAABB();
+    rv::AABB _aabb = getLocalAABB();
     if (!transform) {
-        return aabb;
+        return _aabb;
     }
 
     // Apply scale to the extents
-    aabb.center *= transform->scale;
-    aabb.extents *= transform->scale;
+    _aabb.center *= transform->scale;
+    _aabb.extents *= transform->scale;
 
     // Rotate corners of the AABB and find min/max extents
-    std::vector<glm::vec3> corners = aabb.getCorners();
+    std::vector<glm::vec3> corners = _aabb.getCorners();
 
     glm::vec3 min = glm::vec3{std::numeric_limits<float>::max()};
     glm::vec3 max = -glm::vec3{std::numeric_limits<float>::max()};
     for (auto& corner : corners) {
         // Apply rotation
-        glm::vec3 rotatedCorner = transform->rotation * (corner - aabb.center);
+        glm::vec3 rotatedCorner = transform->rotation * (corner - _aabb.center);
 
         // Update min and max extents
         min = glm::min(min, rotatedCorner);
@@ -215,7 +215,7 @@ rv::AABB Mesh::getWorldAABB() const {
     }
 
     // Compute new AABB
-    rv::AABB worldAABB{aabb.center + min, aabb.center + max};
+    rv::AABB worldAABB{_aabb.center + min, _aabb.center + max};
 
     // Apply translation
     worldAABB.center += transform->translation;

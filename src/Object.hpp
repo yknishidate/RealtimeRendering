@@ -182,7 +182,11 @@ struct MeshData {
 };
 
 struct Mesh final : Component {
-    rv::AABB getLocalAABB() const;
+    void computeLocalAABB();
+
+    rv::AABB getLocalAABB() const {
+        return aabb;
+    }
 
     rv::AABB getWorldAABB() const;
 
@@ -194,6 +198,7 @@ struct Mesh final : Component {
     uint32_t vertexCount{};
     MeshData* meshData = nullptr;
     Material* material = nullptr;
+    rv::AABB aabb{};
 };
 
 class Texture {

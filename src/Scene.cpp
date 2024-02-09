@@ -283,6 +283,7 @@ void Scene::loadMesh(tinygltf::Model& gltfModel, tinygltf::Primitive& gltfPrimit
     mesh.vertexOffset = static_cast<uint32_t>(vertexOffset);
     mesh.indexCount = static_cast<uint32_t>(indices.size() - indexOffset);
     mesh.vertexCount = static_cast<uint32_t>(vertices.size() - vertexOffset);
+    mesh.computeLocalAABB();
 }
 
 void Scene::loadNodes(tinygltf::Model& gltfModel) {
@@ -454,6 +455,7 @@ void Scene::loadFromJson(const std::filesystem::path& filepath) {
             mesh.firstIndex = 0;
             mesh.indexCount = static_cast<uint32_t>(mesh.meshData->indices.size());
             mesh.vertexCount = static_cast<uint32_t>(mesh.meshData->vertices.size());
+            mesh.computeLocalAABB();
 
             if (object.contains("material")) {
                 mesh.material = &materials[object["material"]];
