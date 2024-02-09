@@ -1,0 +1,45 @@
+{
+    "gltf": "../models/Sponza/Sponza.gltf",
+    "objects": [
+        {
+            "name": "Directional light",
+            "type": "DirectionalLight",
+            "color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "intensity": 20.0,
+            "phi": 20.0,
+            "theta": 10.0
+        },
+        {
+            "name": "Ambient light",
+            "type": "AmbientLight",
+            "color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "intensity": 2.0,
+            "irradianceTexture": 0,
+            "radianceTexture": 1
+        }
+    ],
+    "camera": {
+        "type": "Orbital",
+        "fovY": 30.0,
+        "target": [
+            0.0,
+            2.0,
+            0.0
+        ],
+        "distance": 5.0,
+        "phi": 90.0,
+        "theta": 0.0
+    },
+    "texturesCube": [
+        "../environments/papermill_irradiance.ktx",
+        "../environments/papermill_radiance.ktx"
+    ]
+}

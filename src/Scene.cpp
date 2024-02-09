@@ -511,6 +511,10 @@ void Scene::loadFromJson(const std::filesystem::path& filepath) {
         const auto& _camera = json["camera"];
         if (_camera["type"] == "Orbital") {
             camera = rv::Camera{rv::Camera::Type::Orbital, 1920.0f / 1080.0f};
+            if (_camera.contains("target")) {
+                auto& target = _camera["target"];
+                camera.setTarget({target[0], target[1], target[2]});
+            }
             if (_camera.contains("distance")) {
                 camera.setDistance(_camera["distance"]);
             }
