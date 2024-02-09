@@ -228,9 +228,6 @@ void Scene::loadMesh(tinygltf::Model& gltfModel, tinygltf::Primitive& gltfPrimit
                                         texCoordBufferView->byteOffset + i * texCoordByteStride;
             vertex.texCoord = *reinterpret_cast<const glm::vec2*>(
                 &(gltfModel.buffers[texCoordBufferView->buffer].data[texCoordByteOffset]));
-
-            // 1.0 を超えている場合は 0.0 ~ 1.0 に収まるように mod をとる
-            vertex.texCoord = glm::mod(vertex.texCoord, glm::vec2{1.0f});
         }
 
         vertices.push_back(vertex);
