@@ -61,6 +61,7 @@ public:
 
         if (isKeyDown(GLFW_KEY_LEFT_CONTROL) && isKeyDown(GLFW_KEY_O)) {
             MenuBar::openScene(scene);
+            scene.getCamera().setAspect(ViewportWindow::width / ViewportWindow::height);
         }
 
         auto& camera = scene.getCamera();

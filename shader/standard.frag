@@ -183,8 +183,6 @@ void main() {
     vec3 L = scene.lightDirection.xyz;
     vec3 R = reflect(-V, N);
     vec3 H = normalize(L + V);
-    outColor = vec4(N, 1.0);
-    return;
     
     // Load material
     vec3 baseColor, emissive, occlusion;

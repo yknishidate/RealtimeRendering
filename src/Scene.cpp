@@ -104,6 +104,8 @@ void Scene::loadTextures(tinygltf::Model& gltfModel) {
             });
 
             IconManager::addIcon(tex.name, tex.image);
+
+            status |= SceneStatus::Texture2DAdded;
         }
     }
 }
