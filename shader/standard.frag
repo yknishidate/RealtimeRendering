@@ -5,6 +5,7 @@ layout(location = 0) in vec3 inNormal;
 layout(location = 1) in vec3 inPos;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec4 inShadowCoord;
+layout(location = 4) in mat3 inTBN;
 layout(location = 0) out vec4 outColor;
 
 vec2 poissonDisk[4] = vec2[](
@@ -14,7 +15,7 @@ vec2 poissonDisk[4] = vec2[](
     vec2(  0.34495938,   0.29387760 )
 );
 
-void loadMaterial(out vec4 baseColor, out vec3 emissive, out vec3 occlusion, out float metallic, out float roughness)
+void loadMaterial(out vec4 baseColor, out vec3 normal, out vec3 emissive, out vec3 occlusion, out float metallic, out float roughness)
 {
     // Load parameters
     baseColor = objects[pc.objectIndex].baseColor;
@@ -22,6 +23,7 @@ void loadMaterial(out vec4 baseColor, out vec3 emissive, out vec3 occlusion, out
     occlusion = vec3(1.0);
     metallic = objects[pc.objectIndex].metallic;
     roughness = objects[pc.objectIndex].roughness;
+    normal = normalize(inNormal);
 
     // Load textures
     // NOTE: テクスチャはリニア空間になっていないのでガンマ補正が必要
@@ -29,6 +31,7 @@ void loadMaterial(out vec4 baseColor, out vec3 emissive, out vec3 occlusion, out
     int metallicRoughnessTexture = objects[pc.objectIndex].metallicRoughnessTextureIndex;
     int emissiveTextureIndex = objects[pc.objectIndex].emissiveTextureIndex;
     int occlusionTextureIndex = objects[pc.objectIndex].occlusionTextureIndex;
+    int normalTextureIndex = objects[pc.objectIndex].normalTextureIndex;
     if(baseColorTexture != -1){
         baseColor = texture(textures2D[baseColorTexture], inTexCoord);
         baseColor = gammaCorrect(baseColor, 2.2);
@@ -46,6 +49,12 @@ void loadMaterial(out vec4 baseColor, out vec3 emissive, out vec3 occlusion, out
     if(occlusionTextureIndex != -1){
         occlusion = texture(textures2D[occlusionTextureIndex], inTexCoord).xyz;
         occlusion = gammaCorrect(occlusion, 2.2);
+    }
+    if(normalTextureIndex != -1){
+        normal = texture(textures2D[normalTextureIndex], inTexCoord).xyz;
+        //normal = gammaCorrect(normal, 2.2); // TODO: normalも必要？
+        normal = normalize(normal * 2.0 - 1.0); // remap: [0, 1] -> [-1, 1]
+        normal = normalize(inTBN * normal);
     }
 
     // Roughness は 0.0 だと問題が起きるため最小値を設定
@@ -178,20 +187,22 @@ float computeDirectionalVisibility(vec3 N, vec3 L)
 }
 
 void main() {
-    vec3 N = normalize(inNormal);
+    // Load material
+    vec4 baseColor;
+    vec3 normal, emissive, occlusion;
+    float metallic, roughness;
+    loadMaterial(baseColor, normal, emissive, occlusion, metallic, roughness);
+    if(baseColor.w < 1.0){
+        discard;
+    }
+
+    // TODO: normal mapを使うかどうかをObjectDataに入れる
+    //vec3 N = normalize(inNormal);
+    vec3 N = normal;
     vec3 V = normalize(scene.cameraPos.xyz - inPos);
     vec3 L = scene.lightDirection.xyz;
     vec3 R = reflect(-V, N);
     vec3 H = normalize(L + V);
-    
-    // Load material
-    vec4 baseColor;
-    vec3 emissive, occlusion;
-    float metallic, roughness;
-    loadMaterial(baseColor, emissive, occlusion, metallic, roughness);
-    if(baseColor.w < 1.0){
-        discard;
-    }
     
     // Common values
     // F0: 非金属では固定値 0.04、金属では baseColor そのものとする

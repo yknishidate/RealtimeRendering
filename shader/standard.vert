@@ -9,6 +9,7 @@ layout(location = 0) out vec3 outNormal;
 layout(location = 1) out vec3 outPos;
 layout(location = 2) out vec2 outTexCoord;
 layout(location = 3) out vec4 outShadowCoord;
+layout(location = 4) out mat3 outTBN;
 
 void main() {
     mat4 modelMatrix = objects[pc.objectIndex].modelMatrix;
@@ -20,6 +21,13 @@ void main() {
     vec4 worldPos = modelMatrix * vec4(inPosition, 1);
     gl_Position = cameraViewProj * worldPos;
     
+    // for Normal mapping
+    vec3 bitangent = cross(inNormal, inTangent.xyz) * inTangent.w;
+    vec3 N = normalize(vec3(modelMatrix * vec4(inNormal, 0.0)));
+	vec3 T = normalize(vec3(modelMatrix * vec4(inTangent.xyz, 0.0)));
+    vec3 B = normalize(vec3(modelMatrix * vec4(bitangent, 0.0)));
+    outTBN = mat3(T, B, N);
+
     outNormal = normalize(normalMatrix * inNormal);
     
     outPos = worldPos.xyz;
