@@ -28,9 +28,12 @@ public:
     static bool processMouseInput() {
         bool changed = false;
         if (ImGui::IsWindowFocused() && !ImGuizmo::IsUsing()) {
-            dragDelta.x = ImGui::GetMouseDragDelta().x;
-            dragDelta.y = ImGui::GetMouseDragDelta().y;
-            if (dragDelta.x != 0.0f || dragDelta.y != 0.0f) {
+            dragDeltaLeft.x = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left).x;
+            dragDeltaLeft.y = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left).y;
+            dragDeltaRight.x = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right).x;
+            dragDeltaRight.y = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right).y;
+            if (dragDeltaRight.x != 0.0f || dragDeltaRight.y != 0.0f ||  //
+                dragDeltaLeft.x != 0.0f || dragDeltaLeft.y != 0.0f) {
                 changed = true;
             }
         }
@@ -40,7 +43,8 @@ public:
                 changed = true;
             }
         }
-        ImGui::ResetMouseDragDelta();
+        ImGui::ResetMouseDragDelta(ImGuiMouseButton_Left);
+        ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
         return changed;
     }
 
@@ -154,7 +158,8 @@ public:
     inline static bool isGizmoVisible = true;
 
     // Input
-    inline static glm::vec2 dragDelta = {0.0f, 0.0f};
+    inline static glm::vec2 dragDeltaRight = {0.0f, 0.0f};
+    inline static glm::vec2 dragDeltaLeft = {0.0f, 0.0f};
     inline static float mouseScroll = 0.0f;
 
     // Image

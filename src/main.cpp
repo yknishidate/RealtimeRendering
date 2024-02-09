@@ -72,12 +72,16 @@ public:
         }
 
         if (play) {
-            glm::vec2 _mouseDrag = getMouseDrag();
-            camera.processDragDelta(glm::vec2{_mouseDrag.x, -_mouseDrag.y} * 0.5f);
+            glm::vec2 _mouseDragLeft = getMouseDragLeft();
+            glm::vec2 _mouseDragRight = getMouseDragRight();
+            camera.processMouseDragLeft(glm::vec2{_mouseDragLeft.x, -_mouseDragLeft.y} * 0.5f);
+            camera.processMouseDragRight(glm::vec2{_mouseDragRight.x, -_mouseDragRight.y} * 0.5f);
             camera.processMouseScroll(getMouseScroll());
         } else {
-            glm::vec2 _mouseDrag = ViewportWindow::dragDelta;
-            camera.processDragDelta(glm::vec2{_mouseDrag.x, -_mouseDrag.y} * 0.5f);
+            glm::vec2 _mouseDragLeft = ViewportWindow::dragDeltaLeft;
+            glm::vec2 _mouseDragRight = ViewportWindow::dragDeltaRight;
+            camera.processMouseDragLeft(glm::vec2{_mouseDragLeft.x, -_mouseDragLeft.y} * 0.5f);
+            camera.processMouseDragRight(glm::vec2{_mouseDragRight.x, -_mouseDragRight.y} * 0.5f);
             camera.processMouseScroll(ViewportWindow::mouseScroll);
         }
 
