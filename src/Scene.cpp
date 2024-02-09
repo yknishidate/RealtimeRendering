@@ -194,6 +194,14 @@ void Scene::loadMesh(tinygltf::Model& gltfModel, tinygltf::Primitive& gltfPrimit
         texCoordBufferView = &gltfModel.bufferViews[texCoordAccessor->bufferView];
     }
 
+    tinygltf::Accessor* tangentAccessor = nullptr;
+    tinygltf::BufferView* tangentBufferView = nullptr;
+    if (attributes.contains("TANGENT")) {
+        int tangentIndex = attributes.find("TANGENT")->second;
+        tangentAccessor = &gltfModel.accessors[tangentIndex];
+        tangentBufferView = &gltfModel.bufferViews[tangentAccessor->bufferView];
+    }
+
     // Loop over the vertices
     for (size_t i = 0; i < positionAccessor->count; i++) {
         VertexPNUT vertex{};
@@ -230,6 +238,17 @@ void Scene::loadMesh(tinygltf::Model& gltfModel, tinygltf::Primitive& gltfPrimit
                                         texCoordBufferView->byteOffset + i * texCoordByteStride;
             vertex.texCoord = *reinterpret_cast<const glm::vec2*>(
                 &(gltfModel.buffers[texCoordBufferView->buffer].data[texCoordByteOffset]));
+        }
+
+        if (tangentAccessor) {
+            size_t tangentByteStride = tangentBufferView->byteStride;
+            if (tangentByteStride == 0) {
+                tangentByteStride = sizeof(glm::vec4);
+            }
+            size_t tangentByteOffset =
+                tangentAccessor->byteOffset + tangentBufferView->byteOffset + i * tangentByteStride;
+            vertex.tangent = *reinterpret_cast<const glm::vec4*>(
+                &(gltfModel.buffers[tangentBufferView->buffer].data[tangentByteOffset]));
         }
 
         vertices.push_back(vertex);
