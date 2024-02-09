@@ -14,10 +14,10 @@ vec2 poissonDisk[4] = vec2[](
     vec2(  0.34495938,   0.29387760 )
 );
 
-void loadMaterial(out vec3 baseColor, out vec3 emissive, out vec3 occlusion, out float metallic, out float roughness)
+void loadMaterial(out vec4 baseColor, out vec3 emissive, out vec3 occlusion, out float metallic, out float roughness)
 {
     // Load parameters
-    baseColor = objects[pc.objectIndex].baseColor.rgb;
+    baseColor = objects[pc.objectIndex].baseColor;
     emissive = objects[pc.objectIndex].emissive.rgb;
     occlusion = vec3(1.0);
     metallic = objects[pc.objectIndex].metallic;
@@ -30,7 +30,7 @@ void loadMaterial(out vec3 baseColor, out vec3 emissive, out vec3 occlusion, out
     int emissiveTextureIndex = objects[pc.objectIndex].emissiveTextureIndex;
     int occlusionTextureIndex = objects[pc.objectIndex].occlusionTextureIndex;
     if(baseColorTexture != -1){
-        baseColor = texture(textures2D[baseColorTexture], inTexCoord).xyz;
+        baseColor = texture(textures2D[baseColorTexture], inTexCoord);
         baseColor = gammaCorrect(baseColor, 2.2);
     }
     if(metallicRoughnessTexture != -1){
@@ -185,25 +185,29 @@ void main() {
     vec3 H = normalize(L + V);
     
     // Load material
-    vec3 baseColor, emissive, occlusion;
+    vec4 baseColor;
+    vec3 emissive, occlusion;
     float metallic, roughness;
     loadMaterial(baseColor, emissive, occlusion, metallic, roughness);
+    if(baseColor.w < 1.0){
+        discard;
+    }
     
     // Common values
     // F0: 非金属では固定値 0.04、金属では baseColor そのものとする
     //     metallic で値をブレンドして F0 を決める
-    vec3 F0 = mix(vec3(0.04), baseColor, metallic);
+    vec3 F0 = mix(vec3(0.04), baseColor.xyz, metallic);
     vec3 F = fresnelSchlickRoughness(max(dot(V, H), 0.0), F0, roughness);
     vec3 kS = F;
     vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
     // Directional light
-    vec3 directionalTerm = computeDirectionalTerm(baseColor, roughness, F, kD, L, V, N);
+    vec3 directionalTerm = computeDirectionalTerm(baseColor.xyz, roughness, F, kD, L, V, N);
     float visibility = computeDirectionalVisibility(N, L);
     directionalTerm *= visibility;
 
     // Ambient light
-    vec3 ambientTerm = computeAmbientTerm(baseColor, roughness, occlusion, F, kD, N, V, R);
+    vec3 ambientTerm = computeAmbientTerm(baseColor.xyz, roughness, occlusion, F, kD, N, V, R);
     
     // Final color
     outColor = vec4(emissive + ambientTerm + directionalTerm, 1.0);

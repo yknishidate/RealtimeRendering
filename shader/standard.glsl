@@ -119,4 +119,8 @@ vec3 gammaCorrect(vec3 color, float gamma){
     return pow(color, vec3(gamma));
 }
 
+vec4 gammaCorrect(vec4 color, float gamma){
+    return pow(color, vec4(gamma));
+}
+
 #endif
