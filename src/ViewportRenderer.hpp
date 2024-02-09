@@ -136,13 +136,15 @@ public:
         // Draw scene objects
         for (auto& object : scene.getObjects()) {
             // Draw directional light
-            if (const DirectionalLight* light = object.get<DirectionalLight>()) {
-                std::vector<rv::Vertex> vertices(2);
-                vertices[0].pos = glm::vec3{0.0f};
-                vertices[1].pos = light->getDirection() * 5.0f;
-                singleLineMesh.vertexBuffer->copy(vertices.data());
-                lineDrawer.draw(commandBuffer, singleLineMesh, viewProj,
-                                glm::vec3{0.7f, 0.7f, 0.7f}, 2.0f);
+            if (isLightVisible) {
+                if (const DirectionalLight* light = object.get<DirectionalLight>()) {
+                    std::vector<rv::Vertex> vertices(2);
+                    vertices[0].pos = glm::vec3{0.0f};
+                    vertices[1].pos = light->getDirection() * 5.0f;
+                    singleLineMesh.vertexBuffer->copy(vertices.data());
+                    lineDrawer.draw(commandBuffer, singleLineMesh, viewProj,
+                                    glm::vec3{0.7f, 0.7f, 0.7f}, 2.0f);
+                }
             }
 
             // Draw AABB
@@ -173,4 +175,5 @@ public:
     inline static bool isObjectAABBVisible = false;
     inline static bool isSceneAABBVisible = false;
     inline static bool isGridVisible = true;
+    inline static bool isLightVisible = true;
 };

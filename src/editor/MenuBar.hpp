@@ -70,6 +70,7 @@ public:
                     ImGui::Checkbox("Grid", &ViewportRenderer::isGridVisible);
                     ImGui::Checkbox("Scene AABB", &ViewportRenderer::isSceneAABBVisible);
                     ImGui::Checkbox("Object AABB", &ViewportRenderer::isObjectAABBVisible);
+                    ImGui::Checkbox("Light", &ViewportRenderer::isLightVisible);
                     ImGui::Checkbox("Gizmo", &ViewportWindow::isGizmoVisible);
                     ImGui::Checkbox("Tool bar", &ViewportWindow::isToolBarVisible);
                     ImGui::Checkbox("Auxiliary image", &ViewportWindow::isAuxiliaryImageVisible);
