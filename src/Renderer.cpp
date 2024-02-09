@@ -78,8 +78,8 @@ void Renderer::init(const rv::Context& _context,
             {
                 {"shadowMap", shadowMapImage},
                 {"baseColorImage", images.baseColorImage},
-                {"textures2D", 10u},
-                {"texturesCube", 10u},
+                {"textures2D", 100u},
+                {"texturesCube", 100u},
                 {"brdfLutTexture", brdfLutTexture},
             },
     });
