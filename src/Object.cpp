@@ -180,7 +180,7 @@ void Mesh::computeLocalAABB() {
     auto& indices = meshData->indices;
     for (uint32_t index = firstIndex;  //
          index < firstIndex + indexCount; index++) {
-        auto& vert = vertices[indices[index]];
+        auto& vert = vertices[vertexOffset + indices[index]];
         min = glm::min(min, vert.pos);
         max = glm::max(max, vert.pos);
     }
@@ -207,7 +207,7 @@ rv::AABB Mesh::getWorldAABB() const {
     glm::vec3 max = -glm::vec3{std::numeric_limits<float>::max()};
     for (auto& corner : corners) {
         // Apply rotation
-        glm::vec3 rotatedCorner = transform->rotation * (corner - _aabb.center);
+        glm::vec3 rotatedCorner = transform->rotation * corner;
 
         // Update min and max extents
         min = glm::min(min, rotatedCorner);
@@ -215,7 +215,7 @@ rv::AABB Mesh::getWorldAABB() const {
     }
 
     // Compute new AABB
-    rv::AABB worldAABB{_aabb.center + min, _aabb.center + max};
+    rv::AABB worldAABB{min, max};
 
     // Apply translation
     worldAABB.center += transform->translation;
