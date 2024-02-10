@@ -106,7 +106,7 @@ void Renderer::updateBuffers(const rv::CommandBuffer& commandBuffer,
                              Scene& scene) {
     // Update buffer
     // NOTE: Shadow map用の行列も更新するのでShadow map passより先に計算
-    rv::Camera& camera = scene.getCamera();
+    Camera& camera = scene.getCamera();
     sceneUniform.cameraView = camera.getView();
     sceneUniform.cameraProj = camera.getProj();
     sceneUniform.cameraViewProj = camera.getProj() * camera.getView();

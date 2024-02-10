@@ -1,6 +1,7 @@
 #pragma once
 #include <tiny_gltf.h>
 #include "Object.hpp"
+#include "reactive/Scene/Camera.hpp"
 
 class Scene {
 public:
@@ -57,8 +58,8 @@ public:
         return objects;
     }
 
-    rv::Camera& getCamera() {
-        return camera;
+    Camera& getCamera() {
+        return *currentCamera;
     }
 
     const MeshData& getCubeMesh() {
@@ -112,7 +113,9 @@ public:
     void clear() {
         objects.clear();
         objects.reserve(maxObjectCount);
-        camera = rv::Camera{rv::Camera::Type::Orbital, 1.0f};
+
+        currentCamera = &defaultCamera;
+
         meshData = MeshData{};
         materials.clear();
         textures2D.clear();
@@ -129,10 +132,11 @@ private:
     // もしくは外部のポインタを強制的に一度nullptrにしても良いが、一般的に難しい。
     int maxObjectCount = 10000;
     std::vector<Object> objects{};
-    rv::Camera camera{rv::Camera::Type::Orbital, 1.0f};
+
+    Camera defaultCamera{rv::Camera::Type::Orbital, 1.0f};
+    Camera* currentCamera = &defaultCamera;
 
     std::vector<MeshData> templateMeshData{};
-    // std::vector<MeshData> meshData{};
 
     // 全ての頂点とインデックス
     MeshData meshData;

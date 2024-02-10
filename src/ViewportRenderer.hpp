@@ -119,7 +119,7 @@ public:
         commandBuffer.beginRendering(colorImage, images.depthImage, {0, 0},
                                      {extent.width, extent.height});
 
-        const rv::Camera& camera = scene.getCamera();
+        const Camera& camera = scene.getCamera();
         glm::mat4 viewProj = camera.getProj() * camera.getView();
 
         commandBuffer.setViewport(extent.width, extent.height);

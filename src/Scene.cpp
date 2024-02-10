@@ -529,28 +529,29 @@ void Scene::loadFromJson(const std::filesystem::path& filepath) {
         }
     }
 
-    if (json.contains("camera")) {
-        const auto& _camera = json["camera"];
-        if (_camera["type"] == "Orbital") {
-            camera = rv::Camera{rv::Camera::Type::Orbital, 1920.0f / 1080.0f};
-            if (_camera.contains("target")) {
-                auto& target = _camera["target"];
-                camera.setTarget({target[0], target[1], target[2]});
-            }
-            if (_camera.contains("distance")) {
-                camera.setDistance(_camera["distance"]);
-            }
-            if (_camera.contains("phi")) {
-                camera.setPhi(_camera["phi"]);
-            }
-            if (_camera.contains("theta")) {
-                camera.setTheta(_camera["theta"]);
-            }
-        } else if (_camera["type"] == "FirstPerson") {
-            camera = rv::Camera{rv::Camera::Type::FirstPerson, 1920.0f / 1080.0f};
-        }
-        if (_camera.contains("fovY")) {
-            camera.setFovY(glm::radians(static_cast<float>(_camera["fovY"])));
-        }
-    }
+    // TODO: objectsから追加する
+    // if (json.contains("camera")) {
+    //     const auto& _camera = json["camera"];
+    //     if (_camera["type"] == "Orbital") {
+    //         camera = rv::Camera{rv::Camera::Type::Orbital, 1920.0f / 1080.0f};
+    //         if (_camera.contains("target")) {
+    //             auto& target = _camera["target"];
+    //             camera.setTarget({target[0], target[1], target[2]});
+    //         }
+    //         if (_camera.contains("distance")) {
+    //             camera.setDistance(_camera["distance"]);
+    //         }
+    //         if (_camera.contains("phi")) {
+    //             camera.setPhi(_camera["phi"]);
+    //         }
+    //         if (_camera.contains("theta")) {
+    //             camera.setTheta(_camera["theta"]);
+    //         }
+    //     } else if (_camera["type"] == "FirstPerson") {
+    //         camera = rv::Camera{rv::Camera::Type::FirstPerson, 1920.0f / 1080.0f};
+    //     }
+    //     if (_camera.contains("fovY")) {
+    //         camera.setFovY(glm::radians(static_cast<float>(_camera["fovY"])));
+    //     }
+    // }
 }

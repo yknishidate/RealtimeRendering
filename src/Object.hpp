@@ -244,3 +244,32 @@ public:
     std::string filepath;
     rv::ImageHandle image;
 };
+
+// WARN:
+// 多重継承なので要注意！
+// 本来 rv::Camera と別にカメラクラスを作るべきだが、
+// コード簡略化とrv側のメンテのために継承とする
+// rv::Camera を包含するとクラス外での扱いが複雑化するため却下
+struct Camera final : rv::Camera, Component {
+    Camera() = default;
+
+    Camera(rv::Camera::Type _type, float _aspect) : rv::Camera{_type, _aspect} {}
+
+    bool showAttributes(Scene& scene) override {
+        bool changed = false;
+        if (ImGui::Combo("Type", &typeIndex, "Orbital\0FirstPerson\0", 2)) {
+            // TODO: なるべく保存できる値は引き継ぐ
+            if (typeIndex == 0) {
+                type = Type::Orbital;
+                params = OrbitalParams{};
+            } else {
+                type = Type::FirstPerson;
+                params = FirstPersonParams{};
+            }
+        }
+        return changed;
+    }
+
+    int typeIndex = 0;
+    rv::Frustum frustum{};
+};

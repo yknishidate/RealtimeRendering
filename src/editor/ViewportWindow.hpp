@@ -12,7 +12,7 @@
 
 class ViewportWindow {
 public:
-    static bool editTransform(const rv::Camera& camera, glm::mat4& matrix) {
+    static bool editTransform(const Camera& camera, glm::mat4& matrix) {
         ImGuizmo::SetOrthographic(false);
         ImGuizmo::SetDrawlist();
 
