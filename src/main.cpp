@@ -11,7 +11,7 @@ public:
               .width = 2560,
               .height = 1440,
               .title = "Main app",
-              .vsync = false,
+              .vsync = true,
               .layers = {rv::Layer::Validation, rv::Layer::FPSMonitor},
               .style = rv::UIStyle::Gray,
           }) {}
