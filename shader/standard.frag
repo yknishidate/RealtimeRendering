@@ -42,6 +42,7 @@ void loadMaterial(out vec4 baseColor, out vec3 normal, out vec3 emissive, out ve
     int emissiveTextureIndex = objects[pc.objectIndex].emissiveTextureIndex;
     int occlusionTextureIndex = objects[pc.objectIndex].occlusionTextureIndex;
     int normalTextureIndex = objects[pc.objectIndex].normalTextureIndex;
+    int enableNormalMapping = objects[pc.objectIndex].enableNormalMapping;
     if(baseColorTexture != -1){
         baseColor = texture(textures2D[baseColorTexture], inTexCoord);
         baseColor = gammaCorrect(baseColor, 2.2);
@@ -58,7 +59,7 @@ void loadMaterial(out vec4 baseColor, out vec3 normal, out vec3 emissive, out ve
     if(occlusionTextureIndex != -1){
         occlusion = texture(textures2D[occlusionTextureIndex], inTexCoord).xyz;
     }
-    if(normalTextureIndex != -1){
+    if(enableNormalMapping == 1 && normalTextureIndex != -1){
         // TODO:
         // normal texture が含まれていても、Tangent が含まれていないデータがある。
         // その場合は、CPU側で MikkTSpace を使って事前に Tangent を計算するべき。
@@ -208,7 +209,6 @@ void main() {
     }
 
     // TODO: normal mapを使うかどうかをObjectDataに入れる
-    //vec3 N = normalize(inNormal);
     vec3 N = normal;
     vec3 V = normalize(scene.cameraPos.xyz - inPos);
     vec3 L = scene.lightDirection.xyz;

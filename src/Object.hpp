@@ -141,6 +141,7 @@ struct Material {
     int normalTextureIndex{-1};
     int occlusionTextureIndex{-1};
     int emissiveTextureIndex{-1};
+    bool enableNormalMapping{false};
     std::string name;
 };
 

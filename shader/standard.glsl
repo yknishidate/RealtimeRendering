@@ -18,10 +18,16 @@ struct ObjectData{
     float roughness{1.0f};
     float ior{1.5f};
     int baseColorTextureIndex{-1};
+
     int metallicRoughnessTextureIndex{-1};
     int normalTextureIndex{-1};
     int occlusionTextureIndex{-1};
     int emissiveTextureIndex{-1};
+
+    int enableNormalMapping{-1};
+    int _dummy0;
+    int _dummy1;
+    int _dummy2;
 #else
     mat4 modelMatrix;
     mat4 normalMatrix;
@@ -35,6 +41,10 @@ struct ObjectData{
     int normalTextureIndex;
     int occlusionTextureIndex;
     int emissiveTextureIndex;
+    int enableNormalMapping;
+    int _dummy0;
+    int _dummy1;
+    int _dummy2;
 #endif
 };
 

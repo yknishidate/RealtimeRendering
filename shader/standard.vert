@@ -22,11 +22,13 @@ void main() {
     gl_Position = cameraViewProj * worldPos;
     
     // for Normal mapping
-    vec3 bitangent = cross(inNormal, inTangent.xyz) * inTangent.w;
-    vec3 N = normalize(vec3(modelMatrix * vec4(inNormal, 0.0)));
-	vec3 T = normalize(vec3(modelMatrix * vec4(inTangent.xyz, 0.0)));
-    vec3 B = normalize(vec3(modelMatrix * vec4(bitangent, 0.0)));
-    outTBN = mat3(T, B, N);
+    if(objects[pc.objectIndex].enableNormalMapping == 1){
+        vec3 bitangent = cross(inNormal, inTangent.xyz) * inTangent.w;
+        vec3 N = normalize(vec3(modelMatrix * vec4(inNormal, 0.0)));
+	    vec3 T = normalize(vec3(modelMatrix * vec4(inTangent.xyz, 0.0)));
+        vec3 B = normalize(vec3(modelMatrix * vec4(bitangent, 0.0)));
+        outTBN = mat3(T, B, N);
+    }
 
     outNormal = normalize(normalMatrix * inNormal);
     

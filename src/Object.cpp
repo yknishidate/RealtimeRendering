@@ -233,6 +233,7 @@ bool Mesh::showAttributes(Scene& scene) {
         changed |= ImGui::SliderFloat("Metallic", &material->metallic, 0.0f, 1.0f);
         changed |= ImGui::SliderFloat("Roughness", &material->roughness, 0.0f, 1.0f);
         changed |= ImGui::SliderFloat("IOR", &material->ior, 0.01f, 5.0f);
+        changed |= ImGui::Checkbox("Normal mapping", &material->enableNormalMapping);
         ImGui::TreePop();
     }
     return changed;

@@ -73,7 +73,7 @@ void ShadowMapPass::render(const rv::CommandBuffer& commandBuffer,
     commandBuffer.endDebugLabel();
 }
 
-glm::mat4 ShadowMapPass::getViewProj(const DirectionalLight& light, const rv::AABB& aabb) const {
+glm::mat4 ShadowMapPass::getViewProj(const DirectionalLight& light, const rv::AABB& aabb) {
     // Transform AABB to light space
     std::vector<glm::vec3> corners = aabb.getCorners();
     glm::vec3 center = aabb.center;

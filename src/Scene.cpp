@@ -63,14 +63,10 @@ void Scene::loadFromGltf(const std::filesystem::path& filepath) {
 void Scene::loadTextures(tinygltf::Model& gltfModel) {
     for (size_t i = 0; i < gltfModel.textures.size(); ++i) {
         const tinygltf::Texture& texture = gltfModel.textures[i];
-        spdlog::info("Texture: {}", texture.name);
 
         // texture.source はイメージのインデックスを指す
         if (texture.source >= 0) {
             const tinygltf::Image& image = gltfModel.images[texture.source];
-            spdlog::info("  Image: \"{}\" {} {} {}", image.name, image.width, image.height,
-                         image.component);
-
             textures2D.push_back({});
             Texture& tex = textures2D.back();
             tex.name = image.name;
@@ -80,7 +76,7 @@ void Scene::loadTextures(tinygltf::Model& gltfModel) {
 
             // TODO:
             // 本来ならここでUnormかSrgbかを正しく指定することで、シェーダ側での色空間変換を省略するべき
-            // ただし、Texture本体には空間の情報はなく、マテリアル側から指定されるため、
+            // ただし、Texture本体には色空間の情報はなく、マテリアル側から指定されるため、
             // 読み込みを遅延する必要がある
             tex.image = context->createImage({
                 .usage = rv::ImageUsage::Sampled,
@@ -198,9 +194,11 @@ void Scene::loadMesh(tinygltf::Model& gltfModel, tinygltf::Primitive& gltfPrimit
         texCoordBufferView = &gltfModel.bufferViews[texCoordAccessor->bufferView];
     }
 
+    bool hasTangent = false;
     tinygltf::Accessor* tangentAccessor = nullptr;
     tinygltf::BufferView* tangentBufferView = nullptr;
     if (attributes.contains("TANGENT")) {
+        hasTangent = true;
         int tangentIndex = attributes.find("TANGENT")->second;
         tangentAccessor = &gltfModel.accessors[tangentIndex];
         tangentBufferView = &gltfModel.bufferViews[tangentAccessor->bufferView];
@@ -301,6 +299,7 @@ void Scene::loadMesh(tinygltf::Model& gltfModel, tinygltf::Primitive& gltfPrimit
     mesh.meshData = &meshData;
     if (gltfPrimitive.material != -1) {
         mesh.material = &materials[gltfPrimitive.material];
+        mesh.material->enableNormalMapping = hasTangent && mesh.material->normalTextureIndex != -1;
     }
     mesh.firstIndex = static_cast<uint32_t>(indexOffset);
     mesh.vertexOffset = static_cast<uint32_t>(vertexOffset);

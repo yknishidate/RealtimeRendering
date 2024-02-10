@@ -161,6 +161,7 @@ void Renderer::updateBuffers(const rv::CommandBuffer& commandBuffer,
             objectStorage[index].normalTextureIndex = material->normalTextureIndex;
             objectStorage[index].occlusionTextureIndex = material->occlusionTextureIndex;
             objectStorage[index].emissiveTextureIndex = material->emissiveTextureIndex;
+            objectStorage[index].enableNormalMapping = static_cast<int>(material->enableNormalMapping);
             // clang-format on
         }
         if (transform) {
