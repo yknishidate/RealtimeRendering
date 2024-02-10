@@ -26,7 +26,17 @@ void loadMaterial(out vec4 baseColor, out vec3 normal, out vec3 emissive, out ve
     normal = normalize(inNormal);
 
     // Load textures
-    // NOTE: テクスチャはリニア空間になっていないのでガンマ補正が必要
+    // NOTE:
+    // テクスチャはリニア空間になっていないのでガンマ補正が必要
+    //   baseColor:         sRGB
+    //   emissive:          sRGB
+    //   mettalicRoughness: linear
+    //   normal:            linear
+    //   occlusion:         不明。おそらく linear
+    // WARN: 厳密にはsRGBtoLinearとGamma2.2の処理は異なる
+    // TODO: 
+    // そもそもシェーダで変換するのではなく、vk::ImageのFormatで適切にsRGBかUnormかを指定し、
+    // GPU側で補正してもらうべき。
     int baseColorTexture = objects[pc.objectIndex].baseColorTextureIndex;
     int metallicRoughnessTexture = objects[pc.objectIndex].metallicRoughnessTextureIndex;
     int emissiveTextureIndex = objects[pc.objectIndex].emissiveTextureIndex;
@@ -38,7 +48,6 @@ void loadMaterial(out vec4 baseColor, out vec3 normal, out vec3 emissive, out ve
     }
     if(metallicRoughnessTexture != -1){
         vec3 metallicRoughness = texture(textures2D[metallicRoughnessTexture], inTexCoord).xyz;
-        metallicRoughness = gammaCorrect(metallicRoughness, 2.2);
         roughness = metallicRoughness.y;
         metallic = metallicRoughness.z;
     }
@@ -48,11 +57,13 @@ void loadMaterial(out vec4 baseColor, out vec3 normal, out vec3 emissive, out ve
     }
     if(occlusionTextureIndex != -1){
         occlusion = texture(textures2D[occlusionTextureIndex], inTexCoord).xyz;
-        occlusion = gammaCorrect(occlusion, 2.2);
     }
     if(normalTextureIndex != -1){
+        // TODO:
+        // normal texture が含まれていても、Tangent が含まれていないデータがある。
+        // その場合は、CPU側で MikkTSpace を使って事前に Tangent を計算するべき。
+        // MikkTSpace は vcpkg にも含まれている。
         normal = texture(textures2D[normalTextureIndex], inTexCoord).xyz;
-        //normal = gammaCorrect(normal, 2.2); // TODO: normalも必要？
         normal = normalize(normal * 2.0 - 1.0); // remap: [0, 1] -> [-1, 1]
         normal = normalize(inTBN * normal);
     }
@@ -76,7 +87,7 @@ vec3 computeAmbientTerm(vec3 baseColor, float roughness, vec3 occlusion,
                         vec3 F, vec3 kD,
                         vec3 N, vec3 V, vec3 R)
 {
-    // -------------------- Diffuse --------------------
+    // Diffuse
     // kd * (c/π) * ∫ Li (n・wi) dwi
     float intensity = scene.ambientColorIntensity.w;
     vec3 irradiance = vec3(0.0);
@@ -90,7 +101,7 @@ vec3 computeAmbientTerm(vec3 baseColor, float roughness, vec3 occlusion,
     }
     vec3 diffuse = kD * baseColor * irradiance;
 
-    // -------------------- Specular --------------------
+    // Specular
     vec3 radiance = scene.ambientColorIntensity.rgb;
     if(scene.radianceTexture != -1){
         const float MAX_REFLECTION_LOD = 9.0;

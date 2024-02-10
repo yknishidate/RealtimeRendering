@@ -65,7 +65,7 @@ void Scene::loadTextures(tinygltf::Model& gltfModel) {
         const tinygltf::Texture& texture = gltfModel.textures[i];
         spdlog::info("Texture: {}", texture.name);
 
-        // texture.source はイメージのインデックスを指します
+        // texture.source はイメージのインデックスを指す
         if (texture.source >= 0) {
             const tinygltf::Image& image = gltfModel.images[texture.source];
             spdlog::info("  Image: \"{}\" {} {} {}", image.name, image.width, image.height,
@@ -78,6 +78,10 @@ void Scene::loadTextures(tinygltf::Model& gltfModel) {
                 tex.name = std::format("Image {}", textures2D.size());
             }
 
+            // TODO:
+            // 本来ならここでUnormかSrgbかを正しく指定することで、シェーダ側での色空間変換を省略するべき
+            // ただし、Texture本体には空間の情報はなく、マテリアル側から指定されるため、
+            // 読み込みを遅延する必要がある
             tex.image = context->createImage({
                 .usage = rv::ImageUsage::Sampled,
                 .extent = {static_cast<uint32_t>(image.width), static_cast<uint32_t>(image.height),
