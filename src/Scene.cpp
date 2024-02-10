@@ -336,42 +336,40 @@ void Scene::loadNodes(tinygltf::Model& gltfModel) {
         // }
 
         if (gltfNode.mesh != -1) {
-            for (int gltfMeshIndex = 0; gltfMeshIndex < gltfModel.meshes.size(); gltfMeshIndex++) {
-                auto& gltfMesh = gltfModel.meshes.at(gltfMeshIndex);
+            auto& gltfMesh = gltfModel.meshes.at(gltfNode.mesh);
 
-                for (auto& gltfPrimitive : gltfMesh.primitives) {
-                    std::string name = gltfMesh.name;
-                    if (name.empty()) {
-                        name = std::format("Object {}", objects.size());
-                    }
+            for (auto& gltfPrimitive : gltfMesh.primitives) {
+                std::string name = gltfMesh.name;
+                if (name.empty()) {
+                    name = std::format("Object {}", objects.size());
+                }
 
-                    objects.emplace_back(name);
-                    Object& obj = objects.back();
+                objects.emplace_back(name);
+                Object& obj = objects.back();
 
-                    // Mesh
-                    Mesh& mesh = obj.add<Mesh>();
-                    loadMesh(gltfModel, gltfPrimitive, mesh);
+                // Mesh
+                Mesh& mesh = obj.add<Mesh>();
+                loadMesh(gltfModel, gltfPrimitive, mesh);
 
-                    // Transform
-                    Transform& trans = obj.add<Transform>();
-                    if (!gltfNode.translation.empty()) {
-                        trans.translation = glm::vec3{gltfNode.translation[0],  //
-                                                      gltfNode.translation[1],  //
-                                                      gltfNode.translation[2]};
-                    }
+                // Transform
+                Transform& trans = obj.add<Transform>();
+                if (!gltfNode.translation.empty()) {
+                    trans.translation = glm::vec3{gltfNode.translation[0],  //
+                                                  gltfNode.translation[1],  //
+                                                  gltfNode.translation[2]};
+                }
 
-                    if (!gltfNode.rotation.empty()) {
-                        trans.rotation = glm::quat{static_cast<float>(gltfNode.rotation[3]),
-                                                   static_cast<float>(gltfNode.rotation[0]),
-                                                   static_cast<float>(gltfNode.rotation[1]),
-                                                   static_cast<float>(gltfNode.rotation[2])};
-                    }
+                if (!gltfNode.rotation.empty()) {
+                    trans.rotation = glm::quat{static_cast<float>(gltfNode.rotation[3]),
+                                               static_cast<float>(gltfNode.rotation[0]),
+                                               static_cast<float>(gltfNode.rotation[1]),
+                                               static_cast<float>(gltfNode.rotation[2])};
+                }
 
-                    if (!gltfNode.scale.empty()) {
-                        trans.scale = glm::vec3{gltfNode.scale[0],  //
-                                                gltfNode.scale[1],  //
-                                                gltfNode.scale[2]};
-                    }
+                if (!gltfNode.scale.empty()) {
+                    trans.scale = glm::vec3{gltfNode.scale[0],  //
+                                            gltfNode.scale[1],  //
+                                            gltfNode.scale[2]};
                 }
             }
         }

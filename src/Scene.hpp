@@ -42,6 +42,14 @@ public:
         return count;
     }
 
+    void update(float dt) {
+        for (auto& object : objects) {
+            for (auto& comp : object.getComponents() | std::views::values) {
+                comp->update(dt);
+            }
+        }
+    }
+
     void loadFromGltf(const std::filesystem::path& filepath);
 
     void loadTextures(tinygltf::Model& gltfModel);
@@ -60,6 +68,10 @@ public:
 
     Camera& getCamera() {
         return *currentCamera;
+    }
+
+    Camera& getDefaultCamera() {
+        return defaultCamera;
     }
 
     const MeshData& getCubeMesh() {

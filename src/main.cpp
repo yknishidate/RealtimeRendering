@@ -11,7 +11,7 @@ public:
               .width = 2560,
               .height = 1440,
               .title = "Main app",
-              .vsync = true,
+              .vsync = false,
               .layers = {rv::Layer::Validation, rv::Layer::FPSMonitor},
               .style = rv::UIStyle::Gray,
           }) {}
@@ -47,7 +47,7 @@ public:
         }
     }
 
-    void onUpdate() override {
+    void onUpdate(float dt) override {
         if (!play) {
             editor.beginCpuUpdate();
         }
@@ -100,6 +100,9 @@ public:
                 }
             }
         }
+
+        // Update
+        scene.update(dt);
 
         frame++;
 

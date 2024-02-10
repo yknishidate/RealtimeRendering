@@ -65,7 +65,8 @@ public:
     void render(const rv::CommandBuffer& commandBuffer,
                 const rv::ImageHandle& baseColorImage,
                 const rv::ImageHandle& depthImage,
-                std::vector<Object>& objects);
+                Scene& scene,
+                bool frustumCulling);
 
 private:
     StandardConstants constants;

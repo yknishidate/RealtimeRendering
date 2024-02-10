@@ -264,8 +264,8 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
     }
 
     // Forward pass
-    auto& objects = scene.getObjects();
-    forwardPass.render(commandBuffer, images.baseColorImage, images.depthImage, objects);
+    forwardPass.render(commandBuffer, images.baseColorImage, images.depthImage, scene,
+                       enableFrustumCulling);
 
     // AA pass
     antiAliasingPass.render(commandBuffer, images.baseColorImage, colorImage);

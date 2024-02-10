@@ -270,6 +270,14 @@ struct Camera final : rv::Camera, Component {
         return changed;
     }
 
+    void update(float dt) override {
+        frustum = rv::Frustum{*this};
+    }
+
+    rv::Frustum getFrustum() const {
+        return frustum;
+    }
+
     int typeIndex = 0;
     rv::Frustum frustum{};
 };

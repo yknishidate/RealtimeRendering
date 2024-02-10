@@ -196,7 +196,8 @@ void ForwardPass::init(const rv::Context& context,
 void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
                          const rv::ImageHandle& baseColorImage,
                          const rv::ImageHandle& depthImage,
-                         std::vector<Object>& objects) {
+                         Scene& scene,
+                         bool frustumCulling) {
     vk::Extent3D extent = baseColorImage->getExtent();
     commandBuffer.beginDebugLabel("ForwardPass::render()");
     commandBuffer.bindDescriptorSet(descSet, pipeline);
@@ -207,10 +208,17 @@ void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
     commandBuffer.beginTimestamp(timer);
     commandBuffer.beginRendering(baseColorImage, depthImage, {0, 0}, {extent.width, extent.height});
 
-    for (int index = 0; index < objects.size(); index++) {
-        auto& object = objects[index];
+    int meshCount = 0;
+    int visibleCount = 0;
+    for (int index = 0; index < scene.getObjects().size(); index++) {
+        auto& object = scene.getObjects()[index];
         Mesh* mesh = object.get<Mesh>();
         if (!mesh) {
+            continue;
+        }
+        meshCount++;
+
+        if (frustumCulling && !mesh->getWorldAABB().isOnFrustum(scene.getCamera().getFrustum())) {
             continue;
         }
         constants.objectIndex = index;
@@ -218,7 +226,9 @@ void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
         commandBuffer.bindVertexBuffer(mesh->meshData->vertexBuffer);
         commandBuffer.bindIndexBuffer(mesh->meshData->indexBuffer);
         commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, mesh->vertexOffset, 0);
+        visibleCount++;
     }
+    spdlog::info("Visible: {} / {}", visibleCount, meshCount);
 
     commandBuffer.endRendering();
     commandBuffer.endTimestamp(timer);
