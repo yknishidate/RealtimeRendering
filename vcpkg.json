@@ -22,6 +22,7 @@
     {
       "name": "ktx",
       "features": ["vulkan"]
-    }
+    },
+    "gtest"
   ]
 }

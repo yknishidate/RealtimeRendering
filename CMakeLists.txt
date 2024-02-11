@@ -8,6 +8,7 @@ find_package(unofficial-nativefiledialog CONFIG REQUIRED)
 
 set(REACTIVE_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(reactive)
+add_subdirectory(test)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.hpp")
 file(GLOB SHADERS shader/*) # exclude spv files

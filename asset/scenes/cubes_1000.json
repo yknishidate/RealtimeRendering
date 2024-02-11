@@ -1,0 +1,56 @@
+{
+    "gltf": "../models/cubes_1000.glb",
+    "materials": [
+        {
+            "type": "Standard",
+            "name": "Standard 0",
+            "baseColor": [
+                0.9,
+                0.9,
+                0.9,
+                1.0
+            ]
+        },
+        {
+            "type": "Standard",
+            "name": "Standard 1",
+            "baseColor": [
+                0.9,
+                0.9,
+                0.9,
+                1.0
+            ]
+        },
+        {
+            "type": "Standard",
+            "name": "Standard 2",
+            "baseColor": [
+                0.9,
+                0.9,
+                0.9,
+                1.0
+            ]
+        }
+    ],
+    "objects": [
+        {
+            "name": "Directional light",
+            "type": "DirectionalLight",
+            "color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "intensity": 1.0,
+            "phi": 20.0,
+            "theta": 35.0
+        }
+    ],
+    "camera": {
+        "type": "FirstPerson"
+    },
+    "texturesCube": [
+        "../environments/papermill_irradiance.ktx",
+        "../environments/papermill_radiance.ktx"
+    ]
+}
