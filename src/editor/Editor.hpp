@@ -93,7 +93,6 @@ public:
         if (needsRecreateViewportImage()) {
             context.getDevice().waitIdle();
             createViewportImage(context);
-            scene.getCamera().setAspect(ViewportWindow::width / ViewportWindow::height);
         }
 
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
@@ -115,9 +114,6 @@ public:
         ImGui::PopStyleVar(3);
 
         message |= MenuBar::show(scene);
-        if (message & EditorMessage::SceneOpened) {
-            scene.getCamera().setAspect(ViewportWindow::width / ViewportWindow::height);
-        }
 
         ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);

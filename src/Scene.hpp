@@ -45,6 +45,10 @@ public:
     }
 
     void update(float dt) {
+        if (currentCamera == &defaultCamera) {
+            defaultCamera.update(dt);
+        }
+
         for (auto& object : objects) {
             for (auto& comp : object.getComponents() | std::views::values) {
                 comp->update(dt);
@@ -156,7 +160,7 @@ private:
     int maxObjectCount = 10000;
     std::vector<Object> objects{};
 
-    Camera defaultCamera{rv::Camera::Type::Orbital, 1.0f};
+    Camera defaultCamera{rv::Camera::Type::Orbital};
     Camera* currentCamera = &defaultCamera;
 
     std::vector<MeshData> templateMeshData{};

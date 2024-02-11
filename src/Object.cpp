@@ -1,5 +1,6 @@
 #include "Object.hpp"
 
+#include "MainWindow.hpp"
 #include "Scene.hpp"
 
 glm::mat4 Transform::computeTransformMatrix() const {
@@ -261,4 +262,9 @@ bool Camera::showAttributes(Scene& scene) {
         }
     }
     return changed;
+}
+
+void Camera::update(float dt) {
+    aspect = MainWindow::getWidth() / MainWindow::getHeight();
+    frustum = rv::Frustum{*this};
 }

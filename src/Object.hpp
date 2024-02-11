@@ -253,13 +253,11 @@ public:
 struct Camera final : rv::Camera, Component {
     Camera() = default;
 
-    Camera(rv::Camera::Type _type, float _aspect) : rv::Camera{_type, _aspect} {}
+    Camera(rv::Camera::Type _type) : rv::Camera{_type, 1.0f} {}
 
     bool showAttributes(Scene& scene) override;
 
-    void update(float dt) override {
-        frustum = rv::Frustum{*this};
-    }
+    void update(float dt) override;
 
     rv::Frustum getFrustum() const {
         return frustum;

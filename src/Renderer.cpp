@@ -195,7 +195,6 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
         images.createImages(*context, width, height);
         descSet->set("baseColorImage", images.baseColorImage);
         shouldUpdate = true;
-        scene.getCamera().setAspect(static_cast<float>(width) / static_cast<float>(height));
     }
 
     if (scene.getStatus() & SceneStatus::Cleared) {

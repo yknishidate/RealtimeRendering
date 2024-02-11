@@ -25,6 +25,8 @@ public:
         rv::CPUTimer timer;
         std::filesystem::create_directories(DEV_SHADER_DIR / "spv");
 
+        MainWindow::init(*this);
+
         images.createImages(context, width, height);
 
         scene.init(context);
@@ -62,7 +64,6 @@ public:
 
         if (isKeyDown(GLFW_KEY_LEFT_CONTROL) && isKeyDown(GLFW_KEY_O)) {
             MenuBar::openScene(scene);
-            scene.getCamera().setAspect(ViewportWindow::width / ViewportWindow::height);
         }
 
         auto& camera = scene.getCamera();
