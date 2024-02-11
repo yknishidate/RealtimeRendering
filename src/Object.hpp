@@ -255,20 +255,7 @@ struct Camera final : rv::Camera, Component {
 
     Camera(rv::Camera::Type _type, float _aspect) : rv::Camera{_type, _aspect} {}
 
-    bool showAttributes(Scene& scene) override {
-        bool changed = false;
-        if (ImGui::Combo("Type", &typeIndex, "Orbital\0FirstPerson\0", 2)) {
-            // TODO: なるべく保存できる値は引き継ぐ
-            if (typeIndex == 0) {
-                type = Type::Orbital;
-                params = OrbitalParams{};
-            } else {
-                type = Type::FirstPerson;
-                params = FirstPersonParams{};
-            }
-        }
-        return changed;
-    }
+    bool showAttributes(Scene& scene) override;
 
     void update(float dt) override {
         frustum = rv::Frustum{*this};

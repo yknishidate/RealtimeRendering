@@ -152,8 +152,7 @@ public:
                 if (const Camera* _camera = object.get<Camera>()) {
                     glm::mat4 invProj = _camera->getInvProj();
                     glm::mat4 invView = _camera->getInvView();
-                    glm::mat4 scale = glm::scale(glm::mat4{1.0f}, glm::vec3{0.9f});
-                    glm::mat4 model = invView * invProj * scale;
+                    glm::mat4 model = invView * invProj;
                     lineDrawer.draw(commandBuffer, cubeLineMesh, viewProj * model,  //
                                     glm::vec3{1.0f, 1.0f, 1.0f}, 2.0f);
                 }

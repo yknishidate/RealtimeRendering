@@ -238,3 +238,27 @@ bool Mesh::showAttributes(Scene& scene) {
     }
     return changed;
 }
+
+bool Camera::showAttributes(Scene& scene) {
+    bool changed = false;
+    if (ImGui::Combo("Type", &typeIndex, "Orbital\0FirstPerson\0", 2)) {
+        // TODO: なるべく保存できる値は引き継ぐ
+        if (typeIndex == 0) {
+            type = Type::Orbital;
+            params = OrbitalParams{};
+        } else {
+            type = Type::FirstPerson;
+            params = FirstPersonParams{};
+        }
+    }
+
+    bool inUse = scene.currentCamera == this;
+    if (ImGui::Checkbox("Use", &inUse)) {
+        if (inUse) {
+            scene.setMainCamera(*this);
+        } else {
+            scene.useDefaultCamera();
+        }
+    }
+    return changed;
+}

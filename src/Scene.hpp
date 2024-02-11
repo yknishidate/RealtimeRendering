@@ -4,6 +4,8 @@
 #include "reactive/Scene/Camera.hpp"
 
 class Scene {
+    friend struct Camera;
+
 public:
     void init(const rv::Context& _context);
 
@@ -67,11 +69,20 @@ public:
     }
 
     Camera& getCamera() {
+        assert(currentCamera);
         return *currentCamera;
     }
 
     Camera& getDefaultCamera() {
         return defaultCamera;
+    }
+
+    void setMainCamera(Camera& camera) {
+        currentCamera = &camera;
+    }
+
+    void useDefaultCamera() {
+        currentCamera = &defaultCamera;
     }
 
     const MeshData& getCubeMesh() {

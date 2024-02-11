@@ -218,9 +218,11 @@ void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
         }
         meshCount++;
 
-        if (frustumCulling && !mesh->getWorldAABB().isOnFrustum(scene.getCamera().getFrustum())) {
-            continue;
-        }
+        // TODO: Fix culling
+        // if (frustumCulling && !mesh->getWorldAABB().isOnFrustum(scene.getCamera().getFrustum()))
+        // {
+        //     continue;
+        // }
         constants.objectIndex = index;
         commandBuffer.pushConstants(pipeline, &constants);
         commandBuffer.bindVertexBuffer(mesh->meshData->vertexBuffer);
@@ -228,7 +230,7 @@ void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
         commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, mesh->vertexOffset, 0);
         visibleCount++;
     }
-    spdlog::info("Visible: {} / {}", visibleCount, meshCount);
+    // spdlog::info("Visible: {} / {}", visibleCount, meshCount);
 
     commandBuffer.endRendering();
     commandBuffer.endTimestamp(timer);
