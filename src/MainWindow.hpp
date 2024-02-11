@@ -2,6 +2,11 @@
 
 class MainApp;
 
+// TODO:
+// rv側でWindowをAppから分離した方がいいかも
+// ImGuiとGLFWの吸収はどこかで必要になるが、
+// Appに依存するよりは綺麗に書けそう
+
 // エディタモードとプレイモードによる差分を吸収し
 // グローバルアクセスを提供する
 class MainWindow {

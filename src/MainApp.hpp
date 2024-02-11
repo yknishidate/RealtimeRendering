@@ -66,26 +66,18 @@ public:
             MenuBar::openScene(scene);
         }
 
+        // Camera
         auto& camera = scene.getCamera();
         for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
             if (isKeyDown(key)) {
                 camera.processKey(key);
             }
         }
-
-        if (MainWindow::play) {
-            glm::vec2 _mouseDragLeft = getMouseDragLeft();
-            glm::vec2 _mouseDragRight = getMouseDragRight();
-            camera.processMouseDragLeft(glm::vec2{_mouseDragLeft.x, -_mouseDragLeft.y} * 0.5f);
-            camera.processMouseDragRight(glm::vec2{_mouseDragRight.x, -_mouseDragRight.y} * 0.5f);
-            camera.processMouseScroll(getMouseScroll());
-        } else {
-            glm::vec2 _mouseDragLeft = ViewportWindow::dragDeltaLeft;
-            glm::vec2 _mouseDragRight = ViewportWindow::dragDeltaRight;
-            camera.processMouseDragLeft(glm::vec2{_mouseDragLeft.x, -_mouseDragLeft.y} * 0.5f);
-            camera.processMouseDragRight(glm::vec2{_mouseDragRight.x, -_mouseDragRight.y} * 0.5f);
-            camera.processMouseScroll(ViewportWindow::mouseScroll);
-        }
+        glm::vec2 _mouseDragLeft = MainWindow::getMouseDragLeft();
+        glm::vec2 _mouseDragRight = MainWindow::getMouseDragRight();
+        camera.processMouseDragLeft(glm::vec2{_mouseDragLeft.x, -_mouseDragLeft.y} * 0.5f);
+        camera.processMouseDragRight(glm::vec2{_mouseDragRight.x, -_mouseDragRight.y} * 0.5f);
+        camera.processMouseScroll(MainWindow::getMouseScroll());
 
         // Editor
         if (!MainWindow::play) {
