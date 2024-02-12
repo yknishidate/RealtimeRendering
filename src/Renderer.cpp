@@ -101,6 +101,37 @@ void Renderer::init(const rv::Context& _context,
     firstFrameRendered = false;
 }
 
+void Renderer::updateObjectData(const Object& object, uint32_t index) {
+    auto* mesh = object.get<Mesh>();
+    auto* transform = object.get<Transform>();
+    if (!mesh) {
+        return;
+    }
+
+    // TODO: マテリアル情報はバッファを分けてGPU側でインデックス参照する
+    // TODO: materialIndexはpushConstantでもいいかも
+    if (Material* material = mesh->material) {
+        // clang-format off
+            objectStorage[index].baseColor = material->baseColor;
+            objectStorage[index].emissive.xyz = material->emissive;
+            objectStorage[index].metallic = material->metallic;
+            objectStorage[index].roughness = material->roughness;
+            objectStorage[index].ior = material->ior;
+            objectStorage[index].baseColorTextureIndex = material->baseColorTextureIndex;
+            objectStorage[index].metallicRoughnessTextureIndex = material->metallicRoughnessTextureIndex;
+            objectStorage[index].normalTextureIndex = material->normalTextureIndex;
+            objectStorage[index].occlusionTextureIndex = material->occlusionTextureIndex;
+            objectStorage[index].emissiveTextureIndex = material->emissiveTextureIndex;
+            objectStorage[index].enableNormalMapping = static_cast<int>(material->enableNormalMapping);
+        // clang-format on
+    }
+    if (transform) {
+        const auto& model = transform->computeTransformMatrix();
+        objectStorage[index].modelMatrix = model;
+        objectStorage[index].normalMatrix = transform->computeNormalMatrix();
+    }
+}
+
 void Renderer::updateBuffers(const rv::CommandBuffer& commandBuffer,
                              vk::Extent3D extent,
                              Scene& scene) {
@@ -139,36 +170,9 @@ void Renderer::updateBuffers(const rv::CommandBuffer& commandBuffer,
     }
 
     auto& objects = scene.getObjects();
-    for (size_t index = 0; index < objects.size(); index++) {
+    for (uint32_t index : scene.getUpdatedObjectIndices()) {
         auto& object = objects[index];
-        auto* mesh = object.get<Mesh>();
-        auto* transform = object.get<Transform>();
-        if (!mesh) {
-            continue;
-        }
-
-        // TODO: マテリアル情報はバッファを分けてGPU側でインデックス参照する
-        // TODO: materialIndexはpushConstantでもいいかも
-        if (Material* material = mesh->material) {
-            // clang-format off
-            objectStorage[index].baseColor = material->baseColor;
-            objectStorage[index].emissive.xyz = material->emissive;
-            objectStorage[index].metallic = material->metallic;
-            objectStorage[index].roughness = material->roughness;
-            objectStorage[index].ior = material->ior;
-            objectStorage[index].baseColorTextureIndex = material->baseColorTextureIndex;
-            objectStorage[index].metallicRoughnessTextureIndex = material->metallicRoughnessTextureIndex;
-            objectStorage[index].normalTextureIndex = material->normalTextureIndex;
-            objectStorage[index].occlusionTextureIndex = material->occlusionTextureIndex;
-            objectStorage[index].emissiveTextureIndex = material->emissiveTextureIndex;
-            objectStorage[index].enableNormalMapping = static_cast<int>(material->enableNormalMapping);
-            // clang-format on
-        }
-        if (transform) {
-            const auto& model = transform->computeTransformMatrix();
-            objectStorage[index].modelMatrix = model;
-            objectStorage[index].normalMatrix = transform->computeNormalMatrix();
-        }
+        updateObjectData(object, index);
     }
 
     // TODO: DeviceHostに変更

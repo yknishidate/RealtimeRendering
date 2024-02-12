@@ -39,6 +39,8 @@ public:
     inline static float exposure = 1.0f;
 
 private:
+    void updateObjectData(const Object& object, uint32_t index);
+
     bool initialized = false;
     bool firstFrameRendered = false;
     const rv::Context* context = nullptr;

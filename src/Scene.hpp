@@ -49,9 +49,18 @@ public:
             defaultCamera.update(*this, dt);
         }
 
-        for (auto& object : objects) {
+        updatedObjectIndices.clear();
+
+        for (size_t index = 0; index < objects.size(); index++) {
+            auto& object = objects[index];
+            bool changed = false;
             for (auto& comp : object.getComponents() | std::views::values) {
                 comp->update(*this, dt);
+                changed |= comp->changed;
+                comp->changed = false;  // reset
+            }
+            if (changed) {
+                updatedObjectIndices.push_back(static_cast<uint32_t>(index));
             }
         }
 
@@ -72,6 +81,10 @@ public:
 
     std::vector<Object>& getObjects() {
         return objects;
+    }
+
+    std::vector<uint32_t>& getUpdatedObjectIndices() {
+        return updatedObjectIndices;
     }
 
     Camera& getCamera() const {
@@ -163,7 +176,7 @@ private:
     // もしくは外部のポインタを強制的に一度nullptrにしても良いが、一般的に難しい。
     int maxObjectCount = 10000;
     std::vector<Object> objects{};
-    std::vector<Object*> updatedObjects{};
+    std::vector<uint32_t> updatedObjectIndices{};
 
     Camera defaultCamera{rv::Camera::Type::Orbital};
     Camera* currentCamera = &defaultCamera;

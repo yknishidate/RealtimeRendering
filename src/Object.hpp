@@ -64,7 +64,11 @@ struct Component {
     virtual void showAttributes(Scene& scene) = 0;
 
     Object* object = nullptr;
-    bool changed = false;
+
+    // 変更を検知するためのフラグ
+    // バッファ更新を高速化するため
+    // 初回はバッファに情報を入れるために true としておく
+    bool changed = true;
 };
 
 class Object final {
