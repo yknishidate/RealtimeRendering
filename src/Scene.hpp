@@ -54,6 +54,8 @@ public:
                 comp->update(*this, dt);
             }
         }
+
+        computeAABB();
     }
 
     void loadFromGltf(const std::filesystem::path& filepath);
@@ -119,13 +121,15 @@ public:
         status |= SceneStatus::TextureCubeAdded;
     }
 
-    rv::AABB getAABB() const {
-        rv::AABB aabb{};
+    void computeAABB() {
         for (auto& obj : objects) {
             if (const Mesh* mesh = obj.get<Mesh>()) {
                 aabb = rv::AABB::merge(aabb, mesh->getWorldAABB());
             }
         }
+    }
+
+    rv::AABB getAABB() const {
         return aabb;
     }
 
@@ -171,6 +175,8 @@ private:
     std::vector<Material> materials{};
     std::vector<Texture> textures2D{};
     std::vector<Texture> texturesCube{};
+
+    rv::AABB aabb{};
 
     SceneStatusFlags status = SceneStatus::None;
 };
