@@ -1,9 +1,9 @@
 #pragma once
-#include "MainWindow.hpp"
 #include "RenderImages.hpp"
 #include "Renderer.hpp"
 #include "Scene.hpp"
 #include "ViewportRenderer.hpp"
+#include "WindowAdapter.hpp"
 #include "editor/Editor.hpp"
 #include "reactive/Window.hpp"
 
@@ -43,7 +43,7 @@ public:
 
     void onKey(int key, int scancode, int action, int mods) override {
         if (key == GLFW_KEY_P && action == GLFW_PRESS) {
-            MainWindow::play = !MainWindow::play;
+            WindowAdapter::play = !WindowAdapter::play;
         }
         if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
             terminate();
@@ -51,7 +51,7 @@ public:
     }
 
     void onUpdate(float dt) override {
-        if (!MainWindow::play) {
+        if (!WindowAdapter::play) {
             editor.beginCpuUpdate();
         }
 
@@ -73,14 +73,14 @@ public:
                 camera.processKey(key);
             }
         }
-        glm::vec2 _mouseDragLeft = MainWindow::getMouseDragLeft();
-        glm::vec2 _mouseDragRight = MainWindow::getMouseDragRight();
+        glm::vec2 _mouseDragLeft = WindowAdapter::getMouseDragLeft();
+        glm::vec2 _mouseDragRight = WindowAdapter::getMouseDragRight();
         camera.processMouseDragLeft(glm::vec2{_mouseDragLeft.x, -_mouseDragLeft.y} * 0.5f);
         camera.processMouseDragRight(glm::vec2{_mouseDragRight.x, -_mouseDragRight.y} * 0.5f);
-        camera.processMouseScroll(MainWindow::getMouseScroll());
+        camera.processMouseScroll(WindowAdapter::getMouseScroll());
 
         // Editor
-        if (!MainWindow::play) {
+        if (!WindowAdapter::play) {
             auto message = editor.show(context, scene, renderer);
             if (message & EditorMessage::RecompileRequested) {
                 pendingRecompile = true;
@@ -100,13 +100,13 @@ public:
 
         frame++;
 
-        if (!MainWindow::play) {
+        if (!WindowAdapter::play) {
             editor.endCpuUpdate();
         }
     }
 
     void onRender(const rv::CommandBufferHandle& commandBuffer) override {
-        if (MainWindow::play) {
+        if (WindowAdapter::play) {
             commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
             renderer.render(*commandBuffer, getCurrentColorImage(), images, scene);
         } else {
