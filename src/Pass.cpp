@@ -228,7 +228,9 @@ void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
         commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, mesh->vertexOffset, 0);
         visibleCount++;
     }
-    spdlog::info("Visible: {} / {}", visibleCount, meshCount);
+    if (frustumCulling) {
+        spdlog::info("Visible: {} / {}", visibleCount, meshCount);
+    }
 
     commandBuffer.endRendering();
     commandBuffer.endTimestamp(timer);

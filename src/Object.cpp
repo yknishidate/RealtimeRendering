@@ -261,6 +261,11 @@ bool Camera::showAttributes(Scene& scene) {
             scene.useDefaultCamera();
         }
     }
+
+    float fovDeg = glm::degrees(fovY);
+    if (ImGui::SliderFloat("Fov Y", &fovDeg, 1.0f, 179.0f)) {
+        fovY = glm::radians(fovDeg);
+    }
     return changed;
 }
 

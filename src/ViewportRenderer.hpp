@@ -103,7 +103,9 @@ public:
         cubeLineMesh = rv::Mesh::createCubeLineMesh(*context, {"ViewportRenderer::cubeLineMesh"});
     }
 
-    void drawAABB(const rv::CommandBuffer& commandBuffer, rv::AABB aabb, glm::mat4 viewProj) const {
+    void drawAABB(const rv::CommandBuffer& commandBuffer,
+                  const rv::AABB& aabb,
+                  const glm::mat4& viewProj) const {
         glm::mat4 scale = glm::scale(glm::mat4{1.0f}, aabb.extents);
         glm::mat4 translate = glm::translate(glm::mat4{1.0f}, aabb.center);
         glm::mat4 model = translate * scale;
