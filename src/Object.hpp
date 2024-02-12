@@ -61,9 +61,10 @@ struct Component {
     Component& operator=(Component&&) = default;
 
     virtual void update(Scene& scene, float dt) {}
-    virtual bool showAttributes(Scene& scene) = 0;
+    virtual void showAttributes(Scene& scene) = 0;
 
     Object* object = nullptr;
+    bool changed = false;
 };
 
 class Object final {
@@ -76,12 +77,6 @@ public:
 
     Object& operator=(const Object& other) = delete;
     Object& operator=(Object&& other) = default;
-
-    void update(Scene& scene, float dt) {
-        for (auto& comp : components | std::views::values) {
-            comp->update(scene, dt);
-        }
-    }
 
     template <typename T, typename... Args>
     T& add(Args&&... args) {
@@ -163,13 +158,13 @@ struct Transform final : Component {
 
     glm::mat4 computeNormalMatrix() const;
 
-    bool showAttributes(Scene& scene) override;
+    void showAttributes(Scene& scene) override;
 };
 
 struct DirectionalLight : Component {
     glm::vec3 getDirection() const;
 
-    bool showAttributes(Scene& scene) override;
+    void showAttributes(Scene& scene) override;
 
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
@@ -182,7 +177,7 @@ struct DirectionalLight : Component {
 };
 
 struct PointLight final : Component {
-    bool showAttributes(Scene& scene) override;
+    void showAttributes(Scene& scene) override;
 
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
@@ -190,7 +185,7 @@ struct PointLight final : Component {
 };
 
 struct AmbientLight final : Component {
-    bool showAttributes(Scene& scene) override;
+    void showAttributes(Scene& scene) override;
 
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
@@ -227,7 +222,7 @@ struct Mesh final : Component {
 
     rv::AABB getWorldAABB() const;
 
-    bool showAttributes(Scene& scene) override;
+    void showAttributes(Scene& scene) override;
 
     uint32_t firstIndex{};
     uint32_t indexCount{};
@@ -255,7 +250,7 @@ struct Camera final : rv::Camera, Component {
 
     Camera(rv::Camera::Type _type) : rv::Camera{_type, 1.0f} {}
 
-    bool showAttributes(Scene& scene) override;
+    void showAttributes(Scene& scene) override;
 
     void update(Scene& scene, float dt) override;
 

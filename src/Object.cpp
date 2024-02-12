@@ -16,8 +16,7 @@ glm::mat4 Transform::computeNormalMatrix() const {
     return R * S;
 }
 
-bool Transform::showAttributes(Scene& scene) {
-    bool changed = false;
+void Transform::showAttributes(Scene& scene) {
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::TreeNode("Transform")) {
         // Translation
@@ -33,7 +32,6 @@ bool Transform::showAttributes(Scene& scene) {
 
         ImGui::TreePop();
     }
-    return changed;
 }
 
 glm::vec3 DirectionalLight::getDirection() const {
@@ -45,9 +43,8 @@ glm::vec3 DirectionalLight::getDirection() const {
     return {x, y, z};
 }
 
-bool DirectionalLight::showAttributes(Scene& scene) {
+void DirectionalLight::showAttributes(Scene& scene) {
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-    bool changed = false;
     if (ImGui::TreeNode("Directional light")) {
         changed |= ImGui::ColorEdit3("Color", glm::value_ptr(color));
         changed |= ImGui::DragFloat("Intensity", &intensity, 0.001f, 0.0f, 100.0f);
@@ -62,11 +59,9 @@ bool DirectionalLight::showAttributes(Scene& scene) {
 
         ImGui::TreePop();
     }
-    return changed;
 }
 
-bool PointLight::showAttributes(Scene& scene) {
-    bool changed = false;
+void PointLight::showAttributes(Scene& scene) {
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::TreeNode("Point light")) {
         changed |= ImGui::ColorEdit3("Color", glm::value_ptr(color));
@@ -74,11 +69,9 @@ bool PointLight::showAttributes(Scene& scene) {
         changed |= ImGui::DragFloat("Radius", &radius, 0.001f, 0.0f, 100.0f);
         ImGui::TreePop();
     }
-    return changed;
 }
 
-bool AmbientLight::showAttributes(Scene& scene) {
-    bool changed = false;
+void AmbientLight::showAttributes(Scene& scene) {
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::TreeNode("Ambient light")) {
         changed |= ImGui::ColorEdit3("Color", glm::value_ptr(color));
@@ -92,7 +85,6 @@ bool AmbientLight::showAttributes(Scene& scene) {
         ImGui::Combo("Irradiance texture", &irradianceTexture, ss.str().c_str());
         ImGui::TreePop();
     }
-    return changed;
 }
 
 MeshData::MeshData(const rv::Context& context, MeshType type) {
@@ -223,8 +215,7 @@ rv::AABB Mesh::getWorldAABB() const {
     return worldAABB;
 }
 
-bool Mesh::showAttributes(Scene& scene) {
-    bool changed = false;
+void Mesh::showAttributes(Scene& scene) {
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::TreeNode("Mesh")) {
         ImGui::Text(("Mesh data: " + meshData->name).c_str());
@@ -237,11 +228,9 @@ bool Mesh::showAttributes(Scene& scene) {
         changed |= ImGui::Checkbox("Normal mapping", &material->enableNormalMapping);
         ImGui::TreePop();
     }
-    return changed;
 }
 
-bool Camera::showAttributes(Scene& scene) {
-    bool changed = false;
+void Camera::showAttributes(Scene& scene) {
     if (ImGui::Combo("Type", &typeIndex, "Orbital\0FirstPerson\0", 2)) {
         // TODO: なるべく保存できる値は引き継ぐ
         if (typeIndex == 0) {
@@ -266,7 +255,6 @@ bool Camera::showAttributes(Scene& scene) {
     if (ImGui::SliderFloat("Fov Y", &fovDeg, 1.0f, 179.0f)) {
         fovY = glm::radians(fovDeg);
     }
-    return changed;
 }
 
 void Camera::update(Scene& scene, float dt) {

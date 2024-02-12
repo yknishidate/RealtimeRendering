@@ -74,7 +74,7 @@ public:
         return objects;
     }
 
-    Camera& getCamera() {
+    Camera& getCamera() const {
         assert(currentCamera);
         return *currentCamera;
     }
@@ -163,6 +163,7 @@ private:
     // もしくは外部のポインタを強制的に一度nullptrにしても良いが、一般的に難しい。
     int maxObjectCount = 10000;
     std::vector<Object> objects{};
+    std::vector<Object*> updatedObjects{};
 
     Camera defaultCamera{rv::Camera::Type::Orbital};
     Camera* currentCamera = &defaultCamera;

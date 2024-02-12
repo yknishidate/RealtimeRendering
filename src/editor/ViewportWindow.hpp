@@ -25,8 +25,7 @@ public:
                                     currentGizmoOperation, ImGuizmo::LOCAL, glm::value_ptr(matrix));
     }
 
-    static bool processMouseInput() {
-        bool changed = false;
+    static void processMouseInput() {
         if (ImGui::IsWindowFocused() && !ImGuizmo::IsUsing()) {
             dragDeltaLeft.x = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left).x;
             dragDeltaLeft.y = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left).y;
@@ -34,40 +33,32 @@ public:
             dragDeltaRight.y = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right).y;
             if (dragDeltaRight.x != 0.0f || dragDeltaRight.y != 0.0f ||  //
                 dragDeltaLeft.x != 0.0f || dragDeltaLeft.y != 0.0f) {
-                changed = true;
             }
         }
         if (ImGui::IsWindowHovered() && !ImGuizmo::IsUsing()) {
             mouseScroll = ImGui::GetIO().MouseWheel;
-            if (mouseScroll != 0.0f) {
-                changed = true;
-            }
         }
         ImGui::ResetMouseDragDelta(ImGuiMouseButton_Left);
         ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
-        return changed;
     }
 
-    static bool showGizmo(Scene& scene, Object* selectedObject) {
+    static void showGizmo(Scene& scene, Object* selectedObject) {
         // TODO: support animation
-
         if (!selectedObject) {
-            return false;
+            return;
         }
         Transform* transform = selectedObject->get<Transform>();
         if (!transform) {
-            return false;
+            return;
         }
 
-        bool changed = false;
         glm::mat4 model = transform->computeTransformMatrix();
-        changed |= editTransform(scene.getCamera(), model);
+        transform->changed |= editTransform(scene.getCamera(), model);
 
         glm::vec3 skew;
         glm::vec4 perspective;
         glm::decompose(model, transform->scale, transform->rotation, transform->translation, skew,
                        perspective);
-        return changed;
     }
 
     static void showToolIcon(const std::string& name,
