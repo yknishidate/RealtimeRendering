@@ -66,19 +66,6 @@ public:
             MenuBar::openScene(scene);
         }
 
-        // Camera
-        auto& camera = scene.getCamera();
-        for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
-            if (rv::Window::isKeyDown(key)) {
-                camera.processKey(key);
-            }
-        }
-        glm::vec2 _mouseDragLeft = WindowAdapter::getMouseDragLeft();
-        glm::vec2 _mouseDragRight = WindowAdapter::getMouseDragRight();
-        camera.processMouseDragLeft(glm::vec2{_mouseDragLeft.x, -_mouseDragLeft.y} * 0.5f);
-        camera.processMouseDragRight(glm::vec2{_mouseDragRight.x, -_mouseDragRight.y} * 0.5f);
-        camera.processMouseScroll(WindowAdapter::getMouseScroll());
-
         // Editor
         if (!WindowAdapter::play) {
             auto message = editor.show(context, scene, renderer);
