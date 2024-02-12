@@ -264,17 +264,19 @@ bool Camera::showAttributes(Scene& scene) {
     return changed;
 }
 
-void Camera::update(float dt) {
-    for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
-        if (rv::Window::isKeyDown(key)) {
-            processKey(key);
+void Camera::update(Scene& scene, float dt) {
+    if (scene.currentCamera == this) {
+        for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
+            if (rv::Window::isKeyDown(key)) {
+                processKey(key);
+            }
         }
+        glm::vec2 _mouseDragLeft = WindowAdapter::getMouseDragLeft();
+        glm::vec2 _mouseDragRight = WindowAdapter::getMouseDragRight();
+        processMouseDragLeft(glm::vec2{_mouseDragLeft.x, -_mouseDragLeft.y} * 0.5f);
+        processMouseDragRight(glm::vec2{_mouseDragRight.x, -_mouseDragRight.y} * 0.5f);
+        processMouseScroll(WindowAdapter::getMouseScroll());
     }
-    glm::vec2 _mouseDragLeft = WindowAdapter::getMouseDragLeft();
-    glm::vec2 _mouseDragRight = WindowAdapter::getMouseDragRight();
-    processMouseDragLeft(glm::vec2{_mouseDragLeft.x, -_mouseDragLeft.y} * 0.5f);
-    processMouseDragRight(glm::vec2{_mouseDragRight.x, -_mouseDragRight.y} * 0.5f);
-    processMouseScroll(WindowAdapter::getMouseScroll());
 
     aspect = WindowAdapter::getWidth() / WindowAdapter::getHeight();
     frustum = rv::Frustum{*this};

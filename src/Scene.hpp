@@ -46,12 +46,12 @@ public:
 
     void update(float dt) {
         if (currentCamera == &defaultCamera) {
-            defaultCamera.update(dt);
+            defaultCamera.update(*this, dt);
         }
 
         for (auto& object : objects) {
             for (auto& comp : object.getComponents() | std::views::values) {
-                comp->update(dt);
+                comp->update(*this, dt);
             }
         }
     }

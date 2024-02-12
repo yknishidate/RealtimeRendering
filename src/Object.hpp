@@ -60,7 +60,7 @@ struct Component {
     Component& operator=(const Component&) = delete;
     Component& operator=(Component&&) = default;
 
-    virtual void update(float dt) {}
+    virtual void update(Scene& scene, float dt) {}
     virtual bool showAttributes(Scene& scene) = 0;
 
     Object* object = nullptr;
@@ -77,9 +77,9 @@ public:
     Object& operator=(const Object& other) = delete;
     Object& operator=(Object&& other) = default;
 
-    void update(float dt) {
+    void update(Scene& scene, float dt) {
         for (auto& comp : components | std::views::values) {
-            comp->update(dt);
+            comp->update(scene, dt);
         }
     }
 
@@ -257,7 +257,7 @@ struct Camera final : rv::Camera, Component {
 
     bool showAttributes(Scene& scene) override;
 
-    void update(float dt) override;
+    void update(Scene& scene, float dt) override;
 
     rv::Frustum getFrustum() const {
         return frustum;

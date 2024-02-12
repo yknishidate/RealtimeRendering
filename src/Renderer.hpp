@@ -35,7 +35,7 @@ public:
 
     // Global options
     inline static bool enableFXAA = true;
-    inline static bool enableFrustumCulling = true;
+    inline static bool enableFrustumCulling = false;
     inline static float exposure = 1.0f;
 
 private:
