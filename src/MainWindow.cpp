@@ -1,10 +1,11 @@
 #include "MainWindow.hpp"
 
 #include "MainApp.hpp"
+#include "reactive/Window.hpp"
 
 float MainWindow::getWidth() {
     if (play) {
-        return static_cast<float>(app->getWindowWidth());
+        return static_cast<float>(rv::Window::getWidth());
     } else {
         return ViewportWindow::width;
     }
@@ -12,7 +13,7 @@ float MainWindow::getWidth() {
 
 float MainWindow::getHeight() {
     if (play) {
-        return static_cast<float>(app->getWindowHeight());
+        return static_cast<float>(rv::Window::getHeight());
     } else {
         return ViewportWindow::height;
     }
@@ -20,7 +21,7 @@ float MainWindow::getHeight() {
 
 glm::vec2 MainWindow::getMouseDragLeft() {
     if (play) {
-        return app->getMouseDragLeft();
+        return rv::Window::getMouseDragLeft();
     } else {
         return ViewportWindow::dragDeltaLeft;
     }
@@ -28,7 +29,7 @@ glm::vec2 MainWindow::getMouseDragLeft() {
 
 glm::vec2 MainWindow::getMouseDragRight() {
     if (play) {
-        return app->getMouseDragRight();
+        return rv::Window::getMouseDragRight();
     } else {
         return ViewportWindow::dragDeltaRight;
     }
@@ -36,7 +37,7 @@ glm::vec2 MainWindow::getMouseDragRight() {
 
 float MainWindow::getMouseScroll() {
     if (play) {
-        return app->getMouseScroll();
+        return rv::Window::getMouseScroll();
     } else {
         return ViewportWindow::mouseScroll;
     }

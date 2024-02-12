@@ -1,9 +1,11 @@
+#pragma once
 #include "MainWindow.hpp"
 #include "RenderImages.hpp"
 #include "Renderer.hpp"
 #include "Scene.hpp"
 #include "ViewportRenderer.hpp"
 #include "editor/Editor.hpp"
+#include "reactive/Window.hpp"
 
 class MainApp final : public rv::App {
 public:
@@ -25,9 +27,7 @@ public:
         rv::CPUTimer timer;
         std::filesystem::create_directories(DEV_SHADER_DIR / "spv");
 
-        MainWindow::init(*this);
-
-        images.createImages(context, width, height);
+        images.createImages(context, rv::Window::getWidth(), rv::Window::getHeight());
 
         scene.init(context);
         scene.loadFromJson(DEV_ASSET_DIR / "scenes" / "pbr_helmet.json");
@@ -62,14 +62,14 @@ public:
             pendingRecompile = false;
         }
 
-        if (isKeyDown(GLFW_KEY_LEFT_CONTROL) && isKeyDown(GLFW_KEY_O)) {
+        if (rv::Window::isKeyDown(GLFW_KEY_LEFT_CONTROL) && rv::Window::isKeyDown(GLFW_KEY_O)) {
             MenuBar::openScene(scene);
         }
 
         // Camera
         auto& camera = scene.getCamera();
         for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
-            if (isKeyDown(key)) {
+            if (rv::Window::isKeyDown(key)) {
                 camera.processKey(key);
             }
         }
@@ -90,7 +90,7 @@ public:
                 uint32_t _width = MenuBar::getWindowWidth();
                 uint32_t _height = MenuBar::getWindowHeight();
                 if (_width != 0 && _height != 0) {
-                    setWindowSize(_width, _height);
+                    rv::Window::setSize(_width, _height);
                 }
             }
         }

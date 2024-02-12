@@ -1,6 +1,6 @@
 // --------------------------
 // ---------- Share ---------
-struct StandardConstants{
+struct StandardConstants {
 #ifdef __cplusplus
     int objectIndex = 0;
 #else
@@ -8,7 +8,7 @@ struct StandardConstants{
 #endif
 };
 
-struct ObjectData{
+struct ObjectData {
 #ifdef __cplusplus
     glm::mat4 modelMatrix{1.0f};
     glm::mat4 normalMatrix{1.0f};
@@ -25,9 +25,9 @@ struct ObjectData{
     int emissiveTextureIndex{-1};
 
     int enableNormalMapping{-1};
-    int _dummy0;
-    int _dummy1;
-    int _dummy2;
+    int _dummy0{};
+    int _dummy1{};
+    int _dummy2{};
 #else
     mat4 modelMatrix;
     mat4 normalMatrix;
@@ -48,15 +48,15 @@ struct ObjectData{
 #endif
 };
 
-struct SceneData{
+struct SceneData {
 #ifdef __cplusplus
     glm::mat4 cameraView{1.0f};
     glm::mat4 cameraProj{1.0f};
     glm::mat4 cameraViewProj{1.0f};
     glm::mat4 shadowViewProj{1.0f};
     glm::vec4 lightDirection{0.0f};
-    glm::vec4 lightColorIntensity{0.0f}; // vec4(color, intensity)
-    glm::vec4 ambientColorIntensity{0.0f}; // vec4(color, intensity)
+    glm::vec4 lightColorIntensity{0.0f};    // vec4(color, intensity)
+    glm::vec4 ambientColorIntensity{0.0f};  // vec4(color, intensity)
     glm::vec4 cameraPos{0.0f};
     glm::vec2 screenResolution{0.0f, 0.0f};
     int existDirectionalLight;
@@ -95,8 +95,8 @@ struct SceneData{
 // --------------------------
 // ---------- GLSL ----------
 
-#extension  GL_EXT_nonuniform_qualifier : enable
-//#extension GL_EXT_debug_printf : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+// #extension GL_EXT_debug_printf : enable
 
 const float PI = 3.14159265359;
 
@@ -117,7 +117,7 @@ layout(binding = 0) uniform SceneBuffer {
 layout(binding = 2) uniform sampler2DShadow shadowMap;
 #else
 layout(binding = 2) uniform sampler2D shadowMap;
-#endif // USE_PCF
+#endif  // USE_PCF
 
 layout(binding = 3) uniform sampler2D baseColorImage;
 
@@ -125,11 +125,11 @@ layout(binding = 4) uniform sampler2D textures2D[];
 layout(binding = 5) uniform samplerCube texturesCube[];
 layout(binding = 6) uniform sampler2D brdfLutTexture;
 
-vec3 gammaCorrect(vec3 color, float gamma){
+vec3 gammaCorrect(vec3 color, float gamma) {
     return pow(color, vec3(gamma));
 }
 
-vec4 gammaCorrect(vec4 color, float gamma){
+vec4 gammaCorrect(vec4 color, float gamma) {
     return pow(color, vec4(gamma));
 }
 
