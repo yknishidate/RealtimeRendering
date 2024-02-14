@@ -2,7 +2,6 @@
 #include <reactive/reactive.hpp>
 
 struct RenderImages {
-    // Images
     vk::Format colorFormat = vk::Format::eR16G16B16A16Sfloat;
     vk::Format depthFormat = vk::Format::eD32Sfloat;
     rv::ImageHandle baseColorImage;

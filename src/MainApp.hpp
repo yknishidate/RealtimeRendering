@@ -100,7 +100,8 @@ public:
             editor.beginCpuRender();
             commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
             renderer.render(*commandBuffer, editor.getViewportImage(), images, scene);
-            viewportRenderer.render(*commandBuffer, editor.getViewportImage(), images, scene);
+            viewportRenderer.render(*commandBuffer, editor.getViewportImage(), images.depthImage,
+                                    scene);
             editor.endCpuRender();
         }
     }

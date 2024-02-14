@@ -3,7 +3,6 @@
 
 #include <reactive/reactive.hpp>
 
-#include "RenderImages.hpp"
 #include "Scene.hpp"
 
 class LineDrawer {
@@ -115,12 +114,11 @@ public:
 
     void render(const rv::CommandBuffer& commandBuffer,
                 const rv::ImageHandle& colorImage,
-                const RenderImages& images,
+                const rv::ImageHandle& depthImage,
                 Scene& scene) const {
         vk::Extent3D extent = colorImage->getExtent();
         commandBuffer.beginDebugLabel("ViewportRender");
-        commandBuffer.beginRendering(colorImage, images.depthImage, {0, 0},
-                                     {extent.width, extent.height});
+        commandBuffer.beginRendering(colorImage, depthImage, {0, 0}, {extent.width, extent.height});
 
         Camera* camera = &scene.getDefaultCamera();
         if (scene.isMainCameraAvailable()) {
