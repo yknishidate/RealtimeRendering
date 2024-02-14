@@ -118,6 +118,7 @@ public:
                 const RenderImages& images,
                 Scene& scene) const {
         vk::Extent3D extent = colorImage->getExtent();
+        commandBuffer.beginDebugLabel("ViewportRender");
         commandBuffer.beginRendering(colorImage, images.depthImage, {0, 0},
                                      {extent.width, extent.height});
 
@@ -177,6 +178,7 @@ public:
         }
 
         commandBuffer.endRendering();
+        commandBuffer.endDebugLabel();
     }
 
     const rv::Context* context = nullptr;
