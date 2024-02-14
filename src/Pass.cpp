@@ -218,8 +218,13 @@ void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
         }
         meshCount++;
 
-        if (frustumCulling && !mesh->getWorldAABB().isOnFrustum(scene.getCamera().getFrustum())) {
-            continue;
+        if (frustumCulling) {
+            const auto& aabb = mesh->getWorldAABB();
+            Camera* camera = scene.getMainCamera();
+
+            if (camera && !aabb.isOnFrustum(camera->getFrustum())) {
+                continue;
+            }
         }
         constants.objectIndex = index;
         commandBuffer.pushConstants(pipeline, &constants);

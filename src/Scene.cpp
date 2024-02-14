@@ -533,7 +533,8 @@ void Scene::loadFromJson(const std::filesystem::path& filepath) {
         objects.emplace_back("Camera");
         Object& obj = objects.back();
         Camera& camera = obj.add<Camera>();
-        currentCamera = &camera;
+        mainCamera = &camera;
+        isMainCameraActive = true;
         status |= SceneStatus::ObjectAdded;
 
         if (_camera["type"] == "Orbital") {

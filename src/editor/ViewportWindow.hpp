@@ -53,7 +53,10 @@ public:
         }
 
         glm::mat4 model = transform->computeTransformMatrix();
-        transform->changed |= editTransform(scene.getCamera(), model);
+        Camera* camera = scene.isMainCameraAvailable()  //
+                             ? scene.getMainCamera()
+                             : &scene.getDefaultCamera();
+        transform->changed |= editTransform(*camera, model);
 
         glm::vec3 skew;
         glm::vec4 perspective;

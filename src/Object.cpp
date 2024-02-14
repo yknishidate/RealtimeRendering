@@ -219,13 +219,15 @@ void Mesh::showAttributes(Scene& scene) {
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::TreeNode("Mesh")) {
         ImGui::Text(("Mesh data: " + meshData->name).c_str());
-        ImGui::Text(("Material: " + material->name).c_str());
-        changed |= ImGui::ColorEdit4("Base color", &material->baseColor[0]);
-        changed |= ImGui::ColorEdit3("Emissive", &material->emissive[0]);
-        changed |= ImGui::SliderFloat("Metallic", &material->metallic, 0.0f, 1.0f);
-        changed |= ImGui::SliderFloat("Roughness", &material->roughness, 0.0f, 1.0f);
-        changed |= ImGui::SliderFloat("IOR", &material->ior, 0.01f, 5.0f);
-        changed |= ImGui::Checkbox("Normal mapping", &material->enableNormalMapping);
+        if (material) {
+            ImGui::Text(("Material: " + material->name).c_str());
+            changed |= ImGui::ColorEdit4("Base color", &material->baseColor[0]);
+            changed |= ImGui::ColorEdit3("Emissive", &material->emissive[0]);
+            changed |= ImGui::SliderFloat("Metallic", &material->metallic, 0.0f, 1.0f);
+            changed |= ImGui::SliderFloat("Roughness", &material->roughness, 0.0f, 1.0f);
+            changed |= ImGui::SliderFloat("IOR", &material->ior, 0.01f, 5.0f);
+            changed |= ImGui::Checkbox("Normal mapping", &material->enableNormalMapping);
+        }
         ImGui::TreePop();
     }
 }
@@ -242,12 +244,13 @@ void Camera::showAttributes(Scene& scene) {
         }
     }
 
-    bool inUse = scene.currentCamera == this;
-    if (ImGui::Checkbox("Use", &inUse)) {
-        if (inUse) {
+    bool isMainCamera = scene.getMainCamera() == this;
+    bool active = isMainCamera && scene.isMainCameraAvailable();
+    if (ImGui::Checkbox("Active", &active)) {
+        if (active) {
             scene.setMainCamera(*this);
         } else {
-            scene.useDefaultCamera();
+            scene.isMainCameraActive = false;
         }
     }
 
@@ -258,7 +261,10 @@ void Camera::showAttributes(Scene& scene) {
 }
 
 void Camera::update(Scene& scene, float dt) {
-    if (scene.currentCamera == this) {
+    bool thisIsMainCamera = scene.getMainCamera() == this;
+    bool thisIsDefaultCamera = &scene.getDefaultCamera() == this;
+    if ((scene.isMainCameraAvailable() && thisIsMainCamera) ||
+        (!scene.isMainCameraAvailable() && thisIsDefaultCamera)) {
         for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
             if (rv::Window::isKeyDown(key)) {
                 processKey(key);

@@ -121,8 +121,11 @@ public:
         commandBuffer.beginRendering(colorImage, images.depthImage, {0, 0},
                                      {extent.width, extent.height});
 
-        const Camera& camera = scene.getCamera();
-        glm::mat4 viewProj = camera.getProj() * camera.getView();
+        Camera* camera = &scene.getDefaultCamera();
+        if (scene.isMainCameraAvailable()) {
+            camera = scene.getMainCamera();
+        }
+        glm::mat4 viewProj = camera->getProj() * camera->getView();
 
         commandBuffer.setViewport(extent.width, extent.height);
         commandBuffer.setScissor(extent.width, extent.height);

@@ -45,7 +45,7 @@ public:
     }
 
     void update(float dt) {
-        if (currentCamera == &defaultCamera) {
+        if (!isMainCameraActive) {
             defaultCamera.update(*this, dt);
         }
 
@@ -87,9 +87,12 @@ public:
         return updatedObjectIndices;
     }
 
-    Camera& getCamera() const {
-        assert(currentCamera);
-        return *currentCamera;
+    Camera* getMainCamera() const {
+        return mainCamera;
+    }
+
+    bool isMainCameraAvailable() const {
+        return mainCamera && isMainCameraActive;
     }
 
     Camera& getDefaultCamera() {
@@ -97,11 +100,8 @@ public:
     }
 
     void setMainCamera(Camera& camera) {
-        currentCamera = &camera;
-    }
-
-    void useDefaultCamera() {
-        currentCamera = &defaultCamera;
+        mainCamera = &camera;
+        isMainCameraActive = true;
     }
 
     const MeshData& getCubeMesh() {
@@ -158,7 +158,7 @@ public:
         objects.clear();
         objects.reserve(maxObjectCount);
 
-        currentCamera = &defaultCamera;
+        mainCamera = nullptr;
 
         meshData = MeshData{};
         materials.clear();
@@ -179,7 +179,8 @@ private:
     std::vector<uint32_t> updatedObjectIndices{};
 
     Camera defaultCamera{rv::Camera::Type::Orbital};
-    Camera* currentCamera = &defaultCamera;
+    Camera* mainCamera = nullptr;
+    bool isMainCameraActive = false;
 
     std::vector<MeshData> templateMeshData{};
 
