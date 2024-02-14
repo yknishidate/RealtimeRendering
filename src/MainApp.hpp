@@ -1,5 +1,4 @@
 #pragma once
-#include "RenderImages.hpp"
 #include "Renderer.hpp"
 #include "Scene.hpp"
 #include "ViewportRenderer.hpp"
@@ -27,13 +26,12 @@ public:
         rv::CPUTimer timer;
         std::filesystem::create_directories(DEV_SHADER_DIR / "spv");
 
-        images.createImages(context, rv::Window::getWidth(), rv::Window::getHeight());
-
         scene.init(context);
         scene.loadFromJson(DEV_ASSET_DIR / "scenes" / "pbr_helmet.json");
 
-        renderer.init(context, images, swapchain->getFormat());
-        viewportRenderer.init(context, swapchain->getFormat(), images.depthFormat);
+        renderer.init(context, swapchain->getFormat(),  //
+                      rv::Window::getWidth(), rv::Window::getHeight());
+        viewportRenderer.init(context, swapchain->getFormat(), renderer.getDepthFormat());
 
         editor.init(context, swapchain->getFormat());
         ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
@@ -57,7 +55,8 @@ public:
 
         if (pendingRecompile) {
             context.getDevice().waitIdle();
-            renderer.init(context, images, swapchain->getFormat());
+            renderer.init(context, swapchain->getFormat(),  //
+                          rv::Window::getWidth(), rv::Window::getHeight());
             ViewportWindow::setAuxiliaryImage(renderer.getShadowMap());
             pendingRecompile = false;
         }
@@ -95,19 +94,18 @@ public:
     void onRender(const rv::CommandBufferHandle& commandBuffer) override {
         if (WindowAdapter::play) {
             commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
-            renderer.render(*commandBuffer, getCurrentColorImage(), images, scene);
+            renderer.render(*commandBuffer, getCurrentColorImage(), scene);
         } else {
             editor.beginCpuRender();
             commandBuffer->clearColorImage(getCurrentColorImage(), {0.0f, 0.0f, 0.0f, 1.0f});
-            renderer.render(*commandBuffer, editor.getViewportImage(), images, scene);
-            viewportRenderer.render(*commandBuffer, editor.getViewportImage(), images.depthImage,
-                                    scene);
+            renderer.render(*commandBuffer, editor.getViewportImage(), scene);
+            viewportRenderer.render(*commandBuffer, editor.getViewportImage(),
+                                    renderer.getDepthImage(), scene);
             editor.endCpuRender();
         }
     }
 
     Scene scene;
-    RenderImages images;
     Renderer renderer;
     ViewportRenderer viewportRenderer;
     Editor editor;

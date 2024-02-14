@@ -1,16 +1,19 @@
 #pragma once
 #include "Pass.hpp"
-#include "RenderImages.hpp"
 
 class Renderer {
 public:
-    void init(const rv::Context& _context, RenderImages& images, vk::Format targetColorFormat);
+    void init(const rv::Context& _context,
+              vk::Format targetColorFormat,
+              uint32_t width,
+              uint32_t height);
+
+    void createImages(uint32_t width, uint32_t height);
 
     void updateBuffers(const rv::CommandBuffer& commandBuffer, vk::Extent3D extent, Scene& scene);
 
     void render(const rv::CommandBuffer& commandBuffer,
                 const rv::ImageHandle& colorImage,
-                RenderImages& images,
                 Scene& scene);
 
     float getPassTimeShadow() const {
@@ -31,6 +34,14 @@ public:
 
     rv::ImageHandle getShadowMap() const {
         return shadowMapImage;
+    }
+
+    vk::Format getDepthFormat() const {
+        return depthFormat;
+    }
+
+    rv::ImageHandle getDepthImage() const {
+        return depthImage;
     }
 
     // Global options
@@ -58,6 +69,10 @@ private:
     rv::ImageHandle brdfLutTexture;
     rv::ImageHandle dummyTextures2D;
     rv::ImageHandle dummyTexturesCube;
+    vk::Format colorFormat = vk::Format::eR16G16B16A16Sfloat;
+    vk::Format depthFormat = vk::Format::eD32Sfloat;
+    rv::ImageHandle baseColorImage;
+    rv::ImageHandle depthImage;
 
     // Shadow map pass
     ShadowMapPass shadowMapPass;

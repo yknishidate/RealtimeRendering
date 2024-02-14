@@ -1,9 +1,12 @@
 #include "Renderer.hpp"
 
 void Renderer::init(const rv::Context& _context,
-                    RenderImages& images,
-                    vk::Format targetColorFormat) {
+                    vk::Format targetColorFormat,
+                    uint32_t width,
+                    uint32_t height) {
     context = &_context;
+
+    createImages(width, height);
 
     shadowMapImage = context->createImage({
         .usage = rv::ImageUsage::DepthAttachment | vk::ImageUsageFlagBits::eSampled,
@@ -77,7 +80,7 @@ void Renderer::init(const rv::Context& _context,
         .images =
             {
                 {"shadowMap", shadowMapImage},
-                {"baseColorImage", images.baseColorImage},
+                {"baseColorImage", baseColorImage},
                 {"textures2D", 100u},
                 {"texturesCube", 100u},
                 {"brdfLutTexture", brdfLutTexture},
@@ -88,9 +91,9 @@ void Renderer::init(const rv::Context& _context,
     descSet->update();
 
     try {
-        skyboxPass.init(*context, descSet, images.colorFormat);
+        skyboxPass.init(*context, descSet, colorFormat);
         shadowMapPass.init(*context, descSet, shadowMapFormat);
-        forwardPass.init(*context, descSet, images.colorFormat, images.depthFormat);
+        forwardPass.init(*context, descSet, colorFormat, depthFormat);
         antiAliasingPass.init(*context, descSet, targetColorFormat);
     } catch (const std::exception& e) {
         spdlog::error(e.what());
@@ -99,6 +102,33 @@ void Renderer::init(const rv::Context& _context,
 
     initialized = true;
     firstFrameRendered = false;
+}
+
+void Renderer::createImages(uint32_t width, uint32_t height) {
+    baseColorImage = context->createImage({
+        .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
+                 vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
+                 vk::ImageUsageFlagBits::eColorAttachment,
+        .extent = {width, height, 1},
+        .format = colorFormat,
+        .debugName = "ViewportRenderer::colorImage",
+    });
+    baseColorImage->createImageView();
+    baseColorImage->createSampler();
+
+    depthImage = context->createImage({
+        .usage = rv::ImageUsage::DepthAttachment,
+        .extent = {width, height, 1},
+        .format = depthFormat,
+        .debugName = "ViewportRenderer::depthImage",
+    });
+    depthImage->createImageView(vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth);
+    depthImage->createSampler();
+
+    context->oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
+        commandBuffer->transitionLayout(baseColorImage, vk::ImageLayout::eGeneral);
+        commandBuffer->transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
+    });
 }
 
 void Renderer::updateObjectData(const Object& object, uint32_t index) {
@@ -192,18 +222,17 @@ void Renderer::updateBuffers(const rv::CommandBuffer& commandBuffer,
 
 void Renderer::render(const rv::CommandBuffer& commandBuffer,
                       const rv::ImageHandle& colorImage,
-                      RenderImages& images,
                       Scene& scene) {
     assert(initialized);
 
     bool shouldUpdate = false;
     vk::Extent3D extent = colorImage->getExtent();
-    if (extent != images.baseColorImage->getExtent()) {
+    if (extent != baseColorImage->getExtent()) {
         context->getDevice().waitIdle();
         uint32_t width = extent.width;
         uint32_t height = extent.height;
-        images.createImages(*context, width, height);
-        descSet->set("baseColorImage", images.baseColorImage);
+        createImages(width, height);
+        descSet->set("baseColorImage", baseColorImage);
         shouldUpdate = true;
     }
 
@@ -245,9 +274,9 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
     updateBuffers(commandBuffer, extent, scene);
 
     commandBuffer.clearColorImage(colorImage, {0.1f, 0.1f, 0.1f, 1.0f});
-    commandBuffer.clearColorImage(images.baseColorImage, {0.1f, 0.1f, 0.1f, 1.0f});
-    commandBuffer.clearDepthStencilImage(images.depthImage, 1.0f, 0);
-    commandBuffer.imageBarrier({colorImage, images.baseColorImage, images.depthImage},  //
+    commandBuffer.clearColorImage(baseColorImage, {0.1f, 0.1f, 0.1f, 1.0f});
+    commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
+    commandBuffer.imageBarrier({colorImage, baseColorImage, depthImage},  //
                                vk::PipelineStageFlagBits::eTransfer,
                                vk::PipelineStageFlagBits::eAllGraphics,
                                vk::AccessFlagBits::eTransferWrite,
@@ -269,15 +298,14 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
 
     // Skybox pass
     if (scene.findObject<AmbientLight>()) {
-        skyboxPass.render(commandBuffer, images.baseColorImage, scene.getCubeMesh());
+        skyboxPass.render(commandBuffer, baseColorImage, scene.getCubeMesh());
     }
 
     // Forward pass
-    forwardPass.render(commandBuffer, images.baseColorImage, images.depthImage, scene,
-                       enableFrustumCulling);
+    forwardPass.render(commandBuffer, baseColorImage, depthImage, scene, enableFrustumCulling);
 
     // AA pass
-    antiAliasingPass.render(commandBuffer, images.baseColorImage, colorImage);
+    antiAliasingPass.render(commandBuffer, baseColorImage, colorImage);
 
     commandBuffer.transitionLayout(colorImage, vk::ImageLayout::eGeneral);
 
