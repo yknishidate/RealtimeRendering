@@ -277,11 +277,8 @@ void Camera::update(Scene& scene, float dt) {
     bool thisIsDefaultCamera = &scene.getDefaultCamera() == this;
     if ((scene.isMainCameraAvailable() && thisIsMainCamera) ||
         (!scene.isMainCameraAvailable() && thisIsDefaultCamera)) {
-        for (int key : {GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_A, GLFW_KEY_SPACE}) {
-            if (rv::Window::isKeyDown(key)) {
-                processKey(key);
-            }
-        }
+        processKey();
+
         glm::vec2 _mouseDragLeft = WindowAdapter::getMouseDragLeft();
         glm::vec2 _mouseDragRight = WindowAdapter::getMouseDragRight();
         processMouseDragLeft(glm::vec2{_mouseDragLeft.x, -_mouseDragLeft.y} * 0.5f);

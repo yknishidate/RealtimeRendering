@@ -109,7 +109,7 @@ void Renderer::updateObjectData(const Object& object, uint32_t index) {
     }
 
     // TODO: マテリアル情報はバッファを分けてGPU側でインデックス参照する
-    // TODO: materialIndexはpushConstantでもいいかも
+    //       materialIndexはpushConstantでもいいかも
     if (Material* material = mesh->material) {
         // clang-format off
             objectStorage[index].baseColor = material->baseColor;
@@ -181,7 +181,7 @@ void Renderer::updateBuffers(const rv::CommandBuffer& commandBuffer,
         updateObjectData(object, index);
     }
 
-    // TODO: DeviceHostに変更
+    // TODO: DeviceHostに変更した方がいいかどうかプロファイリング
     commandBuffer.copyBuffer(sceneUniformBuffer, &sceneUniform);
     commandBuffer.copyBuffer(objectStorageBuffer, objectStorage.data());
     commandBuffer.bufferBarrier(

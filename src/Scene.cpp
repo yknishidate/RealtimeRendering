@@ -74,10 +74,9 @@ void Scene::loadTextures(tinygltf::Model& gltfModel) {
                 tex.name = std::format("Image {}", textures2D.size());
             }
 
-            // TODO:
-            // 本来ならここでUnormかSrgbかを正しく指定することで、シェーダ側での色空間変換を省略するべき
-            // ただし、Texture本体には色空間の情報はなく、マテリアル側から指定されるため、
-            // 読み込みを遅延する必要がある
+            // TODO: 本来はUnormかSrgbかを正しく指定してシェーダ側での色空間変換を省略するべき
+            //       ただし、Texture本体には色空間の情報はなく、マテリアル側から指定されるため、
+            //       読み込みを遅延する必要がある
             tex.image = context->createImage({
                 .usage = rv::ImageUsage::Sampled,
                 .extent = {static_cast<uint32_t>(image.width), static_cast<uint32_t>(image.height),
@@ -378,8 +377,6 @@ void Scene::loadNodes(tinygltf::Model& gltfModel) {
 }
 
 void Scene::loadFromJson(const std::filesystem::path& filepath) {
-    // TODO: cameraの初期化後にViewportかSwapchainのアスペクト比を取得
-    // TODO: レンダラー側のバッファのクリア
     context->getDevice().waitIdle();
     clear();
 
