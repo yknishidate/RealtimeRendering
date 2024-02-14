@@ -233,15 +233,17 @@ void Mesh::showAttributes(Scene& scene) {
 }
 
 void Camera::showAttributes(Scene& scene) {
+    int typeIndex = static_cast<int>(type);
     if (ImGui::Combo("Type", &typeIndex, "Orbital\0FirstPerson\0", 2)) {
         // TODO: なるべく保存できる値は引き継ぐ
-        if (typeIndex == 0) {
+        if (typeIndex == static_cast<int>(Type::Orbital)) {
             type = Type::Orbital;
             params = OrbitalParams{};
         } else {
             type = Type::FirstPerson;
             params = FirstPersonParams{};
         }
+        changed = true;
     }
 
     bool isMainCamera = scene.getMainCamera() == this;
@@ -257,6 +259,16 @@ void Camera::showAttributes(Scene& scene) {
     float fovDeg = glm::degrees(fovY);
     if (ImGui::SliderFloat("Fov Y", &fovDeg, 1.0f, 179.0f)) {
         fovY = glm::radians(fovDeg);
+        changed = true;
+    }
+
+    if (typeIndex == static_cast<int>(Type::Orbital)) {
+        auto& _params = std::get<OrbitalParams>(params);
+        changed |= ImGui::DragFloat3("Target", glm::value_ptr(_params.target), 0.1f);
+        changed |= ImGui::SliderFloat("Phi", &_params.phi, -180.0f, 180.0f);
+        changed |= ImGui::SliderFloat("Theta", &_params.theta, -90.0f, 90.0f);
+    } else {
+        // auto& _params = std::get<FirstPersonParams>(params);
     }
 }
 

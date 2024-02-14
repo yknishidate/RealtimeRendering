@@ -262,6 +262,5 @@ struct Camera final : rv::Camera, Component {
         return frustum;
     }
 
-    int typeIndex = 0;
     rv::Frustum frustum{};
 };
