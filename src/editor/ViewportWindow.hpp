@@ -27,13 +27,10 @@ public:
 
     static void processMouseInput() {
         if (ImGui::IsWindowFocused() && !ImGuizmo::IsUsing()) {
-            dragDeltaLeft.x = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left).x;
-            dragDeltaLeft.y = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left).y;
-            dragDeltaRight.x = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right).x;
-            dragDeltaRight.y = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right).y;
-            if (dragDeltaRight.x != 0.0f || dragDeltaRight.y != 0.0f ||  //
-                dragDeltaLeft.x != 0.0f || dragDeltaLeft.y != 0.0f) {
-            }
+            dragDeltaLeft.x = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left, 0.0f).x;
+            dragDeltaLeft.y = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left, 0.0f).y;
+            dragDeltaRight.x = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right, 0.0f).x;
+            dragDeltaRight.y = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right, 0.0f).y;
         }
         if (ImGui::IsWindowHovered() && !ImGuizmo::IsUsing()) {
             mouseScroll = ImGui::GetIO().MouseWheel;
