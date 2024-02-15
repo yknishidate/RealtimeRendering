@@ -43,6 +43,39 @@ glm::vec3 DirectionalLight::getDirection() const {
     return {x, y, z};
 }
 
+glm::mat4 DirectionalLight::getViewProj(const rv::AABB& aabb) const {
+    // Transform AABB to light space
+    std::vector<glm::vec3> corners = aabb.getCorners();
+    glm::vec3 center = aabb.center;
+    glm::vec3 dir = getDirection();
+    glm::vec3 furthestCorner = aabb.getFurthestCorner(dir);
+    float length = glm::dot(furthestCorner, dir);
+    glm::mat4 view = glm::lookAt(center, center - dir * length, glm::vec3(0, 1, 0));
+
+    // Initialize bounds
+    glm::vec3 minBounds = glm::vec3(FLT_MAX);
+    glm::vec3 maxBounds = glm::vec3(-FLT_MAX);
+
+    for (const auto& corner : corners) {
+        glm::vec3 transformedCorner = glm::vec3(view * glm::vec4(corner, 1.0f));
+        minBounds = glm::min(minBounds, transformedCorner);
+        maxBounds = glm::max(maxBounds, transformedCorner);
+    }
+
+    // Calculate orthographic projection bounds
+    float scaling = 1.05f;
+    float left = minBounds.x * scaling;
+    float right = maxBounds.x * scaling;
+    float bottom = minBounds.y * scaling;
+    float top = maxBounds.y * scaling;
+    float zNear = minBounds.z * scaling;
+    float zFar = maxBounds.z * scaling;
+
+    // Create orthographic projection matrix
+    glm::mat4 proj = glm::ortho<float>(left, right, bottom, top, zNear, zFar);
+    return proj * view;
+}
+
 void DirectionalLight::showAttributes(Scene& scene) {
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::TreeNode("Directional light")) {

@@ -33,8 +33,6 @@ public:
                 Scene& scene,
                 const DirectionalLight& light) const;
 
-    static glm::mat4 getViewProj(const DirectionalLight& light, const rv::AABB& aabb);
-
 private:
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;

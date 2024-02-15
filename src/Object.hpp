@@ -168,6 +168,9 @@ struct Transform final : Component {
 struct DirectionalLight : Component {
     glm::vec3 getDirection() const;
 
+    // シャドウマップ用のビュープロジェクション行列を計算
+    glm::mat4 getViewProj(const rv::AABB& aabb) const;
+
     void showAttributes(Scene& scene) override;
 
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
