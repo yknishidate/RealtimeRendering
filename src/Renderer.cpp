@@ -7,6 +7,7 @@ void Renderer::init(const rv::Context& _context,
     context = &_context;
 
     createImages(width, height);
+    createBuffers();
 
     shadowMapImage = context->createImage({
         .usage = rv::ImageUsage::DepthAttachment | vk::ImageUsageFlagBits::eSampled,
@@ -16,21 +17,6 @@ void Renderer::init(const rv::Context& _context,
     });
     shadowMapImage->createImageView(vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth);
     shadowMapImage->createSampler();
-
-    sceneUniformBuffer = context->createBuffer({
-        .usage = rv::BufferUsage::Uniform,
-        .memory = rv::MemoryUsage::Device,
-        .size = sizeof(SceneData),
-        .debugName = "Renderer::sceneUniformBuffer",
-    });
-
-    objectStorage.resize(maxObjectCount);
-    objectStorageBuffer = context->createBuffer({
-        .usage = rv::BufferUsage::Storage,
-        .memory = rv::MemoryUsage::Device,
-        .size = sizeof(ObjectData) * objectStorage.size(),
-        .debugName = "Renderer::objectStorageBuffer",
-    });
 
     // シェーダリフレクションのために適当なシェーダを作成する
     // TODO: DescSetに合わせ、全てのシェーダを一か所で管理する
@@ -74,8 +60,8 @@ void Renderer::init(const rv::Context& _context,
         .shaders = {reflectionShaderVert, reflectionShaderFrag},
         .buffers =
             {
-                {"SceneBuffer", sceneUniformBuffer},
-                {"ObjectBuffer", objectStorageBuffer},
+                {"SceneBuffer", sceneDataBuffer.buffer},
+                {"ObjectBuffer", objectDataBuffer.buffer},
             },
         .images =
             {
@@ -131,93 +117,9 @@ void Renderer::createImages(uint32_t width, uint32_t height) {
     });
 }
 
-void Renderer::updateObjectData(const Object& object, uint32_t index) {
-    auto* mesh = object.get<Mesh>();
-    auto* transform = object.get<Transform>();
-    if (!mesh) {
-        return;
-    }
-
-    // TODO: マテリアル情報はバッファを分けてGPU側でインデックス参照する
-    //       materialIndexはpushConstantでもいいかも
-    if (Material* material = mesh->material) {
-        // clang-format off
-            objectStorage[index].baseColor = material->baseColor;
-            objectStorage[index].emissive.xyz = material->emissive;
-            objectStorage[index].metallic = material->metallic;
-            objectStorage[index].roughness = material->roughness;
-            objectStorage[index].ior = material->ior;
-            objectStorage[index].baseColorTextureIndex = material->baseColorTextureIndex;
-            objectStorage[index].metallicRoughnessTextureIndex = material->metallicRoughnessTextureIndex;
-            objectStorage[index].normalTextureIndex = material->normalTextureIndex;
-            objectStorage[index].occlusionTextureIndex = material->occlusionTextureIndex;
-            objectStorage[index].emissiveTextureIndex = material->emissiveTextureIndex;
-            objectStorage[index].enableNormalMapping = static_cast<int>(material->enableNormalMapping);
-        // clang-format on
-    }
-    if (transform) {
-        const auto& model = transform->computeTransformMatrix();
-        objectStorage[index].modelMatrix = model;
-        objectStorage[index].normalMatrix = transform->computeNormalMatrix();
-    }
-}
-
-void Renderer::updateBuffers(const rv::CommandBuffer& commandBuffer,
-                             vk::Extent3D extent,
-                             Scene& scene) {
-    // Update buffer
-    // NOTE: Shadow map用の行列も更新するのでShadow map passより先に計算
-    Camera* camera = &scene.getDefaultCamera();
-    if (scene.isMainCameraAvailable()) {
-        camera = scene.getMainCamera();
-    }
-
-    const auto& view = camera->getView();
-    const auto& proj = camera->getProj();
-    sceneUniform.cameraView = view;
-    sceneUniform.cameraProj = proj;
-    sceneUniform.cameraViewProj = proj * view;
-    sceneUniform.cameraPos.xyz = camera->getPosition();
-
-    sceneUniform.screenResolution.x = static_cast<float>(extent.width);
-    sceneUniform.screenResolution.y = static_cast<float>(extent.height);
-    sceneUniform.enableFXAA = static_cast<int>(enableFXAA);
-    sceneUniform.exposure = exposure;
-
-    if (Object* dirLightObj = scene.findObject<DirectionalLight>()) {
-        DirectionalLight* dirLight = dirLightObj->get<DirectionalLight>();
-        sceneUniform.existDirectionalLight = 1;
-        sceneUniform.lightDirection.xyz = dirLight->getDirection();
-        sceneUniform.lightColorIntensity.xyz = dirLight->color;
-        sceneUniform.lightColorIntensity.w = dirLight->intensity;
-        sceneUniform.shadowViewProj = shadowMapPass.getViewProj(*dirLight, scene.getAABB());
-        sceneUniform.shadowBias = dirLight->shadowBias;
-        sceneUniform.enableShadowMapping = dirLight->enableShadow;
-    } else {
-        sceneUniform.existDirectionalLight = 0;
-        sceneUniform.enableShadowMapping = false;
-    }
-    if (Object* ambLightObj = scene.findObject<AmbientLight>()) {
-        auto* light = ambLightObj->get<AmbientLight>();
-        sceneUniform.ambientColorIntensity.xyz = light->color;
-        sceneUniform.ambientColorIntensity.w = light->intensity;
-        sceneUniform.irradianceTexture = light->irradianceTexture;
-        sceneUniform.radianceTexture = light->radianceTexture;
-    }
-
-    auto& objects = scene.getObjects();
-    for (uint32_t index : scene.getUpdatedObjectIndices()) {
-        auto& object = objects[index];
-        updateObjectData(object, index);
-    }
-
-    // TODO: DeviceHostに変更した方がいいかどうかプロファイリング
-    commandBuffer.copyBuffer(sceneUniformBuffer, &sceneUniform);
-    commandBuffer.copyBuffer(objectStorageBuffer, objectStorage.data());
-    commandBuffer.bufferBarrier(
-        {sceneUniformBuffer, objectStorageBuffer},  //
-        vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllGraphics,
-        vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead);
+void Renderer::createBuffers() {
+    sceneDataBuffer.init(*context);
+    objectDataBuffer.init(*context);
 }
 
 void Renderer::render(const rv::CommandBuffer& commandBuffer,
@@ -237,8 +139,8 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
     }
 
     if (scene.getStatus() & SceneStatus::Cleared) {
-        sceneUniform = SceneData{};
-        std::ranges::fill(objectStorage, ObjectData{});
+        sceneDataBuffer.clear();
+        objectDataBuffer.clear();
         descSet->set("textures2D", dummyTextures2D);
         descSet->set("texturesCube", dummyTexturesCube);
         shouldUpdate = true;
@@ -271,7 +173,8 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
     }
     scene.resetStatus();
 
-    updateBuffers(commandBuffer, extent, scene);
+    objectDataBuffer.update(commandBuffer, scene);
+    sceneDataBuffer.update(commandBuffer, scene, extent, enableFXAA, exposure);
 
     commandBuffer.clearColorImage(colorImage, {0.1f, 0.1f, 0.1f, 1.0f});
     commandBuffer.clearColorImage(baseColorImage, {0.1f, 0.1f, 0.1f, 1.0f});
@@ -287,13 +190,8 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
     if (Object* dirLightObj = scene.findObject<DirectionalLight>()) {
         DirectionalLight* dirLight = dirLightObj->get<DirectionalLight>();
         if (dirLight->enableShadow) {
-            sceneUniform.enableShadowMapping = 1;
             shadowMapPass.render(commandBuffer, shadowMapImage, scene, *dirLight);
-        } else {
-            sceneUniform.enableShadowMapping = 0;
         }
-    } else {
-        sceneUniform.enableShadowMapping = 0;
     }
 
     // Skybox pass
