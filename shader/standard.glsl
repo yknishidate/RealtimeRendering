@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+#pragma once
+#endif
+
 // --------------------------
 // ---------- Share ---------
 struct StandardConstants {

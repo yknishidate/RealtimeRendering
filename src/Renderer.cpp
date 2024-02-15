@@ -7,7 +7,9 @@ void Renderer::init(const rv::Context& _context,
     context = &_context;
 
     createImages(width, height);
-    createBuffers();
+
+    sceneDataBuffer.init(*context);
+    objectDataBuffer.init(*context);
 
     shadowMapImage = context->createImage({
         .usage = rv::ImageUsage::DepthAttachment | vk::ImageUsageFlagBits::eSampled,
@@ -115,11 +117,6 @@ void Renderer::createImages(uint32_t width, uint32_t height) {
         commandBuffer->transitionLayout(baseColorImage, vk::ImageLayout::eGeneral);
         commandBuffer->transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
     });
-}
-
-void Renderer::createBuffers() {
-    sceneDataBuffer.init(*context);
-    objectDataBuffer.init(*context);
 }
 
 void Renderer::render(const rv::CommandBuffer& commandBuffer,
