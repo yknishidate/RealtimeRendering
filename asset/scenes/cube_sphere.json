@@ -1,0 +1,40 @@
+{
+    "gltf": "../models/cube_sphere.glb",
+    "objects": [
+        {
+            "name": "Directional light",
+            "type": "DirectionalLight",
+            "color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "intensity": 1.0,
+            "phi": -30.0,
+            "theta": 30.0
+        },
+        {
+            "name": "Ambient light",
+            "type": "AmbientLight",
+            "color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "intensity": 1.0,
+            "irradianceTexture": 0,
+            "radianceTexture": 1
+        }
+    ],
+    "camera": {
+        "type": "Orbital",
+        "fovY": 30.0,
+        "distance": 10.0,
+        "phi": 17.0,
+        "theta": -20.0
+    },
+    "texturesCube": [
+        "../environments/christmas_photo_studio_07_4k_irradiance.ktx",
+        "../environments/christmas_photo_studio_07_4k_radiance.ktx"
+    ]
+}
