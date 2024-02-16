@@ -45,7 +45,7 @@ public:
     }
 
     void update(float dt) {
-        if (!isMainCameraActive) {
+        if (!isMainCameraAvailable()) {
             defaultCamera.update(*this, dt);
         }
 
