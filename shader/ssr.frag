@@ -28,6 +28,7 @@ void main(){
     const int maxRaySteps = 100;
     const float stepSize = 0.1;
     const float reflectivity = 0.5;
+    const float maxThickness = 0.005 / maxRaySteps;
     for (int i = 1; i <= maxRaySteps; i++){
         // Ray march
         vec3 rayPos = worldPos.xyz + R * stepSize * float(i);
@@ -44,7 +45,8 @@ void main(){
         }
 
         // Get color from base color buffer
-        if (depth < rayDepth){
+        float thickness = rayDepth - depth;
+        if (0.0 < thickness && thickness < maxThickness){
             vec3 color = texture(baseColorImage, uv).xyz;
             outColor += vec4(color, 1) * reflectivity;
             return;
