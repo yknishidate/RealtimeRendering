@@ -70,6 +70,7 @@ private:
     vk::Format depthFormat = vk::Format::eD32Sfloat;
     vk::Format normalFormat = vk::Format::eR16G16B16A16Sfloat;
     rv::ImageHandle baseColorImage;
+    rv::ImageHandle compositeColorImage;
     rv::ImageHandle depthImage;
     rv::ImageHandle normalImage;
 
@@ -79,12 +80,11 @@ private:
     vk::Extent3D shadowMapExtent{1024, 1024, 1};
     rv::ImageHandle shadowMapImage;
 
-    // Forward pass
     ForwardPass forwardPass;
 
-    // AA pass
     AntiAliasingPass antiAliasingPass;
 
-    // Skybox pass
     SkyboxPass skyboxPass;
+
+    SSRPass ssrPass;
 };

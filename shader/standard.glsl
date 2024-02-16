@@ -125,11 +125,16 @@ layout(binding = 2) uniform sampler2DShadow shadowMap;
 layout(binding = 2) uniform sampler2D shadowMap;
 #endif  // USE_PCF
 
+// G buffer
 layout(binding = 3) uniform sampler2D baseColorImage;
+layout(binding = 4) uniform sampler2D normalImage;
+layout(binding = 5) uniform sampler2D depthImage;
+layout(binding = 6) uniform sampler2D compositeColorImage;
 
-layout(binding = 4) uniform sampler2D textures2D[];
-layout(binding = 5) uniform samplerCube texturesCube[];
-layout(binding = 6) uniform sampler2D brdfLutTexture;
+// Texture
+layout(binding = 7) uniform sampler2D textures2D[];
+layout(binding = 8) uniform samplerCube texturesCube[];
+layout(binding = 9) uniform sampler2D brdfLutTexture;
 
 vec3 gammaCorrect(vec3 color, float gamma) {
     return pow(color, vec3(gamma));

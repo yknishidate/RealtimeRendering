@@ -186,6 +186,8 @@ float computeDirectionalVisibility(vec3 N, vec3 L)
     #ifdef USE_PCF
         float visibility = 0.0;
         for (int i = 0; i < 4; i++){
+            // NOTE: shadow map は vec3 でサンプリングする
+            // TODO: bias は z に反映させているが Vulkan の設定でできるはず
             vec3 coord = inShadowCoord.xyz / inShadowCoord.w;
             coord.xy += poissonDisk[i] / 1000.0;
             coord.z -= bias;

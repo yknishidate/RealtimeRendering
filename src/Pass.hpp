@@ -88,3 +88,20 @@ private:
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;
 };
+
+class SSRPass final : public Pass {
+public:
+    void init(const rv::Context& context,
+              const rv::DescriptorSetHandle& _descSet,
+              vk::Format colorFormat);
+
+    void render(const rv::CommandBuffer& commandBuffer,
+                const rv::ImageHandle& srcColorImage,
+                const rv::ImageHandle& srcNormalImage,
+                const rv::ImageHandle& srcDepthImage,
+                const rv::ImageHandle& dstImage) const;
+
+private:
+    rv::DescriptorSetHandle descSet;
+    rv::GraphicsPipelineHandle pipeline;
+};

@@ -277,3 +277,61 @@ void SkyboxPass::render(const rv::CommandBuffer& commandBuffer,
 
     commandBuffer.endDebugLabel();
 }
+
+void SSRPass::init(const rv::Context& context,
+                   const rv::DescriptorSetHandle& _descSet,
+                   vk::Format colorFormat) {
+    Pass::init(context);
+    descSet = _descSet;
+
+    std::vector<rv::ShaderHandle> shaders(2);
+    shaders[0] = context.createShader({
+        .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "fullscreen.vert",
+                                                  DEV_SHADER_DIR / "spv/fullscreen.vert.spv"),
+        .stage = vk::ShaderStageFlagBits::eVertex,
+    });
+
+    shaders[1] = context.createShader({
+        .code = rv::Compiler::compileOrReadShader(DEV_SHADER_DIR / "ssr.frag",
+                                                  DEV_SHADER_DIR / "spv/ssr.frag.spv"),
+        .stage = vk::ShaderStageFlagBits::eFragment,
+    });
+
+    pipeline = context.createGraphicsPipeline({
+        .descSetLayout = descSet->getLayout(),
+        .vertexShader = shaders[0],
+        .fragmentShader = shaders[1],
+        .colorFormats = colorFormat,
+    });
+
+    timer = context.createGPUTimer({});
+    initialized = true;
+}
+
+void SSRPass::render(const rv::CommandBuffer& commandBuffer,
+                     const rv::ImageHandle& srcColorImage,
+                     const rv::ImageHandle& srcNormalImage,
+                     const rv::ImageHandle& srcDepthImage,
+                     const rv::ImageHandle& dstImage) const {
+    assert(initialized);
+    vk::Extent3D extent = srcColorImage->getExtent();
+    commandBuffer.transitionLayout(srcColorImage, vk::ImageLayout::eGeneral);
+    commandBuffer.transitionLayout(srcNormalImage, vk::ImageLayout::eGeneral);
+    commandBuffer.transitionLayout(srcDepthImage, vk::ImageLayout::eGeneral);
+    commandBuffer.transitionLayout(dstImage, vk::ImageLayout::eColorAttachmentOptimal);
+
+    commandBuffer.beginDebugLabel("SSRPass::render()");
+    commandBuffer.bindDescriptorSet(descSet, pipeline);
+    commandBuffer.bindPipeline(pipeline);
+
+    commandBuffer.setViewport(extent.width, extent.height);
+    commandBuffer.setScissor(extent.width, extent.height);
+    commandBuffer.beginTimestamp(timer);
+    commandBuffer.beginRendering(dstImage, {}, {0, 0}, {extent.width, extent.height});
+
+    commandBuffer.draw(3, 1, 0, 0);
+
+    commandBuffer.endRendering();
+    commandBuffer.endTimestamp(timer);
+    commandBuffer.endDebugLabel();
+}

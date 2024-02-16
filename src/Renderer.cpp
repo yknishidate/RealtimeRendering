@@ -69,6 +69,9 @@ void Renderer::init(const rv::Context& _context,
             {
                 {"shadowMap", shadowMapImage},
                 {"baseColorImage", baseColorImage},
+                {"normalImage", normalImage},
+                {"depthImage", depthImage},
+                {"compositeColorImage", compositeColorImage},
                 {"textures2D", 100u},
                 {"texturesCube", 100u},
                 {"brdfLutTexture", brdfLutTexture},
@@ -83,6 +86,7 @@ void Renderer::init(const rv::Context& _context,
         shadowMapPass.init(*context, descSet, shadowMapFormat);
         forwardPass.init(*context, descSet, colorFormat, depthFormat, normalFormat);
         antiAliasingPass.init(*context, descSet, targetColorFormat);
+        ssrPass.init(*context, descSet, colorFormat);
     } catch (const std::exception& e) {
         spdlog::error(e.what());
         std::abort();
@@ -104,8 +108,20 @@ void Renderer::createImages(uint32_t width, uint32_t height) {
     baseColorImage->createImageView();
     baseColorImage->createSampler();
 
+    compositeColorImage = context->createImage({
+        .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
+                 vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
+                 vk::ImageUsageFlagBits::eColorAttachment,
+        .extent = {width, height, 1},
+        .format = colorFormat,
+        .debugName = "Renderer::compositeColorImage",
+    });
+    compositeColorImage->createImageView();
+    compositeColorImage->createSampler();
+
     depthImage = context->createImage({
-        .usage = rv::ImageUsage::DepthAttachment,
+        .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
+                 vk::ImageUsageFlagBits::eDepthStencilAttachment,
         .extent = {width, height, 1},
         .format = depthFormat,
         .debugName = "Renderer::depthImage",
@@ -114,9 +130,8 @@ void Renderer::createImages(uint32_t width, uint32_t height) {
     depthImage->createSampler();
 
     normalImage = context->createImage({
-        .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
-                 vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
-                 vk::ImageUsageFlagBits::eColorAttachment,
+        .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
+                 vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eColorAttachment,
         .extent = {width, height, 1},
         .format = normalFormat,
         .debugName = "Renderer::normalImage",
@@ -126,7 +141,8 @@ void Renderer::createImages(uint32_t width, uint32_t height) {
 
     context->oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
         commandBuffer->transitionLayout(baseColorImage, vk::ImageLayout::eGeneral);
-        commandBuffer->transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
+        commandBuffer->transitionLayout(compositeColorImage, vk::ImageLayout::eGeneral);
+        commandBuffer->transitionLayout(depthImage, vk::ImageLayout::eGeneral);
         commandBuffer->transitionLayout(normalImage, vk::ImageLayout::eGeneral);
     });
 }
@@ -143,7 +159,12 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
         uint32_t width = extent.width;
         uint32_t height = extent.height;
         createImages(width, height);
+
+        // バインドしなおすのを忘れずに
         descSet->set("baseColorImage", baseColorImage);
+        descSet->set("normalImage", normalImage);
+        descSet->set("depthImage", depthImage);
+        descSet->set("compositeColorImage", compositeColorImage);
         shouldUpdate = true;
     }
 
@@ -192,6 +213,7 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
     commandBuffer.clearColorImage(normalImage, {0.0f, 0.0f, 0.0f, 1.0f});
     commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
     commandBuffer.transitionLayout(baseColorImage, vk::ImageLayout::eColorAttachmentOptimal);
+    commandBuffer.transitionLayout(compositeColorImage, vk::ImageLayout::eColorAttachmentOptimal);
     commandBuffer.transitionLayout(normalImage, vk::ImageLayout::eColorAttachmentOptimal);
     commandBuffer.transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
 
@@ -212,8 +234,17 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
     forwardPass.render(commandBuffer, baseColorImage, depthImage, normalImage, scene,
                        enableFrustumCulling);
 
+    // SSR pass
+    if (enableSSR) {
+        ssrPass.render(commandBuffer, baseColorImage, normalImage, depthImage, compositeColorImage);
+    }
+
     // AA pass
-    antiAliasingPass.render(commandBuffer, baseColorImage, colorImage);
+    // NOTE: SSR が有効化どうかによって入力カラー画像を変える必要がある
+    commandBuffer.transitionLayout(baseColorImage, vk::ImageLayout::eGeneral);
+    commandBuffer.transitionLayout(compositeColorImage, vk::ImageLayout::eGeneral);
+    antiAliasingPass.render(commandBuffer, enableSSR ? compositeColorImage : baseColorImage,
+                            colorImage);
 
     commandBuffer.transitionLayout(colorImage, vk::ImageLayout::eGeneral);
     commandBuffer.transitionLayout(normalImage, vk::ImageLayout::eGeneral);

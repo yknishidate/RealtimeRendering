@@ -76,11 +76,25 @@ void main(){
         vec2 v_rgbSW = (fragCoord + vec2(-1.0, 1.0)) * inverseVP;
         vec2 v_rgbSE = (fragCoord + vec2(1.0, 1.0)) * inverseVP;
         vec2 v_rgbM = vec2(fragCoord * inverseVP);
-        vec3 color = fxaa(baseColorImage, fragCoord, resolution,
-                        v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM).xyz;
+
+        vec3 color;
+        if(scene.enableSSR == 1){
+            color = fxaa(compositeColorImage, fragCoord, resolution,
+                         v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM).xyz;
+        }else{
+            color = fxaa(baseColorImage, fragCoord, resolution,
+                         v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM).xyz;
+        }
         outColor = vec4(gammaCorrect(tonemap(color, scene.exposure), 1.0 / 2.2), 1.0);
     }else{
-        vec3 color = texture(baseColorImage, vec2(gl_FragCoord.xy) / scene.screenResolution).xyz;
+        vec3 color;
+        if(scene.enableSSR == 1){
+            color = texture(compositeColorImage, 
+                            vec2(gl_FragCoord.xy) / scene.screenResolution).xyz;
+        }else{
+            color = texture(baseColorImage, 
+                            vec2(gl_FragCoord.xy) / scene.screenResolution).xyz;
+        }
         outColor = vec4(gammaCorrect(tonemap(color, scene.exposure), 1.0 / 2.2), 1.0);
         //vec4 averageColor = vec4(0.0);
         //for(int dx = -1; dx <= 1; dx++){
