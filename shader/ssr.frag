@@ -3,6 +3,10 @@
 
 layout(location = 0) out vec4 outColor;
 
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
 void main(){
     vec2 resolution = scene.screenResolution;
     vec2 inverseVP = 1.0 / resolution;
@@ -25,13 +29,18 @@ void main(){
     vec3 N = texture(normalImage, uv).xyz;
     vec3 R = reflect(-V, N);
 
-    const int maxRaySteps = 100;
-    const float stepSize = 0.1;
+    const int maxRaySteps = 50;
+    const float maxRayDistance = 10.0;
+    const float stepSize = maxRayDistance / maxRaySteps;
     const float reflectivity = 0.5;
-    const float maxThickness = 0.005 / maxRaySteps;
+    const float maxThickness = 0.00005;
     for (int i = 1; i <= maxRaySteps; i++){
         // Ray march
-        vec3 rayPos = worldPos.xyz + R * stepSize * float(i);
+        // NOTE: マイナスオフセットは逆方向にめり込む可能性があるので使わない
+        // NOTE: オフセットは各ステップでランダムに変化させると綺麗になる
+        // NOTE: オフセットは 1.0 よりも少し大きめにとるとさらに綺麗になる
+        float randomOffset = random(uv + i) * 1.5;
+        vec3 rayPos = worldPos.xyz + R * stepSize * (i + randomOffset);
         vec4 vpPos = (scene.cameraViewProj * vec4(rayPos, 1));
         float rayDepth = vpPos.z / vpPos.w;
 
