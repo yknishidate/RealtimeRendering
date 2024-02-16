@@ -11,8 +11,8 @@ void main(){
 
     vec3 color = texture(baseColorImage, uv).xyz;
     float depth = texture(depthImage, uv).x;
+    outColor = vec4(color, 1);
     if (depth >= 1.0){
-        outColor = vec4(color, 1);
         return;
     }
 
@@ -21,5 +21,33 @@ void main(){
     vec4 worldPos = scene.cameraInvViewProj * vec4(ndcPos, depth, 1);
     worldPos /= worldPos.w;
 
-    outColor = worldPos;
+    vec3 V = normalize(scene.cameraPos.xyz - worldPos.xyz);
+    vec3 N = texture(normalImage, uv).xyz;
+    vec3 R = reflect(-V, N);
+
+    const int maxRaySteps = 100;
+    const float stepSize = 0.1;
+    const float reflectivity = 0.5;
+    for (int i = 1; i <= maxRaySteps; i++){
+        // Ray march
+        vec3 rayPos = worldPos.xyz + R * stepSize * float(i);
+        vec4 vpPos = (scene.cameraViewProj * vec4(rayPos, 1));
+        float rayDepth = vpPos.z / vpPos.w;
+
+        // Get depth from depth buffer
+        vec2 screenPos = vpPos.xy / vpPos.w;
+        screenPos.y = -screenPos.y;
+        vec2 uv = (screenPos * 0.5 + 0.5);
+        float depth = texture(depthImage, uv).x;
+        if (depth >= 1.0){
+            break;
+        }
+
+        // Get color from base color buffer
+        if (depth < rayDepth){
+            vec3 color = texture(baseColorImage, uv).xyz;
+            outColor += vec4(color, 1) * reflectivity;
+            return;
+        }
+    }
 }
