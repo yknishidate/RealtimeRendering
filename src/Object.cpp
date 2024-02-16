@@ -76,6 +76,11 @@ glm::mat4 DirectionalLight::getViewProj(const rv::AABB& aabb) const {
     return proj * view;
 }
 
+glm::mat4 DirectionalLight::getRotationMatrix() const {
+    glm::mat4 rot = glm::rotate(glm::mat4{1.0f}, glm::radians(phi), {0.0f, 1.0f, 0.0f});
+    return glm::rotate(rot, glm::radians(theta), {1.0f, 0.0f, 0.0f});
+}
+
 void DirectionalLight::showAttributes(Scene& scene) {
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::TreeNode("Directional light")) {

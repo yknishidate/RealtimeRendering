@@ -171,12 +171,15 @@ struct DirectionalLight : Component {
     // シャドウマップ用のビュープロジェクション行列を計算
     glm::mat4 getViewProj(const rv::AABB& aabb) const;
 
+    // phi と theta から回転行列を計算
+    glm::mat4 getRotationMatrix() const;
+
     void showAttributes(Scene& scene) override;
 
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float intensity = 1.0f;
-    float phi = 0.0f;
-    float theta = 0.0f;
+    float phi = 0.0f;    // in degrees
+    float theta = 0.0f;  // in degrees
 
     bool enableShadow = true;
     bool enableShadowCulling = false;

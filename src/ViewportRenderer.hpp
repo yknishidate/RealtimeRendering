@@ -94,9 +94,9 @@ public:
         subGridMesh = rv::Mesh::createPlaneLineMesh(*context, gridInfo);
 
         // FIX: DeviceHostにすると確保に失敗する
-        std::vector<rv::Vertex> vertices(2);
+        std::vector<rv::Vertex> vertices = {{{0.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f, 0.0f}}};
         std::vector<uint32_t> indices = {0, 1};
-        singleLineMesh = rv::Mesh{*context, rv::MemoryUsage::Host, vertices, indices,
+        singleLineMesh = rv::Mesh{*context, rv::MemoryUsage::Device, vertices, indices,
                                   "ViewportRenderer::singleLineMesh"};
 
         cubeLineMesh = rv::Mesh::createCubeLineMesh(*context, {"ViewportRenderer::cubeLineMesh"});
@@ -142,11 +142,8 @@ public:
             // Draw directional light
             if (isLightVisible) {
                 if (const DirectionalLight* light = object.get<DirectionalLight>()) {
-                    std::vector<VertexP> vertices(2);
-                    vertices[0].position = glm::vec3{0.0f};
-                    vertices[1].position = light->getDirection() * 5.0f;
-                    singleLineMesh.vertexBuffer->copy(vertices.data());
-                    lineDrawer.draw(commandBuffer, singleLineMesh, viewProj,
+                    lineDrawer.draw(commandBuffer, singleLineMesh,
+                                    viewProj * light->getRotationMatrix(),
                                     glm::vec3{0.7f, 0.7f, 0.7f}, 2.0f);
                 }
             }
