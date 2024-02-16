@@ -46,6 +46,7 @@ public:
     // Global options
     inline static bool enableFXAA = true;
     inline static bool enableFrustumCulling = false;
+    inline static bool enableSSR = true;
     inline static float exposure = 1.0f;
 
 private:
@@ -59,14 +60,18 @@ private:
     ObjectDataBuffer objectDataBuffer;
     SceneDataBuffer sceneDataBuffer;
 
-    // Image
+    // Texture
     rv::ImageHandle brdfLutTexture;
     rv::ImageHandle dummyTextures2D;
     rv::ImageHandle dummyTexturesCube;
+
+    // Image
     vk::Format colorFormat = vk::Format::eR16G16B16A16Sfloat;
     vk::Format depthFormat = vk::Format::eD32Sfloat;
+    vk::Format normalFormat = vk::Format::eR16G16B16A16Sfloat;
     rv::ImageHandle baseColorImage;
     rv::ImageHandle depthImage;
+    rv::ImageHandle normalImage;
 
     // Shadow map pass
     ShadowMapPass shadowMapPass;

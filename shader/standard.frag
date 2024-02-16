@@ -7,6 +7,7 @@ layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec4 inShadowCoord;
 layout(location = 4) in mat3 inTBN;
 layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outNormal;
 
 vec2 poissonDisk[4] = vec2[](
     vec2( -0.94201624,  -0.39906216 ),
@@ -118,7 +119,7 @@ vec3 computeAmbientTerm(vec3 baseColor, float roughness, vec3 occlusion,
 }
 
 // 法線 H をもつマイクロファセットの割合を返す
-float DistributionGGX(vec3 N, vec3 H, float roughness)
+float distributionGGX(vec3 N, vec3 H, float roughness)
 {
     float a = roughness * roughness;
     float a2 = a * a;
@@ -132,7 +133,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
 }
 
 // NOTE: 視線方向または光源方向のいずれか一方から見たときのジオメトリ項
-float GeometrySchlickGGX(float NdotV, float roughness)
+float geometrySchlickGGX(float NdotV, float roughness)
 {
     float a = roughness + 1.0;
     float k = (a * a) / 8.0;
@@ -144,12 +145,12 @@ float GeometrySchlickGGX(float NdotV, float roughness)
 // NOTE:
 // 二つの値を乗算した最終的なジオメトリ項
 // cosThetaはジオメトリ項の中に含まれる
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 {
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
-    float ggx1 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx2 = GeometrySchlickGGX(NdotL, roughness);
+    float ggx1 = geometrySchlickGGX(NdotV, roughness);
+    float ggx2 = geometrySchlickGGX(NdotL, roughness);
     return ggx1 * ggx2;
 }
 
@@ -158,8 +159,8 @@ vec3 computeDirectionalTerm(vec3 baseColor, float roughness,
                             vec3 L, vec3 V, vec3 N)
 {
     vec3 H = normalize(L + V);
-    float D = DistributionGGX(N, H, roughness);
-    float G = GeometrySmith(N, V, L, roughness);
+    float D = distributionGGX(N, H, roughness);
+    float G = geometrySmith(N, V, L, roughness);
 
     vec3 numerator = D * G * F;
     float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
@@ -233,4 +234,7 @@ void main() {
     
     // Final color
     outColor = vec4(emissive + ambientTerm + directionalTerm, 1.0);
+    if(scene.enableSSR == 1){
+        outNormal = vec4(N, 1.0);
+    }
 }

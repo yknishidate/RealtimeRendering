@@ -81,7 +81,7 @@ void Renderer::init(const rv::Context& _context,
     try {
         skyboxPass.init(*context, descSet, colorFormat);
         shadowMapPass.init(*context, descSet, shadowMapFormat);
-        forwardPass.init(*context, descSet, colorFormat, depthFormat);
+        forwardPass.init(*context, descSet, colorFormat, depthFormat, normalFormat);
         antiAliasingPass.init(*context, descSet, targetColorFormat);
     } catch (const std::exception& e) {
         spdlog::error(e.what());
@@ -99,7 +99,7 @@ void Renderer::createImages(uint32_t width, uint32_t height) {
                  vk::ImageUsageFlagBits::eColorAttachment,
         .extent = {width, height, 1},
         .format = colorFormat,
-        .debugName = "ViewportRenderer::colorImage",
+        .debugName = "Renderer::colorImage",
     });
     baseColorImage->createImageView();
     baseColorImage->createSampler();
@@ -108,14 +108,26 @@ void Renderer::createImages(uint32_t width, uint32_t height) {
         .usage = rv::ImageUsage::DepthAttachment,
         .extent = {width, height, 1},
         .format = depthFormat,
-        .debugName = "ViewportRenderer::depthImage",
+        .debugName = "Renderer::depthImage",
     });
     depthImage->createImageView(vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth);
     depthImage->createSampler();
 
+    normalImage = context->createImage({
+        .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
+                 vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
+                 vk::ImageUsageFlagBits::eColorAttachment,
+        .extent = {width, height, 1},
+        .format = normalFormat,
+        .debugName = "Renderer::normalImage",
+    });
+    normalImage->createImageView();
+    normalImage->createSampler();
+
     context->oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
         commandBuffer->transitionLayout(baseColorImage, vk::ImageLayout::eGeneral);
         commandBuffer->transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
+        commandBuffer->transitionLayout(normalImage, vk::ImageLayout::eGeneral);
     });
 }
 
@@ -171,17 +183,17 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
     scene.resetStatus();
 
     objectDataBuffer.update(commandBuffer, scene);
-    sceneDataBuffer.update(commandBuffer, scene, extent, enableFXAA, exposure);
+    sceneDataBuffer.update(commandBuffer, scene, extent, enableFXAA, enableSSR, exposure);
 
+    // TODO: ここでいいのか検討
     commandBuffer.clearColorImage(colorImage, {0.1f, 0.1f, 0.1f, 1.0f});
+
     commandBuffer.clearColorImage(baseColorImage, {0.1f, 0.1f, 0.1f, 1.0f});
+    commandBuffer.clearColorImage(normalImage, {0.0f, 0.0f, 0.0f, 1.0f});
     commandBuffer.clearDepthStencilImage(depthImage, 1.0f, 0);
-    commandBuffer.imageBarrier({colorImage, baseColorImage, depthImage},  //
-                               vk::PipelineStageFlagBits::eTransfer,
-                               vk::PipelineStageFlagBits::eAllGraphics,
-                               vk::AccessFlagBits::eTransferWrite,
-                               vk::AccessFlagBits::eColorAttachmentWrite |
-                                   vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+    commandBuffer.transitionLayout(baseColorImage, vk::ImageLayout::eColorAttachmentOptimal);
+    commandBuffer.transitionLayout(normalImage, vk::ImageLayout::eColorAttachmentOptimal);
+    commandBuffer.transitionLayout(depthImage, vk::ImageLayout::eDepthAttachmentOptimal);
 
     // Shadow pass
     if (Object* dirLightObj = scene.findObject<DirectionalLight>()) {
@@ -197,12 +209,14 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
     }
 
     // Forward pass
-    forwardPass.render(commandBuffer, baseColorImage, depthImage, scene, enableFrustumCulling);
+    forwardPass.render(commandBuffer, baseColorImage, depthImage, normalImage, scene,
+                       enableFrustumCulling);
 
     // AA pass
     antiAliasingPass.render(commandBuffer, baseColorImage, colorImage);
 
     commandBuffer.transitionLayout(colorImage, vk::ImageLayout::eGeneral);
+    commandBuffer.transitionLayout(normalImage, vk::ImageLayout::eGeneral);
 
     firstFrameRendered = true;
 }

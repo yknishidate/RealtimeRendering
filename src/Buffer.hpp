@@ -79,6 +79,7 @@ struct SceneDataBuffer {
                 Scene& scene,
                 vk::Extent3D imageExtent,
                 bool enableFXAA,
+                bool enableSSR,
                 float exposure) {
         // Update buffer
         // NOTE: Shadow map用の行列も更新するのでShadow map passより先に計算
@@ -97,6 +98,7 @@ struct SceneDataBuffer {
         data.screenResolution.x = static_cast<float>(imageExtent.width);
         data.screenResolution.y = static_cast<float>(imageExtent.height);
         data.enableFXAA = static_cast<int>(enableFXAA);
+        data.enableSSR = static_cast<int>(enableSSR);
         data.exposure = exposure;
 
         if (Object* dirLightObj = scene.findObject<DirectionalLight>()) {

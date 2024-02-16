@@ -66,6 +66,7 @@ struct SceneData {
     int existDirectionalLight;
     int enableShadowMapping;
     int enableFXAA = 1;
+    int enableSSR = 1;
     int irradianceTexture = -1;
     int radianceTexture = -1;
     float shadowBias = 0.005f;
@@ -83,6 +84,7 @@ struct SceneData {
     int existDirectionalLight;
     int enableShadowMapping;
     int enableFXAA;
+    int enableSSR;
     int irradianceTexture;
     int radianceTexture;
     float shadowBias;

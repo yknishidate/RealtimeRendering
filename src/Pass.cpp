@@ -130,7 +130,8 @@ void AntiAliasingPass::render(const rv::CommandBuffer& commandBuffer,
 void ForwardPass::init(const rv::Context& context,
                        const rv::DescriptorSetHandle& _descSet,
                        vk::Format colorFormat,
-                       vk::Format depthFormat) {
+                       vk::Format depthFormat,
+                       vk::Format normalFormat) {
     Pass::init(context);
 
     descSet = _descSet;
@@ -155,7 +156,7 @@ void ForwardPass::init(const rv::Context& context,
         .fragmentShader = shaders[1],
         .vertexStride = sizeof(VertexPNUT),
         .vertexAttributes = VertexPNUT::getAttributeDescriptions(),
-        .colorFormats = colorFormat,
+        .colorFormats = {colorFormat, normalFormat},
         .depthFormat = depthFormat,
     });
 }
@@ -163,6 +164,7 @@ void ForwardPass::init(const rv::Context& context,
 void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
                          const rv::ImageHandle& baseColorImage,
                          const rv::ImageHandle& depthImage,
+                         const rv::ImageHandle& normalImage,
                          Scene& scene,
                          bool frustumCulling) {
     vk::Extent3D extent = baseColorImage->getExtent();
@@ -173,7 +175,8 @@ void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
     commandBuffer.setViewport(extent.width, extent.height);
     commandBuffer.setScissor(extent.width, extent.height);
     commandBuffer.beginTimestamp(timer);
-    commandBuffer.beginRendering(baseColorImage, depthImage, {0, 0}, {extent.width, extent.height});
+    commandBuffer.beginRendering({baseColorImage, normalImage}, depthImage, {0, 0},
+                                 {extent.width, extent.height});
 
     int meshCount = 0;
     int visibleCount = 0;
@@ -207,7 +210,7 @@ void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
     commandBuffer.endRendering();
     commandBuffer.endTimestamp(timer);
 
-    commandBuffer.imageBarrier({baseColorImage, depthImage},  //
+    commandBuffer.imageBarrier({baseColorImage, normalImage, depthImage},  //
                                vk::PipelineStageFlagBits::eAllGraphics,
                                vk::PipelineStageFlagBits::eAllGraphics,
                                vk::AccessFlagBits::eColorAttachmentWrite |
