@@ -153,7 +153,8 @@ public:
 
             // Draw camera
             if (isCameraVisible) {
-                if (const Camera* _camera = object.get<Camera>()) {
+                const Camera* _camera = object.get<Camera>();
+                if (_camera && camera != _camera) {
                     glm::mat4 invProj = _camera->getInvProj();
                     glm::mat4 invView = _camera->getInvView();
                     glm::mat4 model = invView * invProj;
