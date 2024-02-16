@@ -57,6 +57,7 @@ struct SceneData {
     glm::mat4 cameraView{1.0f};
     glm::mat4 cameraProj{1.0f};
     glm::mat4 cameraViewProj{1.0f};
+    glm::mat4 cameraInvViewProj{1.0f};
     glm::mat4 shadowViewProj{1.0f};
     glm::vec4 lightDirection{0.0f};
     glm::vec4 lightColorIntensity{0.0f};    // vec4(color, intensity)
@@ -75,6 +76,7 @@ struct SceneData {
     mat4 cameraView;
     mat4 cameraProj;
     mat4 cameraViewProj;
+    mat4 cameraInvViewProj;
     mat4 shadowViewProj;
     vec4 lightDirection;
     vec4 lightColorIntensity;

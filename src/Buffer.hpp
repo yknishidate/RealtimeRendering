@@ -93,6 +93,7 @@ struct SceneDataBuffer {
         data.cameraView = view;
         data.cameraProj = proj;
         data.cameraViewProj = proj * view;
+        data.cameraInvViewProj = glm::inverse(data.cameraViewProj);
         data.cameraPos.xyz = camera->getPosition();
 
         data.screenResolution.x = static_cast<float>(imageExtent.width);
