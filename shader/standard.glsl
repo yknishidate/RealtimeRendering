@@ -72,6 +72,7 @@ struct SceneData {
     int radianceTexture = -1;
     float shadowBias = 0.005f;
     float exposure = 1.0f;
+    float ssrIntensity = 1.0f;
 #else
     mat4 cameraView;
     mat4 cameraProj;
@@ -91,6 +92,7 @@ struct SceneData {
     int radianceTexture;
     float shadowBias;
     float exposure;
+    float ssrIntensity;
 #endif
 };
 
@@ -132,7 +134,7 @@ layout(binding = 3) uniform sampler2D baseColorImage;
 layout(binding = 4) uniform sampler2D normalImage;
 layout(binding = 5) uniform sampler2D depthImage;
 layout(binding = 6) uniform sampler2D compositeColorImage;
-layout(binding = 7) uniform sampler2D metallicRoughImage;
+layout(binding = 7) uniform sampler2D specularBrdfImage;
 
 // Texture
 layout(binding = 10) uniform sampler2D textures2D[];

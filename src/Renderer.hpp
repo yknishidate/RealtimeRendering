@@ -52,6 +52,7 @@ public:
     inline static bool enableFrustumCulling = false;
     inline static bool enableSSR = true;
     inline static float exposure = 1.0f;
+    inline static float ssrIntensity = 1.0f;
 
 private:
     bool initialized = false;
@@ -73,12 +74,12 @@ private:
     vk::Format colorFormat = vk::Format::eR16G16B16A16Sfloat;
     vk::Format depthFormat = vk::Format::eD32Sfloat;
     vk::Format normalFormat = vk::Format::eR16G16B16A16Sfloat;
-    vk::Format metallicRoughFormat = vk::Format::eR8G8B8A8Unorm;
+    vk::Format specularBrdfFormat = vk::Format::eR8G8B8A8Unorm;
     rv::ImageHandle baseColorImage;
     rv::ImageHandle compositeColorImage;
     rv::ImageHandle depthImage;
     rv::ImageHandle normalImage;
-    rv::ImageHandle metallicRoughImage;
+    rv::ImageHandle specularBrdfImage;
 
     // Shadow map pass
     ShadowMapPass shadowMapPass;

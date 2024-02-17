@@ -28,11 +28,11 @@ void main(){
     vec3 V = normalize(scene.cameraPos.xyz - worldPos.xyz);
     vec3 N = texture(normalImage, uv).xyz;
     vec3 R = reflect(-V, N);
+    vec3 specularBrdf = texture(specularBrdfImage, uv).xyz;
 
     const int maxRaySteps = 50;
     const float maxRayDistance = 10.0;
     const float stepSize = maxRayDistance / maxRaySteps;
-    const float reflectivity = 0.5;
     const float maxThickness = 0.00005;
     for (int i = 1; i <= maxRaySteps; i++){
         // Ray march
@@ -57,7 +57,7 @@ void main(){
         float thickness = rayDepth - depth;
         if (0.0 < thickness && thickness < maxThickness){
             vec3 color = texture(baseColorImage, uv).xyz;
-            outColor += vec4(color, 1) * reflectivity;
+            outColor += vec4(color * specularBrdf * scene.ssrIntensity, 1);
             return;
         }
     }

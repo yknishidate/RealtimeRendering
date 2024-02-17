@@ -8,7 +8,7 @@ layout(location = 3) in vec4 inShadowCoord;
 layout(location = 4) in mat3 inTBN;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outNormal;
-layout(location = 2) out vec4 outMetallicRough;
+layout(location = 2) out vec4 outSpecularBrdf;
 
 vec2 poissonDisk[4] = vec2[](
     vec2( -0.94201624,  -0.39906216 ),
@@ -115,7 +115,12 @@ vec3 computeAmbientTerm(vec3 baseColor, float roughness, vec3 occlusion,
     // x: dot(N, V)
     // y: roughness
     vec2 envBRDF  = texture(brdfLutTexture, vec2(max(dot(N, V), 0.0), roughness)).xy;
-    vec3 specular = radiance * (F * envBRDF.x + envBRDF.y);
+    vec3 specularBrdf = (F * envBRDF.x + envBRDF.y);
+    if(scene.enableSSR == 1){
+        outSpecularBrdf = vec4(specularBrdf, 0.0);
+    }
+
+    vec3 specular = radiance * specularBrdf;
     return (diffuse + specular) * occlusion;
 }
 
@@ -239,6 +244,5 @@ void main() {
     outColor = vec4(emissive + ambientTerm + directionalTerm, 1.0);
     if(scene.enableSSR == 1){
         outNormal = vec4(N, 1.0);
-        outMetallicRough = vec4(metallic, roughness, 0.0, 0.0);
     }
 }

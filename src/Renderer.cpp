@@ -72,7 +72,7 @@ void Renderer::init(const rv::Context& _context,
                 {"normalImage", normalImage},
                 {"depthImage", depthImage},
                 {"compositeColorImage", compositeColorImage},
-                {"metallicRoughImage", metallicRoughImage},
+                {"specularBrdfImage", specularBrdfImage},
                 {"textures2D", 100u},
                 {"texturesCube", 100u},
                 {"brdfLutTexture", brdfLutTexture},
@@ -85,7 +85,7 @@ void Renderer::init(const rv::Context& _context,
     try {
         skyboxPass.init(*context, descSet, colorFormat);
         shadowMapPass.init(*context, descSet, shadowMapFormat);
-        forwardPass.init(*context, descSet, colorFormat, depthFormat, metallicRoughFormat,
+        forwardPass.init(*context, descSet, colorFormat, depthFormat, specularBrdfFormat,
                          normalFormat);
         antiAliasingPass.init(*context, descSet, targetColorFormat);
         ssrPass.init(*context, descSet, colorFormat);
@@ -141,22 +141,22 @@ void Renderer::createImages(uint32_t width, uint32_t height) {
     normalImage->createImageView();
     normalImage->createSampler();
 
-    metallicRoughImage = context->createImage({
+    specularBrdfImage = context->createImage({
         .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
                  vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eColorAttachment,
         .extent = {width, height, 1},
-        .format = metallicRoughFormat,
-        .debugName = "Renderer::metallicRoughImage",
+        .format = specularBrdfFormat,
+        .debugName = "Renderer::specularBrdfImage",
     });
-    metallicRoughImage->createImageView();
-    metallicRoughImage->createSampler();
+    specularBrdfImage->createImageView();
+    specularBrdfImage->createSampler();
 
     context->oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
         commandBuffer->transitionLayout(baseColorImage, vk::ImageLayout::eGeneral);
         commandBuffer->transitionLayout(compositeColorImage, vk::ImageLayout::eGeneral);
         commandBuffer->transitionLayout(depthImage, vk::ImageLayout::eGeneral);
         commandBuffer->transitionLayout(normalImage, vk::ImageLayout::eGeneral);
-        commandBuffer->transitionLayout(metallicRoughImage, vk::ImageLayout::eGeneral);
+        commandBuffer->transitionLayout(specularBrdfImage, vk::ImageLayout::eGeneral);
     });
 }
 
@@ -178,7 +178,7 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
         descSet->set("normalImage", normalImage);
         descSet->set("depthImage", depthImage);
         descSet->set("compositeColorImage", compositeColorImage);
-        descSet->set("metallicRoughImage", metallicRoughImage);
+        descSet->set("specularBrdfImage", specularBrdfImage);
         shouldUpdate = true;
     }
 
@@ -218,7 +218,8 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
     scene.resetStatus();
 
     objectDataBuffer.update(commandBuffer, scene);
-    sceneDataBuffer.update(commandBuffer, scene, extent, enableFXAA, enableSSR, exposure);
+    sceneDataBuffer.update(commandBuffer, scene, extent, enableFXAA, enableSSR, exposure,
+                           ssrIntensity);
 
     // TODO: ここでいいのか検討
     commandBuffer.clearColorImage(colorImage, {0.1f, 0.1f, 0.1f, 1.0f});
@@ -245,7 +246,7 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
     }
 
     // Forward pass
-    forwardPass.render(commandBuffer, baseColorImage, depthImage, metallicRoughImage, normalImage,
+    forwardPass.render(commandBuffer, baseColorImage, depthImage, specularBrdfImage, normalImage,
                        scene, enableFrustumCulling);
 
     // SSR pass
@@ -255,6 +256,8 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
 
     // AA pass
     // NOTE: SSR が有効化どうかによって入力カラー画像を変える必要がある
+    commandBuffer.transitionLayout(baseColorImage, vk::ImageLayout::eGeneral);
+    commandBuffer.transitionLayout(compositeColorImage, vk::ImageLayout::eGeneral);
     antiAliasingPass.render(commandBuffer, enableSSR ? compositeColorImage : baseColorImage,
                             colorImage);
 

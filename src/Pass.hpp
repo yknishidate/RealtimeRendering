@@ -59,13 +59,13 @@ public:
               const rv::DescriptorSetHandle& _descSet,
               vk::Format colorFormat,
               vk::Format depthFormat,
-              vk::Format metallicRoughFormat,
+              vk::Format specularBrdfFormat,
               vk::Format normalFormat);
 
     void render(const rv::CommandBuffer& commandBuffer,
                 const rv::ImageHandle& baseColorImage,
                 const rv::ImageHandle& depthImage,
-                const rv::ImageHandle& metallicRoughImage,
+                const rv::ImageHandle& specularBrdfImage,
                 const rv::ImageHandle& normalImage,
                 Scene& scene,
                 bool frustumCulling);

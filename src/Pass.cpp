@@ -131,7 +131,7 @@ void ForwardPass::init(const rv::Context& context,
                        const rv::DescriptorSetHandle& _descSet,
                        vk::Format colorFormat,
                        vk::Format depthFormat,
-                       vk::Format metallicRoughFormat,
+                       vk::Format specularBrdfFormat,
                        vk::Format normalFormat) {
     Pass::init(context);
 
@@ -157,7 +157,7 @@ void ForwardPass::init(const rv::Context& context,
         .fragmentShader = shaders[1],
         .vertexStride = sizeof(VertexPNUT),
         .vertexAttributes = VertexPNUT::getAttributeDescriptions(),
-        .colorFormats = {colorFormat, normalFormat, metallicRoughFormat},
+        .colorFormats = {colorFormat, normalFormat, specularBrdfFormat},
         .depthFormat = depthFormat,
     });
 }
@@ -165,7 +165,7 @@ void ForwardPass::init(const rv::Context& context,
 void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
                          const rv::ImageHandle& baseColorImage,
                          const rv::ImageHandle& depthImage,
-                         const rv::ImageHandle& metallicRoughImage,
+                         const rv::ImageHandle& specularBrdfImage,
                          const rv::ImageHandle& normalImage,
                          Scene& scene,
                          bool frustumCulling) {
@@ -177,7 +177,7 @@ void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
     commandBuffer.setViewport(extent.width, extent.height);
     commandBuffer.setScissor(extent.width, extent.height);
     commandBuffer.beginTimestamp(timer);
-    commandBuffer.beginRendering({baseColorImage, normalImage, metallicRoughImage}, depthImage,
+    commandBuffer.beginRendering({baseColorImage, normalImage, specularBrdfImage}, depthImage,
                                  {0, 0}, {extent.width, extent.height});
 
     int meshCount = 0;
