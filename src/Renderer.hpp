@@ -31,6 +31,10 @@ public:
         return antiAliasingPass.getRenderingTimeMs();
     }
 
+    float getPassTimeSSR() const {
+        return ssrPass.getRenderingTimeMs();
+    }
+
     rv::ImageHandle getShadowMap() const {
         return shadowMapImage;
     }

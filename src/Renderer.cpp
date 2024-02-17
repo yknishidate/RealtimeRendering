@@ -241,8 +241,6 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
 
     // AA pass
     // NOTE: SSR が有効化どうかによって入力カラー画像を変える必要がある
-    commandBuffer.transitionLayout(baseColorImage, vk::ImageLayout::eGeneral);
-    commandBuffer.transitionLayout(compositeColorImage, vk::ImageLayout::eGeneral);
     antiAliasingPass.render(commandBuffer, enableSSR ? compositeColorImage : baseColorImage,
                             colorImage);
 

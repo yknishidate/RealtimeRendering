@@ -58,11 +58,12 @@ public:
             float shadowTime = renderer.getPassTimeShadow();
             float skyTime = renderer.getPassTimeSkybox();
             float forwardTime = renderer.getPassTimeForward();
+            float ssrTime = renderer.getPassTimeSSR();
             float aaTime = renderer.getPassTimeAA();
 
             ImGui::Text("GPU time");
             ImGui::SameLine(150);
-            ImGui::Text("%.3f ms", shadowTime + skyTime + forwardTime + aaTime);
+            ImGui::Text("%.3f ms", shadowTime + skyTime + forwardTime + ssrTime + aaTime);
             ImGui::Text("  Shadow map");
             ImGui::SameLine(150);
             ImGui::Text("%.3f ms", shadowTime);
@@ -72,6 +73,9 @@ public:
             ImGui::Text("  Forward");
             ImGui::SameLine(150);
             ImGui::Text("%.3f ms", forwardTime);
+            ImGui::Text("  SSR");
+            ImGui::SameLine(150);
+            ImGui::Text("%.3f ms", ssrTime);
             ImGui::Text("  FXAA");
             ImGui::SameLine(150);
             ImGui::Text("%.3f ms", aaTime);
