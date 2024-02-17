@@ -73,10 +73,12 @@ private:
     vk::Format colorFormat = vk::Format::eR16G16B16A16Sfloat;
     vk::Format depthFormat = vk::Format::eD32Sfloat;
     vk::Format normalFormat = vk::Format::eR16G16B16A16Sfloat;
+    vk::Format metallicRoughFormat = vk::Format::eR8G8B8A8Unorm;
     rv::ImageHandle baseColorImage;
     rv::ImageHandle compositeColorImage;
     rv::ImageHandle depthImage;
     rv::ImageHandle normalImage;
+    rv::ImageHandle metallicRoughImage;
 
     // Shadow map pass
     ShadowMapPass shadowMapPass;

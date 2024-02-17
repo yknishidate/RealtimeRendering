@@ -8,6 +8,7 @@ layout(location = 3) in vec4 inShadowCoord;
 layout(location = 4) in mat3 inTBN;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outNormal;
+layout(location = 2) out vec4 outMetallicRough;
 
 vec2 poissonDisk[4] = vec2[](
     vec2( -0.94201624,  -0.39906216 ),
@@ -238,5 +239,6 @@ void main() {
     outColor = vec4(emissive + ambientTerm + directionalTerm, 1.0);
     if(scene.enableSSR == 1){
         outNormal = vec4(N, 1.0);
+        outMetallicRough = vec4(metallic, roughness, 0.0, 0.0);
     }
 }
