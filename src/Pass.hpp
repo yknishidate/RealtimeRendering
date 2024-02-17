@@ -68,12 +68,15 @@ public:
                 const rv::ImageHandle& specularBrdfImage,
                 const rv::ImageHandle& normalImage,
                 Scene& scene,
-                bool frustumCulling);
+                bool frustumCulling,
+                bool enableSorting);
 
 private:
     StandardConstants constants;
     rv::DescriptorSetHandle descSet;
     rv::GraphicsPipelineHandle pipeline;
+    int meshCount = 0;
+    int visibleCount = 0;
 };
 
 class SkyboxPass final : public Pass {

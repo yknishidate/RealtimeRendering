@@ -34,16 +34,16 @@
     ],
     "objects": [
         {
-            "name": "Directional light",
-            "type": "DirectionalLight",
+            "name": "Ambient light",
+            "type": "AmbientLight",
             "color": [
                 1.0,
                 1.0,
                 1.0
             ],
-            "intensity": 1.0,
-            "phi": 20.0,
-            "theta": 35.0
+            "intensity": 2.0,
+            "irradianceTexture": 0,
+            "radianceTexture": 1
         }
     ],
     "camera": {

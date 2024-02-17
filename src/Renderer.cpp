@@ -247,7 +247,7 @@ void Renderer::render(const rv::CommandBuffer& commandBuffer,
 
     // Forward pass
     forwardPass.render(commandBuffer, baseColorImage, depthImage, specularBrdfImage, normalImage,
-                       scene, enableFrustumCulling);
+                       scene, enableFrustumCulling, enableSorting);
 
     // SSR pass
     if (enableSSR) {

@@ -168,7 +168,8 @@ void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
                          const rv::ImageHandle& specularBrdfImage,
                          const rv::ImageHandle& normalImage,
                          Scene& scene,
-                         bool frustumCulling) {
+                         bool frustumCulling,
+                         bool enableSorting) {
     vk::Extent3D extent = baseColorImage->getExtent();
     commandBuffer.beginDebugLabel("ForwardPass::render()");
     commandBuffer.bindDescriptorSet(descSet, pipeline);
@@ -180,33 +181,65 @@ void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
     commandBuffer.beginRendering({baseColorImage, normalImage, specularBrdfImage}, depthImage,
                                  {0, 0}, {extent.width, extent.height});
 
-    int meshCount = 0;
-    int visibleCount = 0;
-    for (int index = 0; index < scene.getObjects().size(); index++) {
-        auto& object = scene.getObjects()[index];
-        Mesh* mesh = object.get<Mesh>();
-        if (!mesh) {
-            continue;
-        }
-        meshCount++;
+    // TODO: デフォルトカメラに対応
+    auto& objects = scene.getObjects();
+    Camera* camera = scene.getMainCamera();
+    if (frustumCulling && camera) {
+        std::vector<int> visibleMeshIndices;
+        visibleMeshIndices.reserve(objects.size());
 
-        if (frustumCulling) {
-            const auto& aabb = mesh->getWorldAABB();
-            Camera* camera = scene.getMainCamera();
-
-            if (camera && !aabb.isOnFrustum(camera->getFrustum())) {
+        // フラスタムカリング
+        meshCount = 0;
+        visibleCount = 0;
+        for (int index = 0; index < objects.size(); index++) {
+            auto& object = objects[index];
+            Mesh* mesh = object.get<Mesh>();
+            if (!mesh) {
                 continue;
             }
+            meshCount++;
+
+            const auto& aabb = mesh->getWorldAABB();
+            if (aabb.isOnFrustum(camera->getFrustum())) {
+                visibleMeshIndices.push_back(index);
+                visibleCount++;
+            }
         }
-        constants.objectIndex = index;
-        commandBuffer.pushConstants(pipeline, &constants);
-        commandBuffer.bindVertexBuffer(mesh->meshData->vertexBuffer);
-        commandBuffer.bindIndexBuffer(mesh->meshData->indexBuffer);
-        commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, mesh->vertexOffset, 0);
-        visibleCount++;
-    }
-    if (frustumCulling) {
-        spdlog::info("Visible: {} / {}", visibleCount, meshCount);
+
+        // 手前から描画するようにソート
+        if (enableSorting) {
+            glm::vec3 cameraPos = camera->getPosition();
+            std::ranges::sort(visibleMeshIndices, [&objects, &cameraPos](int index0, int index1) {
+                glm::vec3 center0 = objects[index0].get<Mesh>()->getWorldAABB().center;
+                glm::vec3 center1 = objects[index1].get<Mesh>()->getWorldAABB().center;
+                return glm::distance(center0, cameraPos) < glm::distance(center1, cameraPos);
+            });
+        }
+
+        // フラスタム内のオブジェクトだけ描画
+        for (int index : visibleMeshIndices) {
+            auto& object = scene.getObjects()[index];
+            Mesh* mesh = object.get<Mesh>();
+
+            constants.objectIndex = index;
+            commandBuffer.pushConstants(pipeline, &constants);
+            commandBuffer.bindVertexBuffer(mesh->meshData->vertexBuffer);
+            commandBuffer.bindIndexBuffer(mesh->meshData->indexBuffer);
+            commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, mesh->vertexOffset, 0);
+        }
+    } else {
+        for (int index = 0; index < scene.getObjects().size(); index++) {
+            auto& object = scene.getObjects()[index];
+            Mesh* mesh = object.get<Mesh>();
+            if (!mesh) {
+                continue;
+            }
+            constants.objectIndex = index;
+            commandBuffer.pushConstants(pipeline, &constants);
+            commandBuffer.bindVertexBuffer(mesh->meshData->vertexBuffer);
+            commandBuffer.bindIndexBuffer(mesh->meshData->indexBuffer);
+            commandBuffer.drawIndexed(mesh->indexCount, 1, mesh->firstIndex, mesh->vertexOffset, 0);
+        }
     }
 
     commandBuffer.endRendering();

@@ -50,6 +50,7 @@ public:
     // Global options
     inline static bool enableFXAA = true;
     inline static bool enableFrustumCulling = false;
+    inline static bool enableSorting = false;
     inline static bool enableSSR = true;
     inline static float exposure = 1.0f;
     inline static float ssrIntensity = 1.0f;

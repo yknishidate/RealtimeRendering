@@ -83,6 +83,7 @@ public:
                         ImGui::DragFloat("SSR intensity", &Renderer::ssrIntensity, 0.01f);
                     }
                     ImGui::Checkbox("Frustum culling", &Renderer::enableFrustumCulling);
+                    ImGui::Checkbox("Sorting", &Renderer::enableSorting);
                     ImGui::DragFloat("Exposure", &Renderer::exposure, 0.01f, 0.0f);
                     ImGui::EndMenu();
                 }
