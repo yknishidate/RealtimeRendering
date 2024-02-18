@@ -52,10 +52,20 @@ void main(){
     vec2 fragCoord = gl_FragCoord.xy;
     vec2 uv = fragCoord * inverseVP;
 
+//#define STEP_COUNT 1
+//#define THICKNESS 2
+//#define VISUALIZE THICKNESS
+#define RAYMARCH_DDA
+
     vec3 color = texture(baseColorImage, uv).xyz;
     float depth = texture(depthImage, uv).x;
-    //outColor = vec4(0);
+
+#ifdef VISUALIZE
+    outColor = vec4(0);
+#else
     outColor = vec4(color, 1);
+#endif
+
     if (depth >= 1.0){
         return;
     }
@@ -72,14 +82,14 @@ void main(){
     worldPos /= worldPos.w;
 
     vec3 V = normalize(scene.cameraPos.xyz - worldPos.xyz);
-    vec3 N = texture(normalImage, uv).xyz;
+    vec3 N = normalize(texture(normalImage, uv).xyz);
     vec3 R = reflect(-V, N);
 
     const float maxRayDistance = 10.0;
     const float maxThickness = 0.00005;
     const int maxRaySteps = 50;
+    const float randomness = 0.0;
 
-//#define RAYMARCH_DDA
 #ifdef RAYMARCH_DDA
     // _ws: world space
     // _px: screen space (pixel)
@@ -89,33 +99,31 @@ void main(){
     vec2 end_px = worldToWindowSpace(end_ws.xyz);
 
     // 始点と終点のデプスを計算しておく
+    // ここで NDC 使うので worldToWindowSpace に渡す
     vec4 _start_ndc = scene.cameraViewProj * vec4(start_ws, 1);
     vec4 _end_ndc = scene.cameraViewProj * vec4(end_ws, 1);
     float startDepth = _start_ndc.z / _start_ndc.w;
     float endDepth = _end_ndc.z / _end_ndc.w;
 
+    // カメラの後ろ側にいった場合は終了
+    if(_end_ndc.w <= 0.0){
+        return;
+    }
+
     int dx = int(end_px.x) - int(start_px.x);
     int dy = int(end_px.y) - int(start_px.y);
 
-    // TODO: もし steps が大きい場合、ピクセルを飛ばせるようにする
-    int stepSize = 8;
+    int stepSize = 32;
+    //stepSize = int(1.0 + stepSize * (1.0 - min(1.0, -startDepth / 100.0)));
     int steps = int(max(abs(dx), abs(dy)) / float(stepSize));
-    steps = min(steps, maxRaySteps);
-
-    //outColor = vec4(0, steps / float(maxRaySteps), 0, 1);
-    //outColor = vec4(dx / resolution.x);
-    //outColor = vec4(dy / resolution.y);
-    //return;
 
     float x_inc = dx / float(steps);
     float y_inc = dy / float(steps);
 
     // 次のピクセルから始めるので inc を足す
-    float x = start_px.x + x_inc;
-    float y = start_px.y + y_inc;
-    
-    //outColor = vec4(vec2(x, y) / resolution, 0, 1);
-    //return;
+    float randomOffset = random(uv) * randomness;
+    float x = start_px.x + (x_inc * (1.0 + randomOffset));
+    float y = start_px.y + (y_inc * (1.0 + randomOffset));
 
     for(int i = 0; i < steps; i++){
         vec2 uv = vec2(x, y) / resolution;
@@ -129,33 +137,32 @@ void main(){
 
         float thickness = rayDepth - depth;
         if (0.0 < thickness && thickness < maxThickness){
+#ifdef VISUALIZE
+    #if VISUALIZE == STEP_COUNT
+            outColor = vec4(0, float(i) / maxRaySteps, 0, 1);
+    #else
+            outColor = vec4(thickness / maxThickness, 0, 0, 1);
+    #endif
+#else
             vec3 color = texture(baseColorImage, uv).xyz;
             outColor += vec4(color * specularBrdf * scene.ssrIntensity, 1);
-
-            // ステップ数を可視化
-            //outColor = vec4(1);
-            //outColor = vec4(0, float(i) / maxRaySteps, 0, 1);
-
-            // どれくらいめり込んだかを可視化
-            //outColor = vec4(thickness / maxThickness, 0, 0, 1);
+#endif
+            return;
+        }
+        if(thickness >= maxThickness){
             return;
         }
         
         x += x_inc;
         y += y_inc;
     }
-    //outColor = vec4(0);
-    //outColor = vec4(0, steps / float(maxRaySteps), 0, 1);
-
-    //vec2 diff = abs(start_px - fragCoord.xy);
-    //outColor = vec4(diff, 0, 1);
-
-    //vec2 diff = (start_px - end_px);
-    //float len = distance(start_px, end_px);
-    //outColor = vec4(len / resolution, 0, 1);
-
-    //outColor = vec4(start_px / resolution, 0, 1);
-    //outColor = vec4(fragCoord.xy / resolution, 0, 1);
+#ifdef VISUALIZE
+    #if VISUALIZE == STEP_COUNT
+        outColor = vec4(0, steps / float(maxRaySteps), 0, 1);
+    #else
+        outColor = vec4(0, 0, 0, 1);
+    #endif
+#endif
 
 #else // RAYMARCH_DDA
     const float stepSize = maxRayDistance / maxRaySteps;
@@ -164,7 +171,7 @@ void main(){
         // NOTE: マイナスオフセットは逆方向にめり込む可能性があるので使わない
         // NOTE: オフセットは各ステップでランダムに変化させると綺麗になる
         // NOTE: オフセットは 1.0 よりも少し大きめにとるとさらに綺麗になる
-        float randomOffset = random(uv + i) * 0;
+        float randomOffset = random(uv + i) * randomness;
         vec3 rayPos = worldPos.xyz + R * stepSize * (i + randomOffset);
         vec4 vpPos = (scene.cameraViewProj * vec4(rayPos, 1));
         float rayDepth = vpPos.z / vpPos.w;
@@ -181,20 +188,28 @@ void main(){
         // Get color from base color buffer
         float thickness = rayDepth - depth;
         if (0.0 < thickness && thickness < maxThickness){
+#ifdef VISUALIZE
+    #if VISUALIZE == STEP_COUNT
+            outColor = vec4(0, float(i) / maxRaySteps, 0, 1);
+    #else
+            outColor = vec4(thickness / maxThickness, 0, 0, 1);
+    #endif
+#else
             vec3 color = texture(baseColorImage, uv).xyz;
             outColor += vec4(color * specularBrdf * scene.ssrIntensity, 1);
-
-            // ステップ数を可視化
-            //outColor = vec4(0, float(i) / maxRaySteps, 0, 1);
-            //outColor = vec4(1);
-
-            // どれくらいめり込んだかを可視化
-            //outColor = vec4(thickness / maxThickness, 0, 0, 1);
+#endif
+            return;
+        }
+        if(thickness >= maxThickness){
             return;
         }
     }
-    // ステップ数を可視化
-    //outColor = vec4(0, 1, 0, 1);
-    //outColor = vec4(0);
+#ifdef VISUALIZE
+    #if VISUALIZE == STEP_COUNT
+        outColor = vec4(0, 1, 0, 1);
+    #else
+        outColor = vec4(0, 0, 0, 1);
+    #endif
+#endif
 #endif // RAYMARCH_DDA
 }
