@@ -40,20 +40,20 @@ public:
         cpuRenderTime = renderTimer.elapsedInMilli();
     }
 
+    static void showTime(const char* label, float time) {
+        ImGui::Text(label);
+        ImGui::SameLine(150);
+        ImGui::Text("%6.3f ms", time);
+    }
+
     EditorMessageFlags showMiscWindow(const rv::Context& context,
                                       Scene& scene,
                                       Renderer& renderer) {
         EditorMessageFlags message = EditorMessage::None;
         if (ImGui::Begin("Misc")) {
-            ImGui::Text("CPU time");
-            ImGui::SameLine(150);
-            ImGui::Text("%.3f ms", cpuUpdateTime + cpuRenderTime);
-            ImGui::Text("  Update");
-            ImGui::SameLine(150);
-            ImGui::Text("%.3f ms", cpuUpdateTime);
-            ImGui::Text("  Render");
-            ImGui::SameLine(150);
-            ImGui::Text("%.3f ms", cpuRenderTime);
+            showTime("CPU time", cpuUpdateTime + cpuRenderTime);
+            showTime("  Update", cpuUpdateTime);
+            showTime("  Render", cpuRenderTime);
 
             float shadowTime = renderer.getPassTimeShadow();
             float skyTime = renderer.getPassTimeSkybox();
@@ -61,24 +61,12 @@ public:
             float ssrTime = renderer.getPassTimeSSR();
             float aaTime = renderer.getPassTimeAA();
 
-            ImGui::Text("GPU time");
-            ImGui::SameLine(150);
-            ImGui::Text("%.3f ms", shadowTime + skyTime + forwardTime + ssrTime + aaTime);
-            ImGui::Text("  Shadow map");
-            ImGui::SameLine(150);
-            ImGui::Text("%.3f ms", shadowTime);
-            ImGui::Text("  Skybox");
-            ImGui::SameLine(150);
-            ImGui::Text("%.3f ms", skyTime);
-            ImGui::Text("  Forward");
-            ImGui::SameLine(150);
-            ImGui::Text("%.3f ms", forwardTime);
-            ImGui::Text("  SSR");
-            ImGui::SameLine(150);
-            ImGui::Text("%.3f ms", ssrTime);
-            ImGui::Text("  FXAA");
-            ImGui::SameLine(150);
-            ImGui::Text("%.3f ms", aaTime);
+            showTime("GPU time", shadowTime + skyTime + forwardTime + ssrTime + aaTime);
+            showTime("  Shadow map", shadowTime);
+            showTime("  Skybox", skyTime);
+            showTime("  Forward", forwardTime);
+            showTime("  SSR", ssrTime);
+            showTime("  FXAA", aaTime);
 
             if (ImGui::Button("Recompile")) {
                 message = EditorMessage::RecompileRequested;
