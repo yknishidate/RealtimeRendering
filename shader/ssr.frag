@@ -52,9 +52,9 @@ void main(){
     vec2 fragCoord = gl_FragCoord.xy;
     vec2 uv = fragCoord * inverseVP;
 
-//#define STEP_COUNT 1
-//#define THICKNESS 2
-//#define VISUALIZE THICKNESS
+#define STEP_COUNT 1
+#define THICKNESS 2
+//#define VISUALIZE STEP_COUNT
 #define RAYMARCH_DDA
 
     vec3 color = texture(baseColorImage, uv).xyz;
@@ -72,9 +72,9 @@ void main(){
 
     // NOTE: BRDFが十分に小さい箇所はスキップして高速化
     vec3 specularBrdf = texture(specularBrdfImage, uv).xyz;
-    //if(all(lessThan(specularBrdf, vec3(0.1)))){
-    //    return;
-    //}
+    if(all(lessThan(specularBrdf, vec3(0.1)))){
+        return;
+    }
 
     vec2 ndcPos = uv * 2.0 - 1.0;
     ndcPos.y = -ndcPos.y;
@@ -85,10 +85,10 @@ void main(){
     vec3 N = normalize(texture(normalImage, uv).xyz);
     vec3 R = reflect(-V, N);
 
-    const float maxRayDistance = 10.0;
+    const float maxRayDistance = 5.0;
     const float maxThickness = 0.00005;
     const int maxRaySteps = 50;
-    const float randomness = 0.0;
+    const float randomness = 1.5;
 
 #ifdef RAYMARCH_DDA
     // _ws: world space
@@ -113,12 +113,16 @@ void main(){
     int dx = int(end_px.x) - int(start_px.x);
     int dy = int(end_px.y) - int(start_px.y);
 
-    int stepSize = 32;
-    //stepSize = int(1.0 + stepSize * (1.0 - min(1.0, -startDepth / 100.0)));
-    int steps = int(max(abs(dx), abs(dy)) / float(stepSize));
+    // ステップ数が多すぎる場合はクランプしてステップサイズを大きくする
+    int steps = max(abs(dx), abs(dy));
+    float stepSize = 1.0;
+    if(steps > maxRaySteps){
+        steps = maxRaySteps;
+        stepSize = maxRaySteps / steps;
+    }
 
-    float x_inc = dx / float(steps);
-    float y_inc = dy / float(steps);
+    float x_inc = dx / float(steps) * stepSize;
+    float y_inc = dy / float(steps) * stepSize;
 
     // 次のピクセルから始めるので inc を足す
     float randomOffset = random(uv) * randomness;
@@ -166,12 +170,12 @@ void main(){
 
 #else // RAYMARCH_DDA
     const float stepSize = maxRayDistance / maxRaySteps;
+    // NOTE: オフセットは 1.0 よりも少し大きめにとると綺麗になる
+    float randomOffset = random(uv) * randomness;
     for (int i = 1; i <= maxRaySteps; i++){
         // Ray march
         // NOTE: マイナスオフセットは逆方向にめり込む可能性があるので使わない
-        // NOTE: オフセットは各ステップでランダムに変化させると綺麗になる
-        // NOTE: オフセットは 1.0 よりも少し大きめにとるとさらに綺麗になる
-        float randomOffset = random(uv + i) * randomness;
+        // NOTE: オフセットは各ステップでランダムに変化させると少し綺麗になる
         vec3 rayPos = worldPos.xyz + R * stepSize * (i + randomOffset);
         vec4 vpPos = (scene.cameraViewProj * vec4(rayPos, 1));
         float rayDepth = vpPos.z / vpPos.w;

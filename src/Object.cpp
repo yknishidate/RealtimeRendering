@@ -299,6 +299,12 @@ void Camera::showAttributes(Scene& scene) {
         fovY = glm::radians(fovDeg);
         changed = true;
     }
+    if (ImGui::SliderFloat("Near", &zNear, 0.0f, 10.0f)) {
+        changed = true;
+    }
+    if (ImGui::SliderFloat("Far", &zFar, 1.0f, 10000.0f)) {
+        changed = true;
+    }
 
     if (typeIndex == static_cast<int>(Type::Orbital)) {
         auto& _params = std::get<OrbitalParams>(params);
@@ -323,17 +329,17 @@ void Camera::update(Scene& scene, float dt) {
         processMouseDragRight(glm::vec2{_mouseDragRight.x, -_mouseDragRight.y} * 0.5f);
         processMouseScroll(WindowAdapter::getMouseScroll());
 
-        if (&scene.defaultCamera != this) {
-            const rv::AABB minAABB{glm::vec3{-100.0f}, glm::vec3{100.0f}};
-            rv::AABB aabb = rv::AABB::merge(minAABB, scene.getAABB());
-
-            glm::vec3 front = getFront();
-            glm::vec3 position = getPosition();
-            glm::vec3 nearPoint = aabb.getFurthestCorner(-front);
-            glm::vec3 farPoint = aabb.getFurthestCorner(front);
-            zNear = glm::max(glm::dot(nearPoint - position, front), 0.01f);
-            zFar = glm::dot(farPoint - position, front);
-        }
+        // if (&scene.defaultCamera != this) {
+        //     const rv::AABB minAABB{glm::vec3{-100.0f}, glm::vec3{100.0f}};
+        //     rv::AABB aabb = rv::AABB::merge(minAABB, scene.getAABB());
+        //
+        //     glm::vec3 front = getFront();
+        //     glm::vec3 position = getPosition();
+        //     glm::vec3 nearPoint = aabb.getFurthestCorner(-front);
+        //     glm::vec3 farPoint = aabb.getFurthestCorner(front);
+        //     zNear = glm::max(glm::dot(nearPoint - position, front), 0.01f);
+        //     zFar = glm::dot(farPoint - position, front);
+        // }
     }
 
     aspect = WindowAdapter::getWidth() / WindowAdapter::getHeight();
