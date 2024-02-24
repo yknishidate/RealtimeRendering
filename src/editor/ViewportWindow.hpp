@@ -27,6 +27,11 @@ public:
     }
 
     static void processMouseInput() {
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            mouseClickedPos.x = ImGui::GetMousePos().x;
+            mouseClickedPos.y = ImGui::GetMousePos().y;
+        }
+
         if (ImGui::IsWindowFocused() && !ImGuizmo::IsUsing()) {
             dragDeltaLeft.x = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left, 0.0f).x;
             dragDeltaLeft.y = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left, 0.0f).y;
@@ -109,34 +114,44 @@ public:
     }
 
     static void pickObject(Scene& scene, Object** selectedObject) {
-        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-            Camera* camera = &scene.getDefaultCamera();
-            if (scene.isMainCameraAvailable()) {
-                camera = scene.getMainCamera();
+        // NOTE: Clicked()を使うとドラッグ開始時にも反応してしまうためReleased()を使う
+        // NOTE: リリースされたときにマウスが動いていたらクリックではないと判定する
+        if (!ImGui::IsMouseReleased(ImGuiMouseButton_Left) ||
+            mouseClickedPos.x != ImGui::GetMousePos().x ||
+            mouseClickedPos.y != ImGui::GetMousePos().y) {
+            return;
+        }
+
+        Camera* camera = &scene.getDefaultCamera();
+        if (scene.isMainCameraAvailable()) {
+            camera = scene.getMainCamera();
+        }
+
+        ImVec2 pos = ImGui::GetMousePos();
+        glm::vec4 ndcPos = {pos.x / width * 2.0f - 1.0f,   //
+                            pos.y / height * 2.0f - 1.0f,  //
+                            1.0f, 1.0f};
+        ndcPos.y = -ndcPos.y;
+        glm::vec4 worldPos = camera->getInvView() * camera->getInvProj() * ndcPos;
+        worldPos /= worldPos.w;
+
+        Ray ray{};
+        ray.origin = camera->getPosition();
+        ray.direction = glm::normalize(worldPos.xyz - ray.origin);
+
+        float tmin = std::numeric_limits<float>::max();
+        for (auto& obj : scene.getObjects()) {
+            Mesh* mesh = obj.get<Mesh>();
+            float t;
+            if (mesh && ray.intersect(mesh->getWorldAABB(), t) && t < tmin) {
+                tmin = t;
+                *selectedObject = &obj;
             }
+        }
 
-            ImVec2 pos = ImGui::GetMousePos();
-            glm::vec4 ndcPos = {pos.x / width * 2.0f - 1.0f,   //
-                                pos.y / height * 2.0f - 1.0f,  //
-                                1.0f, 1.0f};
-            ndcPos.y = -ndcPos.y;
-            glm::vec4 worldPos = camera->getInvView() * camera->getInvProj() * ndcPos;
-            worldPos /= worldPos.w;
-
-            Ray ray{};
-            ray.origin = camera->getPosition();
-            ray.direction = glm::normalize(worldPos.xyz - ray.origin);
-
-            float tmin = std::numeric_limits<float>::max();
-            for (auto& obj : scene.getObjects()) {
-                Mesh* mesh = obj.get<Mesh>();
-                float t;
-                if (mesh && ray.intersect(mesh->getWorldAABB(), t) && t < tmin) {
-                    tmin = t;
-                    spdlog::info("Selected!: {}", obj.getName());
-                    *selectedObject = &obj;
-                }
-            }
+        // 何にもヒットしなかったら選択を解除する
+        if (tmin == std::numeric_limits<float>::max()) {
+            *selectedObject = nullptr;
         }
     }
 
@@ -165,6 +180,10 @@ public:
                 showGizmo(scene, *selectedObject);
             }
 
+            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+                mouseClickedPos = glm::vec2{0.0f, 0.0f};
+            }
+
             ImGui::End();
         }
     }
@@ -186,6 +205,7 @@ public:
     inline static glm::vec2 dragDeltaRight = {0.0f, 0.0f};
     inline static glm::vec2 dragDeltaLeft = {0.0f, 0.0f};
     inline static float mouseScroll = 0.0f;
+    inline static glm::vec2 mouseClickedPos = {0.0f, 0.0f};  // マウスボタンが押された瞬間の位置
 
     // Image
     inline static float width = 0.0f;
