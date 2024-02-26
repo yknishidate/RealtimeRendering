@@ -163,7 +163,8 @@ struct Transform final : Component {
     glm::vec3 scale = {1.0f, 1.0f, 1.0f};
 
     // For animation
-    uint32_t currentFrame = 0;
+    float currentTime = 0.0f;
+    uint32_t prevFrame = 0;
     std::vector<KeyFrame> keyFrames;
     AnimationMethod animationMethod = AnimationMethod::Repeat;
 
@@ -174,23 +175,59 @@ struct Transform final : Component {
     void showAttributes(Scene& scene) override;
 
     void update(Scene& scene, float dt) override {
-        // TODO: キーフレームを秒単位で更新する
-        // WARN: 現状は毎回1つキーフレームを動かす簡易実装とする
         if (animationMethod == AnimationMethod::None || keyFrames.empty()) {
             return;
         }
 
-        uint32_t frame = currentFrame;
-        if (animationMethod == AnimationMethod::Once) {
-            frame = std::min(static_cast<uint32_t>(keyFrames.size()), ++currentFrame);
+        // WARN: floatを蓄積すると誤差も増えるので注意
+        // TODO: scene.currentTime() とかを用意して使う
+        currentTime += dt * 0.001f;
+        float offsetTime = currentTime - keyFrames[prevFrame].time;
+
+        // prevFrameを更新する必要があれば更新
+        if (prevFrame + 1 == keyFrames.size()) {
+            float interval = 0.016f;  // 30 fps
+            if (offsetTime >= interval) {
+                // reset
+                currentTime = offsetTime - interval;
+                prevFrame = 0;
+            }
         }
-        if (animationMethod == AnimationMethod::Repeat) {
-            frame = ++currentFrame % static_cast<uint32_t>(keyFrames.size());
+        if (prevFrame + 1 < keyFrames.size()) {
+            float interval = keyFrames[prevFrame + 1].time - keyFrames[prevFrame].time;
+            if (offsetTime >= interval) {
+                prevFrame++;  // next
+            }
         }
-        translation = keyFrames[frame].translation;
-        rotation = keyFrames[frame].rotation;
-        scale = keyFrames[frame].scale;
+
+        // offsetTime = currentTime - keyFrames[prevFrame].time;
+
+        // uint32_t frame = prevFrame;
+        // if (prevFrame + 1 == keyFrames.size()) {
+        //     float interval = 0.016f;  // 30 fps
+        //     if (offsetTime >= interval) {
+        //         prevFrame = 0;  // reset to 0
+        //     }
+        // }
+
+        // uint32_t frame = currentFrame;
+        // if (animationMethod == AnimationMethod::Once) {
+        //     frame = std::min(static_cast<uint32_t>(keyFrames.size()), ++currentFrame);
+        // }
+        // if (animationMethod == AnimationMethod::Repeat) {
+        //     frame = ++currentFrame % static_cast<uint32_t>(keyFrames.size());
+        // }
+        translation = keyFrames[prevFrame].translation;
+        rotation = keyFrames[prevFrame].rotation;
+        scale = keyFrames[prevFrame].scale;
         changed = true;
+
+        // if (animationMethod == AnimationMethod::Once) {
+        //     // frame = std::min(static_cast<uint32_t>(keyFrames.size()), ++currentFrame);
+        // }
+        // if (animationMethod == AnimationMethod::Repeat) {
+        //     // frame = ++currentFrame % static_cast<uint32_t>(keyFrames.size());
+        // }
     }
 };
 
