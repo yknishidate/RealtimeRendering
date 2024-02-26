@@ -116,7 +116,8 @@ public:
     static void pickObject(Scene& scene, Object** selectedObject) {
         // NOTE: Clicked()を使うとドラッグ開始時にも反応してしまうためReleased()を使う
         // NOTE: リリースされたときにマウスが動いていたらクリックではないと判定する
-        if (!ImGui::IsMouseReleased(ImGuiMouseButton_Left) ||
+        if (!ImGui::IsWindowFocused() || ImGuizmo::IsUsing() ||
+            !ImGui::IsMouseReleased(ImGuiMouseButton_Left) ||
             mouseClickedPos.x != ImGui::GetMousePos().x ||
             mouseClickedPos.y != ImGui::GetMousePos().y) {
             return;
