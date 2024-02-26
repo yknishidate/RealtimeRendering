@@ -151,12 +151,6 @@ struct KeyFrame {
     glm::vec3 scale = {1.0f, 1.0f, 1.0f};
 };
 
-enum class AnimationMethod {
-    None,
-    Once,
-    Repeat,
-};
-
 struct Transform final : Component {
     glm::vec3 translation = {0.0f, 0.0f, 0.0f};
     glm::quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
@@ -166,7 +160,6 @@ struct Transform final : Component {
     float currentTime = 0.0f;
     uint32_t prevFrame = 0;
     std::vector<KeyFrame> keyFrames;
-    AnimationMethod animationMethod = AnimationMethod::Repeat;
 
     glm::mat4 computeTransformMatrix() const;
 
@@ -175,12 +168,11 @@ struct Transform final : Component {
     void showAttributes(Scene& scene) override;
 
     void update(Scene& scene, float dt) override {
-        if (animationMethod == AnimationMethod::None || keyFrames.empty()) {
+        if (keyFrames.empty()) {
             return;
         }
 
         // WARN: floatを蓄積すると誤差も増えるので注意
-        // TODO: scene.currentTime() とかを用意して使う
         currentTime += dt * 0.001f;
         float offsetTime = currentTime - keyFrames[prevFrame].time;
 
@@ -200,34 +192,24 @@ struct Transform final : Component {
             }
         }
 
-        // offsetTime = currentTime - keyFrames[prevFrame].time;
+        // 線形補間
+        if (prevFrame + 1 < keyFrames.size()) {
+            offsetTime = currentTime - keyFrames[prevFrame].time;
+            float interval = keyFrames[prevFrame + 1].time - keyFrames[prevFrame].time;
+            float t = offsetTime / interval;
 
-        // uint32_t frame = prevFrame;
-        // if (prevFrame + 1 == keyFrames.size()) {
-        //     float interval = 0.016f;  // 30 fps
-        //     if (offsetTime >= interval) {
-        //         prevFrame = 0;  // reset to 0
-        //     }
-        // }
-
-        // uint32_t frame = currentFrame;
-        // if (animationMethod == AnimationMethod::Once) {
-        //     frame = std::min(static_cast<uint32_t>(keyFrames.size()), ++currentFrame);
-        // }
-        // if (animationMethod == AnimationMethod::Repeat) {
-        //     frame = ++currentFrame % static_cast<uint32_t>(keyFrames.size());
-        // }
-        translation = keyFrames[prevFrame].translation;
-        rotation = keyFrames[prevFrame].rotation;
-        scale = keyFrames[prevFrame].scale;
-        changed = true;
-
-        // if (animationMethod == AnimationMethod::Once) {
-        //     // frame = std::min(static_cast<uint32_t>(keyFrames.size()), ++currentFrame);
-        // }
-        // if (animationMethod == AnimationMethod::Repeat) {
-        //     // frame = ++currentFrame % static_cast<uint32_t>(keyFrames.size());
-        // }
+            const KeyFrame& prev = keyFrames[prevFrame];
+            const KeyFrame& next = keyFrames[prevFrame + 1];
+            translation = glm::mix(prev.translation, next.translation, t);
+            rotation = glm::slerp(prev.rotation, next.rotation, t);
+            scale = glm::mix(prev.scale, next.scale, t);
+            changed = true;
+        } else {
+            translation = keyFrames[prevFrame].translation;
+            rotation = keyFrames[prevFrame].rotation;
+            scale = keyFrames[prevFrame].scale;
+            changed = true;
+        }
     }
 };
 
