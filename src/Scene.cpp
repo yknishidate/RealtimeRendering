@@ -131,10 +131,6 @@ void Scene::loadMaterials(tinygltf::Model& gltfModel) {
         }
         if (mat.values.contains("metallicFactor")) {
             material.metallic = static_cast<float>(mat.values["metallicFactor"].Factor());
-        } else {
-            // glTF では metallicFactor が含まれない場合、デフォルトで 1 となる
-            // struct 側ではデフォルトで 0 にしておきたいためここで処理
-            material.metallic = 1.0f;
         }
 
         // Normal
@@ -309,31 +305,6 @@ void Scene::loadMesh(tinygltf::Model& gltfModel, tinygltf::Primitive& gltfPrimit
 
 void Scene::loadNodes(tinygltf::Model& gltfModel) {
     for (auto& gltfNode : gltfModel.nodes) {
-        // if (gltfNode.camera != -1) {
-        //     if (!gltfNode.translation.empty()) {
-        //         cameraTranslation = glm::vec3{gltfNode.translation[0],
-        //         -gltfNode.translation[1],
-        //                                       gltfNode.translation[2]};
-        //     }
-        //     if (!gltfNode.rotation.empty()) {
-        //         cameraRotation = glm::quat{static_cast<float>(gltfNode.rotation[3]),
-        //                                    static_cast<float>(-gltfNode.rotation[0]),
-        //                                    static_cast<float>(gltfNode.rotation[1]),
-        //                                    static_cast<float>(gltfNode.rotation[2])};
-        //     }
-
-        //    tinygltf::Camera camera = gltfModel.cameras[gltfNode.camera];
-        //    cameraYFov = static_cast<float>(camera.perspective.yfov);
-        //    cameraExists = true;
-        //    nodes.push_back(Node{});
-        //    continue;
-        //}
-
-        // if (gltfNode.skin != -1) {
-        //     nodes.push_back(Node{});
-        //     continue;
-        // }
-
         if (gltfNode.mesh != -1) {
             auto& gltfMesh = gltfModel.meshes.at(gltfNode.mesh);
 

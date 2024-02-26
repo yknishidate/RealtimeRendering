@@ -34,7 +34,7 @@ void loadMaterial(out vec4 baseColor, out vec3 normal, out vec3 emissive, out ve
     //   emissive:          sRGB
     //   mettalicRoughness: linear
     //   normal:            linear
-    //   occlusion:         不明。おそらく linear
+    //   occlusion:         linear
     // WARN: 厳密にはsRGBtoLinearとGamma2.2の処理は異なる
     // TODO: 
     // そもそもシェーダで変換するのではなく、vk::ImageのFormatで適切にsRGBかUnormかを指定し、
@@ -46,17 +46,19 @@ void loadMaterial(out vec4 baseColor, out vec3 normal, out vec3 emissive, out ve
     int normalTextureIndex = objects[pc.objectIndex].normalTextureIndex;
     int enableNormalMapping = objects[pc.objectIndex].enableNormalMapping;
     if(baseColorTexture != -1){
-        baseColor = texture(textures2D[baseColorTexture], inTexCoord);
-        baseColor = gammaCorrect(baseColor, 2.2);
+        vec4 texBaseColor = texture(textures2D[baseColorTexture], inTexCoord);
+        texBaseColor = gammaCorrect(texBaseColor, 2.2);
+        baseColor *= texBaseColor;
     }
     if(metallicRoughnessTexture != -1){
-        vec3 metallicRoughness = texture(textures2D[metallicRoughnessTexture], inTexCoord).xyz;
-        roughness = metallicRoughness.y;
-        metallic = metallicRoughness.z;
+        vec3 texMetallicRoughness = texture(textures2D[metallicRoughnessTexture], inTexCoord).xyz;
+        roughness *= texMetallicRoughness.y;
+        metallic *= texMetallicRoughness.z;
     }
     if(emissiveTextureIndex != -1){
-        emissive = texture(textures2D[emissiveTextureIndex], inTexCoord).xyz;
-        emissive = gammaCorrect(emissive, 2.2);
+        vec3 texEmissive = texture(textures2D[emissiveTextureIndex], inTexCoord).xyz;
+        texEmissive = gammaCorrect(texEmissive, 2.2);
+        emissive *= texEmissive;
     }
     if(occlusionTextureIndex != -1){
         occlusion = texture(textures2D[occlusionTextureIndex], inTexCoord).xyz;

@@ -131,7 +131,7 @@ private:
 struct Material {
     glm::vec4 baseColor{1.0f};
     glm::vec3 emissive{0.0f};
-    float metallic{0.0f};
+    float metallic{1.0f};
     float roughness{1.0f};
     float ior{1.5f};
 
