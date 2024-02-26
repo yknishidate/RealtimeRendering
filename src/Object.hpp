@@ -151,18 +151,47 @@ struct KeyFrame {
     glm::vec3 scale = {1.0f, 1.0f, 1.0f};
 };
 
+enum class AnimationMethod {
+    None,
+    Once,
+    Repeat,
+};
+
 struct Transform final : Component {
     glm::vec3 translation = {0.0f, 0.0f, 0.0f};
     glm::quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     glm::vec3 scale = {1.0f, 1.0f, 1.0f};
 
+    // For animation
+    uint32_t currentFrame = 0;
     std::vector<KeyFrame> keyFrames;
+    AnimationMethod animationMethod = AnimationMethod::Repeat;
 
     glm::mat4 computeTransformMatrix() const;
 
     glm::mat4 computeNormalMatrix() const;
 
     void showAttributes(Scene& scene) override;
+
+    void update(Scene& scene, float dt) override {
+        // TODO: キーフレームを秒単位で更新する
+        // WARN: 現状は毎回1つキーフレームを動かす簡易実装とする
+        if (animationMethod == AnimationMethod::None || keyFrames.empty()) {
+            return;
+        }
+
+        uint32_t frame = currentFrame;
+        if (animationMethod == AnimationMethod::Once) {
+            frame = std::min(static_cast<uint32_t>(keyFrames.size()), ++currentFrame);
+        }
+        if (animationMethod == AnimationMethod::Repeat) {
+            frame = ++currentFrame % static_cast<uint32_t>(keyFrames.size());
+        }
+        translation = keyFrames[frame].translation;
+        rotation = keyFrames[frame].rotation;
+        scale = keyFrames[frame].scale;
+        changed = true;
+    }
 };
 
 struct DirectionalLight : Component {
