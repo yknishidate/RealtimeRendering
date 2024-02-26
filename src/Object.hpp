@@ -144,17 +144,17 @@ struct Material {
     std::string name;
 };
 
+struct KeyFrame {
+    float time;  // 秒単位
+    glm::vec3 translation = {0.0f, 0.0f, 0.0f};
+    glm::quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
+    glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+};
+
 struct Transform final : Component {
     glm::vec3 translation = {0.0f, 0.0f, 0.0f};
     glm::quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     glm::vec3 scale = {1.0f, 1.0f, 1.0f};
-
-    struct KeyFrame {
-        int frame;
-        glm::vec3 translation = {0.0f, 0.0f, 0.0f};
-        glm::quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
-        glm::vec3 scale = {1.0f, 1.0f, 1.0f};
-    };
 
     std::vector<KeyFrame> keyFrames;
 

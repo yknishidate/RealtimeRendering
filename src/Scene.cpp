@@ -303,8 +303,96 @@ void Scene::loadMesh(tinygltf::Model& gltfModel, tinygltf::Primitive& gltfPrimit
     mesh.computeLocalAABB();
 }
 
+bool findAnimationSampler(const tinygltf::Model& gltfModel,
+                          int node,
+                          std::string_view path,
+                          tinygltf::AnimationSampler& outSampler) {
+    for (const auto& animation : gltfModel.animations) {
+        for (const auto& channel : animation.channels) {
+            if (channel.target_node == node && channel.target_path == path) {
+                outSampler = animation.samplers[channel.sampler];
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void loadKeyFrame(tinygltf::Model& gltfModel,
+                  int node,
+                  std::string_view path,
+                  std::vector<KeyFrame>& keyFrames) {
+    tinygltf::AnimationSampler sampler;
+    bool found = findAnimationSampler(gltfModel, node, path, sampler);
+    if (!found) {
+        return;
+    }
+
+    tinygltf::Accessor& inputAccessor = gltfModel.accessors[sampler.input];
+    tinygltf::BufferView& inputBufferView = gltfModel.bufferViews[inputAccessor.bufferView];
+    tinygltf::Buffer& inputBuffer = gltfModel.buffers[inputBufferView.buffer];
+    const float* inputData = reinterpret_cast<const float*>(
+        &inputBuffer.data[inputBufferView.byteOffset + inputAccessor.byteOffset]);
+    const size_t inputCount = inputAccessor.count;
+
+    tinygltf::Accessor& outputAccessor = gltfModel.accessors[sampler.output];
+    tinygltf::BufferView& outputBufferView = gltfModel.bufferViews[outputAccessor.bufferView];
+    tinygltf::Buffer& outputBuffer = gltfModel.buffers[outputBufferView.buffer];
+    const float* outputData = reinterpret_cast<const float*>(
+        &outputBuffer.data[outputBufferView.byteOffset + outputAccessor.byteOffset]);
+
+    if (keyFrames.empty()) {
+        keyFrames.resize(inputCount);
+    }
+
+    for (size_t i = 0; i < inputCount; i++) {
+        keyFrames[i].time = inputData[i];
+
+        if (path == "translation") {
+            keyFrames[i].translation =
+                glm::vec3(outputData[i * 3 + 0], -outputData[i * 3 + 1], outputData[i * 3 + 2]);
+        } else if (path == "rotation") {
+            keyFrames[i].rotation = glm::quat(outputData[i * 4 + 3], outputData[i * 4 + 0],
+                                              outputData[i * 4 + 1], outputData[i * 4 + 2]);
+        } else if (path == "scale") {
+            keyFrames[i].scale =
+                glm::vec3(outputData[i * 3 + 0], outputData[i * 3 + 1], outputData[i * 3 + 2]);
+        }
+    }
+}
+
 void Scene::loadNodes(tinygltf::Model& gltfModel) {
-    for (auto& gltfNode : gltfModel.nodes) {
+    for (int node = 0; node < gltfModel.nodes.size(); node++) {
+        auto& gltfNode = gltfModel.nodes[node];
+
+        // Load transform
+        glm::vec3 translation = {0.0f, 0.0f, 0.0f};
+        glm::quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
+        glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+        if (!gltfNode.translation.empty()) {
+            translation = glm::vec3{gltfNode.translation[0],  //
+                                    gltfNode.translation[1],  //
+                                    gltfNode.translation[2]};
+        }
+        if (!gltfNode.rotation.empty()) {
+            rotation = glm::quat{
+                static_cast<float>(gltfNode.rotation[3]), static_cast<float>(gltfNode.rotation[0]),
+                static_cast<float>(gltfNode.rotation[1]), static_cast<float>(gltfNode.rotation[2])};
+        }
+
+        if (!gltfNode.scale.empty()) {
+            scale = glm::vec3{gltfNode.scale[0],  //
+                              gltfNode.scale[1],  //
+                              gltfNode.scale[2]};
+        }
+
+        // Load animation
+        std::vector<KeyFrame> keyFrames;
+        loadKeyFrame(gltfModel, node, "translation", keyFrames);
+        loadKeyFrame(gltfModel, node, "rotation", keyFrames);
+        loadKeyFrame(gltfModel, node, "scale", keyFrames);
+
+        // Load mesh
         if (gltfNode.mesh != -1) {
             auto& gltfMesh = gltfModel.meshes.at(gltfNode.mesh);
 
@@ -323,24 +411,10 @@ void Scene::loadNodes(tinygltf::Model& gltfModel) {
 
                 // Transform
                 Transform& trans = obj.add<Transform>();
-                if (!gltfNode.translation.empty()) {
-                    trans.translation = glm::vec3{gltfNode.translation[0],  //
-                                                  gltfNode.translation[1],  //
-                                                  gltfNode.translation[2]};
-                }
-
-                if (!gltfNode.rotation.empty()) {
-                    trans.rotation = glm::quat{static_cast<float>(gltfNode.rotation[3]),
-                                               static_cast<float>(gltfNode.rotation[0]),
-                                               static_cast<float>(gltfNode.rotation[1]),
-                                               static_cast<float>(gltfNode.rotation[2])};
-                }
-
-                if (!gltfNode.scale.empty()) {
-                    trans.scale = glm::vec3{gltfNode.scale[0],  //
-                                            gltfNode.scale[1],  //
-                                            gltfNode.scale[2]};
-                }
+                trans.translation = translation;
+                trans.rotation = rotation;
+                trans.scale = scale;
+                trans.keyFrames = keyFrames;
             }
         }
     }
