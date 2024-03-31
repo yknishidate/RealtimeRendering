@@ -145,7 +145,7 @@ struct Material {
 };
 
 struct KeyFrame {
-    float time;  // 秒単位
+    float time = 0.0f;  // 秒単位
     glm::vec3 translation = {0.0f, 0.0f, 0.0f};
     glm::quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     glm::vec3 scale = {1.0f, 1.0f, 1.0f};
