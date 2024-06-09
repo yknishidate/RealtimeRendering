@@ -96,8 +96,14 @@ public:
         // FIX: DeviceHostにすると確保に失敗する
         std::vector<rv::Vertex> vertices = {{{0.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f, 0.0f}}};
         std::vector<uint32_t> indices = {0, 1};
-        singleLineMesh = rv::Mesh{*context, rv::MemoryUsage::Device, vertices, indices,
-                                  "ViewportRenderer::singleLineMesh"};
+        singleLineMesh = rv::Mesh{
+            *context,  //
+            rv::MemoryUsage::Device,
+            vertices,
+            indices,
+            false,
+            "ViewportRenderer::singleLineMesh",
+        };
 
         cubeLineMesh = rv::Mesh::createCubeLineMesh(*context, {"ViewportRenderer::cubeLineMesh"});
     }

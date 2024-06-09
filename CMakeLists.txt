@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(realtime_rendering LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 
-find_package(imguizmo CONFIG REQUIRED)
+find_package(unofficial-imguizmo CONFIG REQUIRED)
 find_package(unofficial-nativefiledialog CONFIG REQUIRED)
 
 set(REACTIVE_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
@@ -20,7 +20,7 @@ find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
     reactive
-    imguizmo::imguizmo
+    unofficial::imguizmo::imguizmo
     unofficial::nativefiledialog::nfd
 )
 
