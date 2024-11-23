@@ -16,9 +16,18 @@
         "docking-experimental"
       ]
     },
+    {
+      "name": "ktx",
+      "features": ["vulkan"]
+    },
+    "glslang",
+    "spirv-cross",
+    "spirv-tools",
+    "spirv-headers",
+    "spirv-reflect",
     "imguizmo",
     "tinygltf",
-    "nativefiledialog",
+    "nativefiledialog-extended",
     {
       "name": "ktx",
       "features": ["vulkan"]

@@ -13,7 +13,6 @@
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_CXX_STANDARD": "20",
-                "CMAKE_TOOLCHAIN_FILE": "vcpkg/scripts/buildsystems/vcpkg.cmake",
                 "CMAKE_CXX_FLAGS": "/W4 /WX /wd4100 /wd6326 /permissive- /analyze /EHsc /Zc:preprocessor /Zc:inline /Zc:strictStrings /Zc:rvalueCast /MP /external:anglebrackets /analyze:external-",
                 "CMAKE_EXE_LINKER_FLAGS": "/ignore:4099",
                 "CMAKE_SHARED_LINKER_FLAGS": "/ignore:4099"
