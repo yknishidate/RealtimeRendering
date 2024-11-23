@@ -1,6 +1,6 @@
 #pragma once
 #include <imgui.h>
-#include <nfd.h>
+#include <nfd.hpp>
 
 #include "IconManager.hpp"
 #include "Scene.hpp"
@@ -37,11 +37,11 @@ public:
     }
 
     static void openImportDialog(const rv::Context& context, Scene& scene) {
-        nfdchar_t* outPath = nullptr;
-        nfdresult_t result = NFD_OpenDialog("png,jpg,hdr,ktx", nullptr, &outPath);
+        NFD::UniquePath outPath;
+        nfdfilteritem_t filterItem[1] = {{"Image", "png,jpg,hdr,ktx"}};
+        nfdresult_t result = NFD::OpenDialog(outPath, filterItem, 1);
         if (result == NFD_OKAY) {
-            importTexture(context, scene, outPath);
-            free(outPath);
+            importTexture(context, scene, outPath.get());
         }
     }
 

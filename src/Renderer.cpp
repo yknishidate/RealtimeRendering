@@ -15,10 +15,10 @@ void Renderer::init(const rv::Context& _context,
         .usage = rv::ImageUsage::DepthAttachment | vk::ImageUsageFlagBits::eSampled,
         .extent = shadowMapExtent,
         .format = shadowMapFormat,
+        .viewInfo = rv::ImageViewCreateInfo{.aspect = vk::ImageAspectFlagBits::eDepth},
+        .samplerInfo = rv::SamplerCreateInfo{},
         .debugName = "ShadowMapPass::depthImage",
     });
-    shadowMapImage->createImageView(vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth);
-    shadowMapImage->createSampler();
 
     // シェーダリフレクションのために適当なシェーダを作成する
     // TODO: DescSetに合わせ、全てのシェーダを一か所で管理する
@@ -40,17 +40,17 @@ void Renderer::init(const rv::Context& _context,
     dummyTextures2D = context->createImage({
         .usage = rv::ImageUsage::Sampled,
         .format = vk::Format::eB8G8R8A8Unorm,
+        .viewInfo = rv::ImageViewCreateInfo{},
+        .samplerInfo = rv::SamplerCreateInfo{},
         .debugName = "dummyTextures2D",
     });
     dummyTexturesCube = context->createImage({
         .usage = rv::ImageUsage::Sampled,
         .format = vk::Format::eB8G8R8A8Unorm,
+        .viewInfo = rv::ImageViewCreateInfo{},
+        .samplerInfo = rv::SamplerCreateInfo{},
         .debugName = "dummyTextures2D",
     });
-    dummyTextures2D->createImageView();
-    dummyTextures2D->createSampler();
-    dummyTexturesCube->createImageView();
-    dummyTexturesCube->createSampler();
 
     context->oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
         commandBuffer->transitionLayout(shadowMapImage, vk::ImageLayout::eReadOnlyOptimal);
@@ -105,10 +105,10 @@ void Renderer::createImages(uint32_t width, uint32_t height) {
                  vk::ImageUsageFlagBits::eColorAttachment,
         .extent = {width, height, 1},
         .format = colorFormat,
+        .viewInfo = rv::ImageViewCreateInfo{},
+        .samplerInfo = rv::SamplerCreateInfo{},
         .debugName = "Renderer::colorImage",
     });
-    baseColorImage->createImageView();
-    baseColorImage->createSampler();
 
     compositeColorImage = context->createImage({
         .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage |
@@ -116,40 +116,40 @@ void Renderer::createImages(uint32_t width, uint32_t height) {
                  vk::ImageUsageFlagBits::eColorAttachment,
         .extent = {width, height, 1},
         .format = colorFormat,
+        .viewInfo = rv::ImageViewCreateInfo{},
+        .samplerInfo = rv::SamplerCreateInfo{},
         .debugName = "Renderer::compositeColorImage",
     });
-    compositeColorImage->createImageView();
-    compositeColorImage->createSampler();
 
     depthImage = context->createImage({
         .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
                  vk::ImageUsageFlagBits::eDepthStencilAttachment,
         .extent = {width, height, 1},
         .format = depthFormat,
+        .viewInfo = rv::ImageViewCreateInfo{.aspect = vk::ImageAspectFlagBits::eDepth},
+        .samplerInfo = rv::SamplerCreateInfo{},
         .debugName = "Renderer::depthImage",
     });
-    depthImage->createImageView(vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth);
-    depthImage->createSampler();
 
     normalImage = context->createImage({
         .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
                  vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eColorAttachment,
         .extent = {width, height, 1},
         .format = normalFormat,
+        .viewInfo = rv::ImageViewCreateInfo{},
+        .samplerInfo = rv::SamplerCreateInfo{},
         .debugName = "Renderer::normalImage",
     });
-    normalImage->createImageView();
-    normalImage->createSampler();
 
     specularBrdfImage = context->createImage({
         .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
                  vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eColorAttachment,
         .extent = {width, height, 1},
         .format = specularBrdfFormat,
+        .viewInfo = rv::ImageViewCreateInfo{},
+        .samplerInfo = rv::SamplerCreateInfo{},
         .debugName = "Renderer::specularBrdfImage",
     });
-    specularBrdfImage->createImageView();
-    specularBrdfImage->createSampler();
 
     context->oneTimeSubmit([&](rv::CommandBufferHandle commandBuffer) {
         commandBuffer->transitionLayout(baseColorImage, vk::ImageLayout::eGeneral);

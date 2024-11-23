@@ -309,8 +309,7 @@ void Camera::showAttributes(Scene& scene) {
     if (typeIndex == static_cast<int>(Type::Orbital)) {
         auto& _params = std::get<OrbitalParams>(params);
         changed |= ImGui::DragFloat3("Target", glm::value_ptr(_params.target), 0.1f);
-        changed |= ImGui::SliderFloat("Phi", &_params.phi, -180.0f, 180.0f);
-        changed |= ImGui::SliderFloat("Theta", &_params.theta, -90.0f, 90.0f);
+        changed |= ImGui::DragFloat("Distance", &_params.distance, 0.1f);
     } else {
         // auto& _params = std::get<FirstPersonParams>(params);
     }

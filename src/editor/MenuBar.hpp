@@ -10,16 +10,16 @@ class MenuBar {
 public:
     // TODO:
     static EditorMessage openScene(Scene& scene) {
-        nfdchar_t* outPath = nullptr;
-        nfdresult_t result = NFD_OpenDialog("json,gltf,glb", nullptr, &outPath);
+        NFD::UniquePath outPath;
+        nfdfilteritem_t filterItem[1] = {{"Scene", "json,gltf,glb"}};
+        nfdresult_t result = NFD::OpenDialog(outPath, filterItem, 1);
         if (result == NFD_OKAY) {
-            std::filesystem::path filepath = {outPath};
+            std::filesystem::path filepath = {outPath.get()};
             if (filepath.extension() == ".gltf" || filepath.extension() == ".glb") {
-                scene.loadFromGltf(std::filesystem::path{outPath});
+                scene.loadFromGltf(std::filesystem::path{outPath.get()});
             } else if (filepath.extension() == ".json") {
-                scene.loadFromJson(std::filesystem::path{outPath});
+                scene.loadFromJson(std::filesystem::path{outPath.get()});
             }
-            free(outPath);
             return EditorMessage::SceneOpened;
         }
         return EditorMessage::None;

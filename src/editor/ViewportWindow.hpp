@@ -110,7 +110,7 @@ public:
         float cursorY = viewportPos.y + height - imageHeight - padding;
         ImGui::SetCursorScreenPos(ImVec2(cursorX, cursorY));
 
-        ImGui::Image(auxiliaryDescSet, ImVec2(imageWidth, imageHeight));
+        ImGui::Image((ImTextureID)(VkDescriptorSet)auxiliaryDescSet, ImVec2(imageWidth, imageHeight));
     }
 
     static void pickObject(Scene& scene, Object** selectedObject) {
@@ -165,7 +165,7 @@ public:
             ImVec2 windowSize = ImGui::GetContentRegionAvail();
             width = windowSize.x;
             height = windowSize.y;
-            ImGui::Image(image, windowSize);
+            ImGui::Image((ImTextureID)(VkDescriptorSet)image, windowSize);
 
             pickObject(scene, selectedObject);
 

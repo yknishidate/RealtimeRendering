@@ -82,10 +82,10 @@ void Scene::loadTextures(tinygltf::Model& gltfModel) {
                 .extent = {static_cast<uint32_t>(image.width), static_cast<uint32_t>(image.height),
                            1},
                 .format = vk::Format::eR8G8B8A8Unorm,
+                .viewInfo = rv::ImageViewCreateInfo{},
+                .samplerInfo = rv::SamplerCreateInfo{},
                 .debugName = tex.name,
             });
-            tex.image->createImageView();
-            tex.image->createSampler();
 
             rv::BufferHandle buffer = context->createBuffer({
                 .usage = rv::BufferUsage::Staging,
@@ -588,12 +588,7 @@ void Scene::loadFromJson(const std::filesystem::path& filepath) {
             if (_camera.contains("distance")) {
                 camera.setDistance(_camera["distance"]);
             }
-            if (_camera.contains("phi")) {
-                camera.setPhi(_camera["phi"]);
-            }
-            if (_camera.contains("theta")) {
-                camera.setTheta(_camera["theta"]);
-            }
+            // TODO: load rotation
         } else if (_camera["type"] == "FirstPerson") {
             camera.setType(rv::Camera::Type::FirstPerson);
         }

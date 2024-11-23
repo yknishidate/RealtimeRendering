@@ -5,10 +5,13 @@
 #include "editor/MenuBar.hpp"
 #include "editor/SceneWindow.hpp"
 #include "editor/ViewportWindow.hpp"
+#include <nfd.hpp>
 
 class Editor {
 public:
     void init(const rv::Context& context, vk::Format _colorFormat) {
+        NFD::Init();
+
         colorFormat = _colorFormat;
 
         // Editor
@@ -22,6 +25,8 @@ public:
 
     void shutdown() {
         IconManager::clearIcons();
+
+        NFD::Quit();
     }
 
     void beginCpuUpdate() {
@@ -137,10 +142,10 @@ public:
                      vk::ImageUsageFlagBits::eColorAttachment,
             .extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1},
             .format = colorFormat,
+            .viewInfo = rv::ImageViewCreateInfo{},
+            .samplerInfo = rv::SamplerCreateInfo{},
             .debugName = "ViewportRenderer::colorImage",
         });
-        viewportImage->createImageView();
-        viewportImage->createSampler();
 
         // Create desc set
         ImGui_ImplVulkan_RemoveTexture(imguiDescSet);

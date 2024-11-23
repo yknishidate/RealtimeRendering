@@ -64,11 +64,9 @@ public:
         ImVec4 bgColor,
         const std::function<void()>& callback = [] {}) {
         auto [uv0, uv1] = computeCenterCroppedUVs(getImageSize(iconName));
-        ImTextureID textureId = icons[iconName].descSet;
+        ImTextureID textureId = (ImTextureID)(VkDescriptorSet)icons[iconName].descSet;
         ImGui::PushID(itemName.c_str());
-        if (ImGui::ImageButton(textureId,                       // texture
-                               {thumbnailSize, thumbnailSize},  // size
-                               uv0, uv1, 0, bgColor)) {
+        if (ImGui::ImageButton(iconName.c_str(), textureId, {thumbnailSize, thumbnailSize}, uv0, uv1, bgColor)) {
             callback();
         }
         ImGui::PopID();
@@ -86,11 +84,9 @@ public:
         ImVec4 bgColor,
         const std::function<void()>& callback = [] {}) {
         auto [uv0, uv1] = computeCenterCroppedUVs(getImageSize(iconName));
-        ImTextureID textureId = icons[iconName].descSet;
+        ImTextureID textureId = (ImTextureID)(VkDescriptorSet)icons[iconName].descSet;
         ImGui::PushID(itemName.c_str());
-        if (ImGui::ImageButton(textureId,                       // texture
-                               {thumbnailSize, thumbnailSize},  // size
-                               uv0, uv1, 0, bgColor)) {
+        if (ImGui::ImageButton(iconName.c_str(), textureId, {thumbnailSize, thumbnailSize}, uv0, uv1, bgColor)) {
             callback();
         }
 
@@ -116,11 +112,9 @@ public:
         const std::function<void()>& callback = [] {},
         const std::function<void(const char*)>& dropCallback = [](const char*) {}) {
         auto [uv0, uv1] = computeCenterCroppedUVs(getImageSize(iconName));
-        ImTextureID textureId = icons[iconName].descSet;
+        ImTextureID textureId = (ImTextureID)(VkDescriptorSet)icons[iconName].descSet;
         ImGui::PushID(itemName.c_str());
-        if (ImGui::ImageButton(textureId,                       // texture
-                               {thumbnailSize, thumbnailSize},  // size
-                               uv0, uv1, 0, bgColor)) {
+        if (ImGui::ImageButton(iconName.c_str(), textureId, {thumbnailSize, thumbnailSize}, uv0, uv1, bgColor)) {
             callback();
         }
 

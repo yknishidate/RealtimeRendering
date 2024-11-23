@@ -43,7 +43,7 @@ void ShadowMapPass::render(const rv::CommandBuffer& commandBuffer,
     commandBuffer.transitionLayout(shadowMapImage, vk::ImageLayout::eDepthAttachmentOptimal);
 
     commandBuffer.beginDebugLabel("ShadowMapPass::render()");
-    commandBuffer.bindDescriptorSet(descSet, pipeline);
+    commandBuffer.bindDescriptorSet(pipeline, descSet);
     commandBuffer.bindPipeline(pipeline);
 
     commandBuffer.setViewport(extent.width, extent.height);
@@ -112,7 +112,7 @@ void AntiAliasingPass::render(const rv::CommandBuffer& commandBuffer,
     commandBuffer.transitionLayout(dstImage, vk::ImageLayout::eColorAttachmentOptimal);
 
     commandBuffer.beginDebugLabel("AntiAliasingPass::render()");
-    commandBuffer.bindDescriptorSet(descSet, pipeline);
+    commandBuffer.bindDescriptorSet(pipeline, descSet);
     commandBuffer.bindPipeline(pipeline);
 
     commandBuffer.setViewport(extent.width, extent.height);
@@ -172,7 +172,7 @@ void ForwardPass::render(const rv::CommandBuffer& commandBuffer,
                          bool enableSorting) {
     vk::Extent3D extent = baseColorImage->getExtent();
     commandBuffer.beginDebugLabel("ForwardPass::render()");
-    commandBuffer.bindDescriptorSet(descSet, pipeline);
+    commandBuffer.bindDescriptorSet(pipeline, descSet);
     commandBuffer.bindPipeline(pipeline);
 
     commandBuffer.setViewport(extent.width, extent.height);
@@ -290,7 +290,7 @@ void SkyboxPass::render(const rv::CommandBuffer& commandBuffer,
                         const MeshData& cubeMesh) {
     vk::Extent3D extent = baseColorImage->getExtent();
     commandBuffer.beginDebugLabel("SkyboxPass::render()");
-    commandBuffer.bindDescriptorSet(descSet, pipeline);
+    commandBuffer.bindDescriptorSet(pipeline, descSet);
     commandBuffer.bindPipeline(pipeline);
 
     commandBuffer.setViewport(extent.width, extent.height);
@@ -356,7 +356,7 @@ void SSRPass::render(const rv::CommandBuffer& commandBuffer,
     commandBuffer.transitionLayout(dstImage, vk::ImageLayout::eColorAttachmentOptimal);
 
     commandBuffer.beginDebugLabel("SSRPass::render()");
-    commandBuffer.bindDescriptorSet(descSet, pipeline);
+    commandBuffer.bindDescriptorSet(pipeline, descSet);
     commandBuffer.bindPipeline(pipeline);
 
     commandBuffer.setViewport(extent.width, extent.height);

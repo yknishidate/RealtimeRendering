@@ -58,7 +58,7 @@ public:
               const glm::mat4& mvp,
               const glm::vec3& color,
               float lineWidth) const {
-        commandBuffer.bindDescriptorSet(descSet, pipeline);
+        commandBuffer.bindDescriptorSet(pipeline, descSet);
         commandBuffer.bindPipeline(pipeline);
 
         PushConstants pushConstants{};
@@ -96,16 +96,10 @@ public:
         // FIX: DeviceHostにすると確保に失敗する
         std::vector<rv::Vertex> vertices = {{{0.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f, 0.0f}}};
         std::vector<uint32_t> indices = {0, 1};
-        singleLineMesh = rv::Mesh{
-            *context,  //
-            rv::MemoryUsage::Device,
-            vertices,
-            indices,
-            false,
-            "ViewportRenderer::singleLineMesh",
-        };
+        singleLineMesh = {*context, rv::MeshUsage::Graphics, rv::MemoryUsage::Device,
+                          vertices, indices, "ViewportRenderer::singleLineMesh"};
 
-        cubeLineMesh = rv::Mesh::createCubeLineMesh(*context, {"ViewportRenderer::cubeLineMesh"});
+        cubeLineMesh = rv::Mesh::createCubeLineMesh(*context, {.usage = rv::MeshUsage::Graphics, .name = "ViewportRenderer::cubeLineMesh"});
     }
 
     void drawAABB(const rv::CommandBuffer& commandBuffer,
