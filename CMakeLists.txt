@@ -35,3 +35,9 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     "DEV_ASSET_DIR=std::filesystem::path{\"${CMAKE_CURRENT_SOURCE_DIR}/asset/\"}")
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_SOURCE_DIR}/asset/imgui.ini
+    ${CMAKE_BINARY_DIR}/imgui.ini
+)
